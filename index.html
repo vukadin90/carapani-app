@@ -190,9 +190,11 @@ ${avatar}
 
 if(!profile?.approved)html+='<div class="notice">Registracija je uspešna. Administrator kluba treba da odobri tvoj nalog pre pristupa sadržaju za članove.</div>';
 
-if(profile?.approved)html+=`<div class="formbox"><h3>🔔 Push obaveštenja</h3><p class="muted">Primaj obaveštenja kluba o novim turama, događajima i vestima, čak i kada aplikacija nije otvorena.</p><div id="pushStatus" class="muted" style="margin:8px 0">Provera statusa…</div><button class="btn" id="pushToggle" onclick="togglePushNotifications()">UKLJUČI OBAVEŠTENJA</button></div>`;
-if(isAdmin)html+=`<div class="formbox"><h3>✏️ Promena imena administratora</h3><label>Ime koje će članovi videti kod glasanja</label><input class="field" id="adminDisplayName" maxlength="80" value="${esc(profile?.full_name||'')}" placeholder="Unesi ime i prezime"><button class="btn" onclick="saveAdminDisplayName()">SAČUVAJ IME</button></div>`;
-if(isAdmin)html+='<button class="btn secondary" onclick="showPage(&quot;admin&quot;)">OTVORI ADMINISTRACIJU</button>';
+html+=`<div class="formbox"><h3>⚙️ Podešavanja naloga</h3><label>Izaberi šta želiš da uradiš</label><select class="field" id="accountActionSelect" onchange="accountMenuChange(this.value)"><option value="">-- Izaberi opciju --</option>${profile?.approved?'<option value="push">🔔 Push obaveštenja</option>':''}${isAdmin?'<option value="name">✏️ Promena imena</option><option value="admin">🛠️ Administracija kluba</option>':''}</select></div>
+<div id="accountActionPanels">
+${profile?.approved?`<div id="accountPushPanel" class="formbox" style="display:none"><h3>🔔 Push obaveštenja</h3><p class="muted">Primaj obaveštenja kluba o novim turama, događajima i vestima, čak i kada aplikacija nije otvorena.</p><div id="pushStatus" class="muted" style="margin:8px 0">Provera statusa…</div><button class="btn" id="pushToggle" onclick="togglePushNotifications()">UKLJUČI OBAVEŠTENJA</button></div>`:''}
+${isAdmin?`<div id="accountNamePanel" class="formbox" style="display:none"><h3>✏️ Promena imena administratora</h3><label>Ime koje će članovi videti kod glasanja</label><input class="field" id="adminDisplayName" maxlength="80" value="${esc(profile?.full_name||'')}" placeholder="Unesi ime i prezime"><button class="btn" onclick="saveAdminDisplayName()">SAČUVAJ IME</button></div><div id="accountAdminPanel" class="formbox" style="display:none"><h3>🛠️ Administracija kluba</h3><button class="btn secondary" onclick="showPage('admin')">OTVORI ADMINISTRACIJU</button></div>`:''}
+</div>`;
 
 html+='<div class="actions"><button class="btn secondary" onclick="logout()">ODJAVI SE</button></div>';
 
@@ -205,6 +207,10 @@ async function updatePushUI(){const status=$('pushStatus'),button=$('pushToggle'
 async function togglePushNotifications(){if(!session||!profile?.approved){alert('Push obaveštenja su dostupna samo odobrenim članovima.');return;}if(!('serviceWorker'in navigator)||!('PushManager'in window)||!('Notification'in window)){alert('Push nije podržan u ovom pregledaču. Na iPhone-u prvo dodaj aplikaciju na početni ekran i otvori je odatle.');return;}const button=$('pushToggle');if(button)button.disabled=true;try{const reg=await navigator.serviceWorker.ready;let sub=await reg.pushManager.getSubscription();if(sub){const endpoint=sub.endpoint;await sub.unsubscribe();const {error}=await db.from('push_subscriptions').delete().eq('endpoint',endpoint);if(error)throw error;alert('Push obaveštenja su isključena na ovom uređaju.');}else{const permission=await Notification.requestPermission();if(permission!=='granted')throw new Error('Dozvola za obaveštenja nije odobrena.');sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(PUSH_VAPID_PUBLIC_KEY)});const json=sub.toJSON();const {error}=await db.from('push_subscriptions').upsert({user_id:session.user.id,endpoint:json.endpoint,p256dh:json.keys.p256dh,auth:json.keys.auth},{onConflict:'endpoint'});if(error){await sub.unsubscribe();throw error;}alert('Push obaveštenja su uspešno uključena!');}}catch(e){console.error('Push setup error',e);alert('Nije uspelo podešavanje obaveštenja: '+(e.message||e));}finally{if(button)button.disabled=false;await updatePushUI();}}
 async function sendClubPush(title,body,kind){if(!session||!profile?.approved)return;try{const {error}=await db.functions.invoke('quick-service',{body:{title,body,kind}});if(error)console.warn('Push nije poslat:',error.message);}catch(e){console.warn('Push nije poslat:',e);}}
 
+function accountMenuChange(value){
+  const panels={push:$('accountPushPanel'),name:$('accountNamePanel'),admin:$('accountAdminPanel')};
+  Object.entries(panels).forEach(([key,el])=>{if(el)el.style.display=key===value?'block':'none';});
+}
 async function saveAdminDisplayName(){
   if(!isAdmin||!session){alert('Ova opcija je dostupna samo administratoru.');return;}
   const name=$('adminDisplayName')?.value.trim();
