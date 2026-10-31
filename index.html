@@ -184,9 +184,15 @@ async function saveMotorcycleProfile(){
   const brand=$('bikeBrand').value.trim(),model=$('bikeModel').value.trim();
   const cc=$('bikeCc').value?Number($('bikeCc').value):null,horsepower=$('bikeHp').value?Number($('bikeHp').value):null;
   const file=$('bikePhotoFile').files[0];
+
+  if(!brand){alert('Marka motora je obavezna.');$('bikeBrand').focus();return;}
   if(cc!==null&&(!Number.isInteger(cc)||cc<1||cc>3000)){alert('Unesi ispravnu kubikažu.');return;}
   if(horsepower!==null&&(!Number.isInteger(horsepower)||horsepower<1||horsepower>1000)){alert('Unesi ispravnu snagu u KS.');return;}
-  let photo_url;
+
+  const {data:existing,error:existingError}=await db.from('member_motorcycles').select('photo_url').eq('user_id',session.user.id).maybeSingle();
+  if(existingError){alert('Ne mogu da proverim postojeću fotografiju: '+existingError.message);return;}
+  let photo_url=existing?.photo_url||null;
+
   if(file){
     if(!['image/jpeg','image/png','image/webp'].includes(file.type)){alert('Dozvoljeni su JPEG, PNG i WEBP formati.');return;}
     if(file.size>8*1024*1024){alert('Fotografija ne sme biti veća od 8 MB.');return;}
@@ -196,8 +202,9 @@ async function saveMotorcycleProfile(){
     if(uploadError){alert('Greška pri postavljanju fotografije: '+uploadError.message);return;}
     photo_url=db.storage.from('motorcycle-photos').getPublicUrl(path).data.publicUrl+'?t='+Date.now();
   }
-  const record={user_id:session.user.id,brand,model,cc,horsepower,updated_at:new Date().toISOString()};
-  if(photo_url)record.photo_url=photo_url;
+  if(!photo_url){alert('Fotografija motora je obavezna.');return;}
+
+  const record={user_id:session.user.id,brand,model,cc,horsepower,photo_url,updated_at:new Date().toISOString()};
   const {error}=await db.from('member_motorcycles').upsert(record,{onConflict:'user_id'});
   if(error){alert('Greška pri čuvanju podataka o motoru: '+error.message);return;}
   $('bikePhotoFile').value='';
