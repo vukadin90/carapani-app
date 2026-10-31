@@ -139,12 +139,27 @@ window.castVote = async function(type,id,choice,button){
   }
 };
 
+async function getPostAuthors(ids){
+  const unique=[...new Set((ids||[]).filter(Boolean))];
+  if(!unique.length)return {};
+  const {data,error}=await db.from('profiles').select('id,full_name,avatar_url').in('id',unique);
+  if(error){console.warn('Autori objava nisu učitani:',error.message);return {};}
+  return Object.fromEntries((data||[]).map(m=>[m.id,m]));
+}
+function postAuthorMarkup(author){
+  if(!author)return '<div style="display:flex;align-items:center;gap:9px;margin-bottom:12px"><div class="avatar" style="width:36px;height:36px">Č</div><div><b>Član kluba</b><div class="muted">Objavio</div></div></div>';
+  const avatar=author.avatar_url
+    ? '<img src="'+esc(author.avatar_url)+'" alt="Fotografija člana" style="width:36px;height:36px;border-radius:50%;object-fit:cover">'
+    : '<div class="avatar" style="width:36px;height:36px">'+esc((author.full_name||'?').slice(0,1).toUpperCase())+'</div>';
+  return '<div style="display:flex;align-items:center;gap:9px;margin-bottom:12px">'+avatar+'<div><b>'+esc(author.full_name||'Član kluba')+'</b><div class="muted">Objavio</div></div></div>';
+}
 async function loadRides(){
   const el=$('ridesList');
   const {data,error}=await db.from('rides').select('*').order('ride_date',{ascending:true});
   if(error){el.innerHTML='<div class="empty">Moto ture još nisu dostupne.</div>';return;}
   const votes=await getPostVotes('ride');
-  el.innerHTML=data?.length?data.map(x=>`<article class="card"><span class="tag">MOTO TURA</span><h4>${esc(x.title||'Bez naslova')}</h4>${x.description?`<p>${esc(x.description)}</p>`:''}${x.start_location?`<p>📍 Polazna lokacija: ${esc(x.start_location)}</p>`:''}${x.end_location?`<p>🏁 Krajnja lokacija: ${esc(x.end_location)}</p>`:''}${x.ride_date?`<p>📅 Datum vožnje: ${date(x.ride_date)}</p>`:''}${x.departure_time?`<p>🕒 Vreme polaska: ${esc(String(x.departure_time).slice(0,5))}</p>`:''}${x.route_url?`<a class="btn" href="${esc(x.route_url)}" target="_blank" rel="noopener">OTVORI RUTU U GOOGLE MAPS</a>`:''}${votePanel('ride',x.id,votes.rows,votes.members)}${votes.error&&session&&profile?.approved?'<p class="muted">Glasanje će biti aktivno nakon podešavanja baze.</p>':''}${isAdmin?`<button class="btn secondary" onclick="deleteRide('${x.id}')">OBRIŠI TURU</button>`:''}</article>`).join(''):'<div class="empty">Trenutno nema objavljenih moto tura.</div>';
+  const authors=await getPostAuthors(data?.map(x=>x.user_id));
+  el.innerHTML=data?.length?data.map(x=>`<article class="card">${postAuthorMarkup(authors[x.user_id])}<span class="tag">MOTO TURA</span><h4>${esc(x.title||'Bez naslova')}</h4>${x.description?`<p>${esc(x.description)}</p>`:''}${x.start_location?`<p>📍 Polazna lokacija: ${esc(x.start_location)}</p>`:''}${x.end_location?`<p>🏁 Krajnja lokacija: ${esc(x.end_location)}</p>`:''}${x.ride_date?`<p>📅 Datum vožnje: ${date(x.ride_date)}</p>`:''}${x.departure_time?`<p>🕒 Vreme polaska: ${esc(String(x.departure_time).slice(0,5))}</p>`:''}${x.route_url?`<a class="btn" href="${esc(x.route_url)}" target="_blank" rel="noopener">OTVORI RUTU U GOOGLE MAPS</a>`:''}${votePanel('ride',x.id,votes.rows,votes.members)}${votes.error&&session&&profile?.approved?'<p class="muted">Glasanje će biti aktivno nakon podešavanja baze.</p>':''}${isAdmin?`<button class="btn secondary" onclick="deleteRide('${x.id}')">OBRIŠI TURU</button>`:''}</article>`).join(''):'<div class="empty">Trenutno nema objavljenih moto tura.</div>';
 }
 async function deleteRide(id){if(!isAdmin){alert('Samo administrator može brisati moto ture.');return}if(!confirm('Da li sigurno želiš da obrišeš ovu moto turu?'))return;const {error}=await db.from('rides').delete().eq('id',id);if(error){alert('Greška pri brisanju: '+error.message);return}alert('Moto tura je obrisana.');await loadRides()}
 async function loadEvents(){
@@ -152,7 +167,8 @@ async function loadEvents(){
   const {data,error}=await db.from('club_events').select('*').order('starts_at',{ascending:true});
   if(error){el.innerHTML='<div class="empty">Događaji još nisu dostupni.</div>';return;}
   const votes=await getPostVotes('event');
-  el.innerHTML=data?.length?data.map(x=>`<article class="card"><span class="tag">DOGAĐAJ</span><h4>${esc(x.title||'Bez naslova')}</h4>${x.starts_at?`<p>📅 ${date(x.starts_at)}</p>`:''}${x.location?`<p>📍 ${esc(x.location)}</p>`:''}<p>${esc(x.description||'')}</p>${votePanel('event',x.id,votes.rows,votes.members)}${votes.error&&session&&profile?.approved?'<p class="muted">Glasanje će biti aktivno nakon podešavanja baze.</p>':''}${isAdmin?`<button class="btn secondary" onclick="deleteContent('club_events','${esc(x.id)}')">OBRIŠI OBJAVU</button>`:''}</article>`).join(''):'<div class="empty">Trenutno nema najavljenih događaja.</div>';
+  const authors=await getPostAuthors(data?.map(x=>x.created_by));
+  el.innerHTML=data?.length?data.map(x=>`<article class="card">${postAuthorMarkup(authors[x.created_by])}<span class="tag">DOGAĐAJ</span><h4>${esc(x.title||'Bez naslova')}</h4>${x.starts_at?`<p>📅 ${date(x.starts_at)}</p>`:''}${x.location?`<p>📍 ${esc(x.location)}</p>`:''}<p>${esc(x.description||'')}</p>${votePanel('event',x.id,votes.rows,votes.members)}${votes.error&&session&&profile?.approved?'<p class="muted">Glasanje će biti aktivno nakon podešavanja baze.</p>':''}${isAdmin?`<button class="btn secondary" onclick="deleteContent('club_events','${esc(x.id)}')">OBRIŠI OBJAVU</button>`:''}</article>`).join(''):'<div class="empty">Trenutno nema najavljenih događaja.</div>';
 }
 async function loadNews(){const el=$('newsList'),home=$('homeNews');const {data,error}=await db.from('club_announcements').select('*').order('created_at',{ascending:false});const html=error?'<div class="empty">Obaveštenja još nisu dostupna.</div>':data?.length?data.map(x=>card(x,'OBAVEŠTENJE','club_announcements')).join(''):'<div class="empty">Nema novih obaveštenja.</div>';el.innerHTML=html;home.innerHTML=html}
 async function loadMembers(){const el=$('membersList');if(!session||!profile?.approved){el.innerHTML='<div class="notice">Spisak članova je dostupan samo odobrenim članovima kluba.</div>';return}const {data,error}=await db.from('profiles').select('id,full_name,phone,avatar_url').eq('approved',true).order('full_name');el.innerHTML=error?'<div class="empty">Nije moguće učitati članove.</div>':data?.length?data.map(m=>`<div class="card member" role="button" tabindex="0" style="cursor:pointer" onclick="openMemberProfile('${esc(m.id)}')">${m.avatar_url?`<img src="${esc(m.avatar_url)}" style="width:55px;height:55px;border-radius:50%;object-fit:cover">`:`<div class="avatar">${esc((m.full_name||'?').slice(0,1).toUpperCase())}</div>`}<div><b>${esc(m.full_name||'Član kluba')}</b><div class="muted">Član kluba</div>${m.phone?`<div class="muted">${esc(m.phone)}</div>`:''}</div></div>`).join(''):'<div class="empty">Nema odobrenih članova.</div>'}
