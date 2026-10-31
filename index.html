@@ -167,17 +167,44 @@ function previewMotorcyclePhoto(){
   reader.onload=()=>{preview.innerHTML='<img src="'+reader.result+'" alt="Pregled fotografije motora" style="width:100%;max-height:220px;object-fit:cover;border-radius:10px">';};
   reader.readAsDataURL(file);
 }
+function renderMyMotorcycle(data){
+  const view=$('myMotorcycleView'),form=$('myMotorcycleEditForm');
+  if(!view||!form)return;
+  if(!data){
+    view.style.display='none';
+    form.style.display='block';
+    return;
+  }
+  let html='<h3>🏍️ Moj motor</h3>';
+  if(data.photo_url)html+='<img src="'+esc(data.photo_url)+'" alt="Moj motor" style="width:100%;max-height:280px;object-fit:cover;border-radius:12px;margin:8px 0 12px">';
+  html+='<div class="card">';
+  if(data.brand)html+='<p><b>Marka:</b> '+esc(data.brand)+'</p>';
+  if(data.model)html+='<p><b>Model:</b> '+esc(data.model)+'</p>';
+  if(data.cc)html+='<p><b>Zapremina:</b> '+esc(data.cc)+' cm³</p>';
+  if(data.horsepower)html+='<p><b>Snaga:</b> '+esc(data.horsepower)+' KS</p>';
+  html+='</div><button class="btn secondary" type="button" onclick="toggleMotorcycleEdit()">⚙️ PODEŠAVANJA MOTORA</button>';
+  view.innerHTML=html;
+  view.style.display='block';
+  form.style.display='none';
+}
+function toggleMotorcycleEdit(){
+  const form=$('myMotorcycleEditForm'),view=$('myMotorcycleView');
+  if(!form||!view)return;
+  const opening=form.style.display==='none';
+  form.style.display=opening?'block':'none';
+  view.style.display=opening?'none':'block';
+}
 async function loadMotorcycleProfileForm(){
-  const fields=['bikeBrand','bikeModel','bikeCc','bikeHp'];
-  if(!session||!profile?.approved||!$(fields[0]))return;
+  if(!session||!profile?.approved||!$('bikeBrand'))return;
   const {data,error}=await db.from('member_motorcycles').select('*').eq('user_id',session.user.id).maybeSingle();
   if(error){console.warn('Podaci o motoru nisu učitani:',error.message);return;}
-  if(!data)return;
+  if(!data){renderMyMotorcycle(null);return;}
   $('bikeBrand').value=data.brand||'';
   $('bikeModel').value=data.model||'';
   $('bikeCc').value=data.cc||'';
   $('bikeHp').value=data.horsepower||'';
   if(data.photo_url)$('bikePhotoPreview').innerHTML='<img src="'+esc(data.photo_url)+'" alt="Moj motor" style="width:100%;max-height:180px;object-fit:cover;border-radius:10px">';
+  renderMyMotorcycle(data);
 }
 async function saveMotorcycleProfile(){
   if(!session||!profile?.approved){alert('Ova opcija je dostupna samo odobrenim članovima.');return;}
@@ -258,16 +285,17 @@ ${avatar}
 ${profile?.approved?`<div style="margin:12px 0"><b>🔔 Zvuk push obaveštenja</b><p class="muted">Uključi ili isključi zvuk kada stigne klupsko push obaveštenje. Jačina zvuka se podešava na telefonu.</p><label for="pushSoundSelect">Zvuk obaveštenja</label><select class="field" id="pushSoundSelect" onchange="savePushSound(this.value)"><option value="on">Uključen</option><option value="off">Isključen</option></select><div id="pushSoundStatus" class="muted">Podešavanje važi za ovaj uređaj.</div></div>`:''}
 <div style="margin-top:12px"><label>Ostala podešavanja</label><select class="field" id="accountActionSelect" onchange="accountMenuChange(this.value)"><option value="">-- Izaberi opciju --</option>${profile?.approved?'<option value="push">Upravljanje push obaveštenjima</option>':''}${isAdmin?'<option value="name">Promena imena</option><option value="admin">Administracija kluba</option>':''}</select></div></div>
 
-${profile?.approved?`<div class="formbox" style="margin-top:12px">
-<h3>🏍️ Moj motor</h3>
-<p class="muted">Dodaj fotografiju i osnovne podatke o svom motoru. Ostali odobreni članovi moći će da ih vide kada otvore tvoj profil.</p>
+${profile?.approved?`<div id="myMotorcycleView" class="formbox" style="display:none;margin-top:12px"></div>
+<div id="myMotorcycleEditForm" class="formbox" style="display:none;margin-top:12px">
+<h3>🏍️ ${$('bikeBrand')?.value?'Izmena podataka o motoru':'Dodavanje motora'}</h3>
+<p class="muted">Ovde možeš da dodaš ili izmeniš fotografiju i podatke o svom motoru.</p>
 <label>Fotografija motora</label><input class="field" id="bikePhotoFile" type="file" accept="image/jpeg,image/png,image/webp" onchange="previewMotorcyclePhoto()">
 <div id="bikePhotoPreview" class="muted" style="margin:8px 0 14px">Fotografija nije izabrana.</div>
 <label>Marka</label><input class="field" id="bikeBrand" maxlength="60" placeholder="">
 <label>Model</label><input class="field" id="bikeModel" maxlength="80" placeholder="">
 <label>Zapremina (kubika)</label><input class="field" id="bikeCc" type="number" min="1" max="3000" placeholder="">
 <label>Snaga (KS)</label><input class="field" id="bikeHp" type="number" min="1" max="1000" placeholder="">
-<button class="btn" style="margin-top:10px" onclick="saveMotorcycleProfile()">SAČUVAJ PODATKE O MOTORU</button>
+<div class="actions"><button class="btn" style="margin-top:10px" onclick="saveMotorcycleProfile()">SAČUVAJ PODATKE O MOTORU</button><button class="btn secondary" type="button" onclick="toggleMotorcycleEdit()">OTKAŽI</button></div>
 </div>`:''}
 <div style="display:none">
 <input class="field" id="profilePhotoFile" type="file" accept="image/jpeg,image/png,image/webp" onchange="uploadProfilePhoto()">
