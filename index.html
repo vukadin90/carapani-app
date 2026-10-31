@@ -91,18 +91,26 @@ async function refresh(){const {data:{session:s}}=await db.auth.getSession();ses
 $('authStatus').textContent=session?(profile?.approved?'ČLAN':'NA ČEKANJU'):'GOST';renderAccount();await Promise.all([loadRides(),loadEvents(),loadNews()]);if(session&&profile?.approved)loadMembers();if(isAdmin)renderAdmin();if($('gallery')?.classList.contains('active'))loadGallery()}
 
 async function getPostVotes(type){
-  if(!session||!profile?.approved)return {rows:[],error:null};
-  const {data,error}=await db.from('post_votes').select('post_id,user_id,choice').eq('post_type',type);
-  return {rows:data||[],error};
+  if(!session||!profile?.approved)return {rows:[],members:{},error:null};
+  const [{data:voteRows,error},{data:memberRows}] = await Promise.all([
+    db.from('post_votes').select('post_id,user_id,choice').eq('post_type',type),
+    db.from('profiles').select('id,full_name').eq('approved',true)
+  ]);
+  const members={};
+  (memberRows||[]).forEach(m=>{members[m.id]=m.full_name||'Član kluba'});
+  return {rows:voteRows||[],members,error};
 }
-function votePanel(type,id,rows){
+function votePanel(type,id,rows,members={}){
   if(!session||!profile?.approved)return '<div class="notice">Prijavi se kao odobren član da bi glasao i video rezultate glasanja.</div>';
   const mine=rows.find(v=>String(v.post_id)===String(id)&&v.user_id===session.user.id)?.choice||'';
   const yes=rows.filter(v=>String(v.post_id)===String(id)&&v.choice==='yes').length;
   const no=rows.filter(v=>String(v.post_id)===String(id)&&v.choice==='no').length;
   const yesLabel=type==='ride'?'VOZIM':'DOLAZIM';
   const noLabel=type==='ride'?'NE VOZIM':'NE DOLAZIM';
-  return `<div class="formbox" style="margin:12px 0 0;padding:12px"><b style="font-size:12px">GLASANJE ČLANOVA</b><div class="actions"><button type="button" class="btn ${mine==='yes'?'':'secondary'}" style="${mine==='yes'?'background:#168447;border:1px solid #25a45d;color:#fff':''}" data-vote-type="${type}" data-vote-id="${id}" data-vote-choice="yes">${yesLabel} · ${yes}</button><button type="button" class="btn ${mine==='no'?'':'secondary'}" style="${mine==='no'?'background:#d9272e;border:1px solid #f0444b;color:#fff':''}" data-vote-type="${type}" data-vote-id="${id}" data-vote-choice="no">${noLabel} · ${no}</button></div><p class="muted" style="margin-top:8px">${mine?'Tvoj izbor: '+(mine==='yes'?yesLabel:noLabel)+'. Možeš ga promeniti pritiskom na drugo dugme.':'Izaberi jednu opciju.'}</p></div>`;
+  const yesNames=rows.filter(v=>String(v.post_id)===String(id)&&v.choice==='yes').map(v=>members[v.user_id]||'Član kluba');
+  const noNames=rows.filter(v=>String(v.post_id)===String(id)&&v.choice==='no').map(v=>members[v.user_id]||'Član kluba');
+  const names=(arr)=>arr.length?arr.map(n=>'<div style="padding:5px 0;border-bottom:1px solid #30343a">• '+esc(n)+'</div>').join(''):'<span class="muted">Još nema glasova.</span>';
+  return `<div class="formbox" style="margin:12px 0 0;padding:12px"><b style="font-size:12px">GLASANJE ČLANOVA</b><div class="actions"><button type="button" class="btn ${mine==='yes'?'':'secondary'}" style="${mine==='yes'?'background:#168447;border:1px solid #25a45d;color:#fff':''}" data-vote-type="${type}" data-vote-id="${id}" data-vote-choice="yes">${yesLabel} · ${yes}</button><button type="button" class="btn ${mine==='no'?'':'secondary'}" style="${mine==='no'?'background:#d9272e;border:1px solid #f0444b;color:#fff':''}" data-vote-type="${type}" data-vote-id="${id}" data-vote-choice="no">${noLabel} · ${no}</button></div><p class="muted" style="margin-top:8px">${mine?'Tvoj izbor: '+(mine==='yes'?yesLabel:noLabel)+'. Možeš ga promeniti pritiskom na drugo dugme.':'Izaberi jednu opciju.'}</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px"><div><b style="color:#35c477;font-size:11px">${yesLabel}</b><div style="font-size:12px;margin-top:5px">${names(yesNames)}</div></div><div><b style="color:#ff6268;font-size:11px">${noLabel}</b><div style="font-size:12px;margin-top:5px">${names(noNames)}</div></div></div></div>`;
 }
 document.addEventListener('click',function(event){
   const button=event.target.closest('button[data-vote-choice]');
@@ -136,7 +144,7 @@ async function loadRides(){
   const {data,error}=await db.from('rides').select('*').order('ride_date',{ascending:true});
   if(error){el.innerHTML='<div class="empty">Moto ture još nisu dostupne.</div>';return;}
   const votes=await getPostVotes('ride');
-  el.innerHTML=data?.length?data.map(x=>`<article class="card"><span class="tag">MOTO TURA</span><h4>${esc(x.title||'Bez naslova')}</h4>${x.description?`<p>${esc(x.description)}</p>`:''}${x.start_location?`<p>📍 Polazna lokacija: ${esc(x.start_location)}</p>`:''}${x.end_location?`<p>🏁 Krajnja lokacija: ${esc(x.end_location)}</p>`:''}${x.ride_date?`<p>📅 Datum vožnje: ${date(x.ride_date)}</p>`:''}${x.departure_time?`<p>🕒 Vreme polaska: ${esc(String(x.departure_time).slice(0,5))}</p>`:''}${x.route_url?`<a class="btn" href="${esc(x.route_url)}" target="_blank" rel="noopener">OTVORI RUTU U GOOGLE MAPS</a>`:''}${votePanel('ride',x.id,votes.rows)}${votes.error&&session&&profile?.approved?'<p class="muted">Glasanje će biti aktivno nakon podešavanja baze.</p>':''}${isAdmin?`<button class="btn secondary" onclick="deleteRide('${x.id}')">OBRIŠI TURU</button>`:''}</article>`).join(''):'<div class="empty">Trenutno nema objavljenih moto tura.</div>';
+  el.innerHTML=data?.length?data.map(x=>`<article class="card"><span class="tag">MOTO TURA</span><h4>${esc(x.title||'Bez naslova')}</h4>${x.description?`<p>${esc(x.description)}</p>`:''}${x.start_location?`<p>📍 Polazna lokacija: ${esc(x.start_location)}</p>`:''}${x.end_location?`<p>🏁 Krajnja lokacija: ${esc(x.end_location)}</p>`:''}${x.ride_date?`<p>📅 Datum vožnje: ${date(x.ride_date)}</p>`:''}${x.departure_time?`<p>🕒 Vreme polaska: ${esc(String(x.departure_time).slice(0,5))}</p>`:''}${x.route_url?`<a class="btn" href="${esc(x.route_url)}" target="_blank" rel="noopener">OTVORI RUTU U GOOGLE MAPS</a>`:''}${votePanel('ride',x.id,votes.rows,votes.members)}${votes.error&&session&&profile?.approved?'<p class="muted">Glasanje će biti aktivno nakon podešavanja baze.</p>':''}${isAdmin?`<button class="btn secondary" onclick="deleteRide('${x.id}')">OBRIŠI TURU</button>`:''}</article>`).join(''):'<div class="empty">Trenutno nema objavljenih moto tura.</div>';
 }
 async function deleteRide(id){if(!isAdmin){alert('Samo administrator može brisati moto ture.');return}if(!confirm('Da li sigurno želiš da obrišeš ovu moto turu?'))return;const {error}=await db.from('rides').delete().eq('id',id);if(error){alert('Greška pri brisanju: '+error.message);return}alert('Moto tura je obrisana.');await loadRides()}
 async function loadEvents(){
@@ -144,7 +152,7 @@ async function loadEvents(){
   const {data,error}=await db.from('club_events').select('*').order('starts_at',{ascending:true});
   if(error){el.innerHTML='<div class="empty">Događaji još nisu dostupni.</div>';return;}
   const votes=await getPostVotes('event');
-  el.innerHTML=data?.length?data.map(x=>`<article class="card"><span class="tag">DOGAĐAJ</span><h4>${esc(x.title||'Bez naslova')}</h4>${x.starts_at?`<p>📅 ${date(x.starts_at)}</p>`:''}${x.location?`<p>📍 ${esc(x.location)}</p>`:''}<p>${esc(x.description||'')}</p>${votePanel('event',x.id,votes.rows)}${votes.error&&session&&profile?.approved?'<p class="muted">Glasanje će biti aktivno nakon podešavanja baze.</p>':''}${isAdmin?`<button class="btn secondary" onclick="deleteContent('club_events','${esc(x.id)}')">OBRIŠI OBJAVU</button>`:''}</article>`).join(''):'<div class="empty">Trenutno nema najavljenih događaja.</div>';
+  el.innerHTML=data?.length?data.map(x=>`<article class="card"><span class="tag">DOGAĐAJ</span><h4>${esc(x.title||'Bez naslova')}</h4>${x.starts_at?`<p>📅 ${date(x.starts_at)}</p>`:''}${x.location?`<p>📍 ${esc(x.location)}</p>`:''}<p>${esc(x.description||'')}</p>${votePanel('event',x.id,votes.rows,votes.members)}${votes.error&&session&&profile?.approved?'<p class="muted">Glasanje će biti aktivno nakon podešavanja baze.</p>':''}${isAdmin?`<button class="btn secondary" onclick="deleteContent('club_events','${esc(x.id)}')">OBRIŠI OBJAVU</button>`:''}</article>`).join(''):'<div class="empty">Trenutno nema najavljenih događaja.</div>';
 }
 async function loadNews(){const el=$('newsList'),home=$('homeNews');const {data,error}=await db.from('club_announcements').select('*').order('created_at',{ascending:false});const html=error?'<div class="empty">Obaveštenja još nisu dostupna.</div>':data?.length?data.map(x=>card(x,'OBAVEŠTENJE','club_announcements')).join(''):'<div class="empty">Nema novih obaveštenja.</div>';el.innerHTML=html;home.innerHTML=html}
 async function loadMembers(){const el=$('membersList');if(!session||!profile?.approved){el.innerHTML='<div class="notice">Spisak članova je dostupan samo odobrenim članovima kluba.</div>';return}const {data,error}=await db.from('profiles').select('id,full_name,phone,avatar_url').eq('approved',true).order('full_name');el.innerHTML=error?'<div class="empty">Nije moguće učitati članove.</div>':data?.length?data.map(m=>`<div class="card member">${m.avatar_url?`<img src="${esc(m.avatar_url)}" style="width:55px;height:55px;border-radius:50%;object-fit:cover">`:`<div class="avatar">${esc((m.full_name||'?').slice(0,1).toUpperCase())}</div>`}<div><b>${esc(m.full_name||'Član kluba')}</b><div class="muted">Član kluba</div>${m.phone?`<div class="muted">${esc(m.phone)}</div>`:''}</div></div>`).join(''):'<div class="empty">Nema odobrenih članova.</div>'}
