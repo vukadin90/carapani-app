@@ -11,8 +11,11 @@ Deno.serve(async(req)=>{
   const userClient=createClient(url,anon,{global:{headers:{Authorization:`Bearer ${token}`}}});
   const {data:{user},error:userError}=await userClient.auth.getUser(token);if(userError||!user)return response({error:"Unauthorized"},401);
   const admin=createClient(url,serviceKey);
-  const {data:sender}=await admin.from("profiles").select("approved,is_admin").eq("id",user.id).maybeSingle();
-  if(!sender?.approved)return response({error:"Only approved members can send notifications"},403);
+  const {data:sender,error:senderError}=await admin.from("profiles").select("id,approved,is_admin").eq("id",user.id).maybeSingle();
+  if(senderError){console.error("Push sender profile lookup failed:",senderError.message);return response({error:"Greška pri proveri članstva: "+senderError.message},500);}
+  console.log("Push sender check:",{userId:user.id,profileFound:!!sender,approved:sender?.approved===true});
+  if(!sender)return response({error:"Profil člana nije pronađen u tabeli profiles."},403);
+  if(sender.approved!==true)return response({error:"Član nije odobren za prijem/slanje klupskih obaveštenja.",approved:sender.approved??null},403);
   const payload=await req.json();if(!["ride","event","announcement"].includes(payload.kind)||typeof payload.title!=="string"||typeof payload.body!=="string")return response({error:"Invalid notification"},400);
   webpush.setVapidDetails("mailto:carapani-klub@example.com",publicKey,privateKey);
   const {data:members,error:membersError}=await admin.from("profiles").select("id").eq("approved",true);if(membersError)throw membersError;
