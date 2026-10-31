@@ -168,12 +168,11 @@ function previewMotorcyclePhoto(){
   reader.readAsDataURL(file);
 }
 async function loadMotorcycleProfileForm(){
-  const fields=['bikeName','bikeBrand','bikeModel','bikeCc','bikeHp'];
+  const fields=['bikeBrand','bikeModel','bikeCc','bikeHp'];
   if(!session||!profile?.approved||!$(fields[0]))return;
   const {data,error}=await db.from('member_motorcycles').select('*').eq('user_id',session.user.id).maybeSingle();
   if(error){console.warn('Podaci o motoru nisu učitani:',error.message);return;}
   if(!data)return;
-  $('bikeName').value=data.bike_name||'';
   $('bikeBrand').value=data.brand||'';
   $('bikeModel').value=data.model||'';
   $('bikeCc').value=data.cc||'';
@@ -182,7 +181,7 @@ async function loadMotorcycleProfileForm(){
 }
 async function saveMotorcycleProfile(){
   if(!session||!profile?.approved){alert('Ova opcija je dostupna samo odobrenim članovima.');return;}
-  const bike_name=$('bikeName').value.trim(),brand=$('bikeBrand').value.trim(),model=$('bikeModel').value.trim();
+  const brand=$('bikeBrand').value.trim(),model=$('bikeModel').value.trim();
   const cc=$('bikeCc').value?Number($('bikeCc').value):null,horsepower=$('bikeHp').value?Number($('bikeHp').value):null;
   const file=$('bikePhotoFile').files[0];
   if(cc!==null&&(!Number.isInteger(cc)||cc<1||cc>3000)){alert('Unesi ispravnu kubikažu.');return;}
@@ -197,7 +196,7 @@ async function saveMotorcycleProfile(){
     if(uploadError){alert('Greška pri postavljanju fotografije: '+uploadError.message);return;}
     photo_url=db.storage.from('motorcycle-photos').getPublicUrl(path).data.publicUrl+'?t='+Date.now();
   }
-  const record={user_id:session.user.id,bike_name,brand,model,cc,horsepower,updated_at:new Date().toISOString()};
+  const record={user_id:session.user.id,brand,model,cc,horsepower,updated_at:new Date().toISOString()};
   if(photo_url)record.photo_url=photo_url;
   const {error}=await db.from('member_motorcycles').upsert(record,{onConflict:'user_id'});
   if(error){alert('Greška pri čuvanju podataka o motoru: '+error.message);return;}
