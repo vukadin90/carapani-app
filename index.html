@@ -146,7 +146,7 @@ async function loadGallery(){
 
   list.innerHTML=data.map(x=>`
     <div class="card" style="margin:15px 0;padding:12px;">
-      <img src="${esc(x.image_url)}" alt="${esc(x.title||'Fotografija')}" loading="lazy" style="width:100%;border-radius:10px;cursor:zoom-in;">
+      <img src="${esc(x.image_url)}" alt="${esc(x.title||'Fotografija')}" loading="lazy" onclick="openGalleryImage(this.src)" style="width:100%;border-radius:10px;cursor:zoom-in;"
       <h3>${esc(x.title||'Fotografija')}</h3>
       <p>${esc(x.description||'')}</p>
       ${canDelete?`<button class="btn secondary" onclick="deleteGalleryPhoto('${esc(x.id)}')">Obriši fotografiju</button>`:''}
