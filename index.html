@@ -190,8 +190,7 @@ ${profile?.approved?`<div style="margin:12px 0"><b>🔔 Zvuk push obaveštenja</
 
 if(!profile?.approved)html+='<div class="notice">Registracija je uspešna. Administrator kluba treba da odobri tvoj nalog pre pristupa sadržaju za članove.</div>';
 
-html+=`<div class="formbox"><h3>⚙️ Podešavanja naloga</h3><label>Izaberi šta želiš da uradiš</label><select class="field" id="accountActionSelect" onchange="accountMenuChange(this.value)"><option value="">-- Izaberi opciju --</option>${profile?.approved?'<option value="push">🔔 Push obaveštenja</option>':''}${isAdmin?'<option value="name">✏️ Promena imena</option><option value="admin">🛠️ Administracija kluba</option>':''}</select></div>
-<div id="accountActionPanels">
+html+=`<div id="accountActionPanels">
 ${profile?.approved?`<div id="accountPushPanel" class="formbox" style="display:none"><h3>🔔 Push obaveštenja</h3><p class="muted">Primaj obaveštenja kluba o novim turama, događajima i vestima, čak i kada aplikacija nije otvorena.</p><div id="pushStatus" class="muted" style="margin:8px 0">Provera statusa…</div><button class="btn" id="pushToggle" onclick="togglePushNotifications()">UKLJUČI OBAVEŠTENJA</button></div>`:''}
 ${isAdmin?`<div id="accountNamePanel" class="formbox" style="display:none"><h3>✏️ Promena imena administratora</h3><label>Ime koje će članovi videti kod glasanja</label><input class="field" id="adminDisplayName" maxlength="80" value="${esc(profile?.full_name||'')}" placeholder="Unesi ime i prezime"><button class="btn" onclick="saveAdminDisplayName()">SAČUVAJ IME</button></div><div id="accountAdminPanel" class="formbox" style="display:none"><h3>🛠️ Administracija kluba</h3><button class="btn secondary" onclick="showPage('admin')">OTVORI ADMINISTRACIJU</button></div>`:''}
 </div>`;
