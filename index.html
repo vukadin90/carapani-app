@@ -59,7 +59,7 @@
   </div>
 </section>
   
-<section id="account" class="page"><div class="section"><div class="section-head"><h3>NALOG ČLANA</h3><span>PRISTUP</span></div><div id="accountPanel"></div></div></section>
+<section id="account" class="page"><div class="section"><div id="accountPanel"></div></div></section>
 <section id="admin" class="page"><div class="section"><div class="section-head"><h3>ADMINISTRACIJA</h3><span>UPRAVLJANJE KLUBOM</span></div><div id="adminPanel"></div></div></section>
 </main>
 <div class="foot">MOTO KLUB ČARAPANI · KRUŠEVAC<br>VOZIMO ZAJEDNO. ČUVAMO JEDNI DRUGE.</div>
@@ -171,17 +171,17 @@ const avatar=profile?.avatar_url
 : `<div class="avatar">${esc((profile?.full_name||session.user.email||'?').slice(0,1).toUpperCase())}</div>`;
 
 let html=`
-<div class="card member">
-<div onclick="document.getElementById('profilePhotoFile').click()" style="position:relative;cursor:pointer;display:inline-block" title="Klikni za promenu fotografije">
+<div class="card" style="display:flex;align-items:center;gap:14px;padding:18px;margin-bottom:14px">
+<div onclick="document.getElementById('profilePhotoFile').click()" style="position:relative;cursor:pointer;flex:0 0 auto" title="Promeni profilnu fotografiju">
 ${avatar}
-<div style="position:absolute;bottom:0;right:0;background:#e53939;color:white;border-radius:50%;width:27px;height:27px;display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid #222">✎</div>
+<div style="position:absolute;bottom:-3px;right:-3px;background:#d9272e;color:white;border-radius:50%;width:25px;height:25px;display:grid;place-items:center;border:2px solid #222;font-size:14px">✎</div>
 </div>
-<div>
-<b>${esc(profile?.full_name||session.user.email)}</b>
-<div class="muted">${esc(session.user.email)}</div>
-<div class="tag">${profile?.approved?'ODOBREN ČLAN':'NALOG ČEKA ODOBRENJE'}</div>
+<div style="flex:1;min-width:0"><div style="font:800 25px 'Barlow Condensed',sans-serif">${esc(profile?.full_name||session.user.email)}</div><div class="muted">${esc(session.user.email)}</div><div class="tag">${profile?.approved?'ODOBREN ČLAN':'NALOG ČEKA ODOBRENJE'}</div></div>
+<button class="btn secondary" style="font-size:20px;padding:9px 12px" aria-label="Podešavanja" title="Podešavanja" onclick="toggleAccountSettings()">⚙️</button>
 </div>
-</div>
+<div id="accountSettings" class="formbox" style="display:none"><h3>⚙️ Podešavanja</h3>
+${profile?.approved?`<div style="margin:12px 0"><b>🔔 Zvuk push obaveštenja</b><p class="muted">Uključi ili isključi zvuk kada stigne klupsko push obaveštenje. Jačina zvuka se podešava na telefonu.</p><label for="pushSoundSelect">Zvuk obaveštenja</label><select class="field" id="pushSoundSelect" onchange="savePushSound(this.value)"><option value="on">Uključen</option><option value="off">Isključen</option></select><div id="pushSoundStatus" class="muted">Podešavanje važi za ovaj uređaj.</div></div>`:''}
+<div style="margin-top:12px"><label>Ostala podešavanja</label><select class="field" id="accountActionSelect" onchange="accountMenuChange(this.value)"><option value="">-- Izaberi opciju --</option>${profile?.approved?'<option value="push">Upravljanje push obaveštenjima</option>':''}${isAdmin?'<option value="name">Promena imena</option><option value="admin">Administracija kluba</option>':''}</select></div></div>
 
 <div style="display:none">
 <input class="field" id="profilePhotoFile" type="file" accept="image/jpeg,image/png,image/webp" onchange="uploadProfilePhoto()">
@@ -199,7 +199,7 @@ ${isAdmin?`<div id="accountNamePanel" class="formbox" style="display:none"><h3>�
 html+='<div class="actions"><button class="btn secondary" onclick="logout()">ODJAVI SE</button></div>';
 
 el.innerHTML=html;
-if(profile?.approved)setTimeout(updatePushUI,0);
+if(profile?.approved){setTimeout(updatePushUI,0);loadPushSoundSetting();}
 }
 
 function urlBase64ToUint8Array(base64String){const padding='='.repeat((4-base64String.length%4)%4);const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');const raw=atob(base64);return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));}
@@ -207,6 +207,10 @@ async function updatePushUI(){const status=$('pushStatus'),button=$('pushToggle'
 async function togglePushNotifications(){if(!session||!profile?.approved){alert('Push obaveštenja su dostupna samo odobrenim članovima.');return;}if(!('serviceWorker'in navigator)||!('PushManager'in window)||!('Notification'in window)){alert('Push nije podržan u ovom pregledaču. Na iPhone-u prvo dodaj aplikaciju na početni ekran i otvori je odatle.');return;}const button=$('pushToggle');if(button)button.disabled=true;try{const reg=await navigator.serviceWorker.ready;let sub=await reg.pushManager.getSubscription();if(sub){const endpoint=sub.endpoint;await sub.unsubscribe();const {error}=await db.from('push_subscriptions').delete().eq('endpoint',endpoint);if(error)throw error;alert('Push obaveštenja su isključena na ovom uređaju.');}else{const permission=await Notification.requestPermission();if(permission!=='granted')throw new Error('Dozvola za obaveštenja nije odobrena.');sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(PUSH_VAPID_PUBLIC_KEY)});const json=sub.toJSON();const {error}=await db.from('push_subscriptions').upsert({user_id:session.user.id,endpoint:json.endpoint,p256dh:json.keys.p256dh,auth:json.keys.auth},{onConflict:'endpoint'});if(error){await sub.unsubscribe();throw error;}alert('Push obaveštenja su uspešno uključena!');}}catch(e){console.error('Push setup error',e);alert('Nije uspelo podešavanje obaveštenja: '+(e.message||e));}finally{if(button)button.disabled=false;await updatePushUI();}}
 async function sendClubPush(title,body,kind){if(!session||!profile?.approved)return;try{const {error}=await db.functions.invoke('quick-service',{body:{title,body,kind}});if(error)console.warn('Push nije poslat:',error.message);}catch(e){console.warn('Push nije poslat:',e);}}
 
+function toggleAccountSettings(){const box=$('accountSettings');if(box)box.style.display=box.style.display==='none'?'block':'none';}
+function openSoundDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open('carapani-settings',1);req.onupgradeneeded=()=>req.result.createObjectStore('preferences');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
+async function savePushSound(value){try{const database=await openSoundDB();await new Promise((resolve,reject)=>{const tx=database.transaction('preferences','readwrite');tx.objectStore('preferences').put(value==='on','pushSoundEnabled');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});database.close();const status=$('pushSoundStatus');if(status)status.textContent=value==='on'?'Zvuk push obaveštenja je uključen.':'Zvuk push obaveštenja je isključen.';}catch(e){alert('Nije moguće sačuvati podešavanje zvuka: '+e.message);}}
+async function loadPushSoundSetting(){try{const database=await openSoundDB();const value=await new Promise((resolve,reject)=>{const tx=database.transaction('preferences','readonly');const req=tx.objectStore('preferences').get('pushSoundEnabled');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});database.close();const enabled=value!==false;const select=$('pushSoundSelect');if(select)select.value=enabled?'on':'off';const status=$('pushSoundStatus');if(status)status.textContent=enabled?'Zvuk push obaveštenja je uključen.':'Zvuk push obaveštenja je isključen.';}catch(e){console.warn('Ne mogu da učitam podešavanje zvuka',e);}}
 function accountMenuChange(value){
   const panels={push:$('accountPushPanel'),name:$('accountNamePanel'),admin:$('accountAdminPanel')};
   Object.entries(panels).forEach(([key,el])=>{if(el)el.style.display=key===value?'block':'none';});
