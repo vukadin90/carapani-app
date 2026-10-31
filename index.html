@@ -102,8 +102,16 @@ function votePanel(type,id,rows){
   const no=rows.filter(v=>v.post_id===id&&v.choice==='no').length;
   const yesLabel=type==='ride'?'VOZIM':'DOLAZIM';
   const noLabel=type==='ride'?'NE VOZIM':'NE DOLAZIM';
-  return `<div class="formbox" style="margin:12px 0 0;padding:12px"><b style="font-size:12px">GLASANJE ČLANOVA</b><div class="actions"><button type="button" class="btn ${mine==='yes'?'':'secondary'}" onclick="window.castVote('${type}','${id}','yes',this)">${yesLabel} · ${yes}</button><button type="button" class="btn ${mine==='no'?'':'secondary'}" onclick="window.castVote('${type}','${id}','no',this)">${noLabel} · ${no}</button></div><p class="muted" style="margin-top:8px">${mine?'Tvoj izbor: '+(mine==='yes'?yesLabel:noLabel)+'. Možeš ga promeniti pritiskom na drugo dugme.':'Izaberi jednu opciju.'}</p></div>`;
+  return `<div class="formbox" style="margin:12px 0 0;padding:12px"><b style="font-size:12px">GLASANJE ČLANOVA</b><div class="actions"><button type="button" class="btn ${mine==='yes'?'':'secondary'}" data-vote-type="${type}" data-vote-id="${id}" data-vote-choice="yes">${yesLabel} · ${yes}</button><button type="button" class="btn ${mine==='no'?'':'secondary'}" data-vote-type="${type}" data-vote-id="${id}" data-vote-choice="no">${noLabel} · ${no}</button></div><p class="muted" style="margin-top:8px">${mine?'Tvoj izbor: '+(mine==='yes'?yesLabel:noLabel)+'. Možeš ga promeniti pritiskom na drugo dugme.':'Izaberi jednu opciju.'}</p></div>`;
 }
+document.addEventListener('click',function(event){
+  const button=event.target.closest('button[data-vote-choice]');
+  if(!button)return;
+  event.preventDefault();
+  event.stopPropagation();
+  window.castVote(button.dataset.voteType,button.dataset.voteId,button.dataset.voteChoice,button);
+},true);
+
 window.castVote = async function(type,id,choice,button){
   if(button)button.disabled=true;
   try{
