@@ -97,9 +97,9 @@ async function getPostVotes(type){
 }
 function votePanel(type,id,rows){
   if(!session||!profile?.approved)return '<div class="notice">Prijavi se kao odobren član da bi glasao i video rezultate glasanja.</div>';
-  const mine=rows.find(v=>v.post_id===id&&v.user_id===session.user.id)?.choice||'';
-  const yes=rows.filter(v=>v.post_id===id&&v.choice==='yes').length;
-  const no=rows.filter(v=>v.post_id===id&&v.choice==='no').length;
+  const mine=rows.find(v=>String(v.post_id)===String(id)&&v.user_id===session.user.id)?.choice||'';
+  const yes=rows.filter(v=>String(v.post_id)===String(id)&&v.choice==='yes').length;
+  const no=rows.filter(v=>String(v.post_id)===String(id)&&v.choice==='no').length;
   const yesLabel=type==='ride'?'VOZIM':'DOLAZIM';
   const noLabel=type==='ride'?'NE VOZIM':'NE DOLAZIM';
   return `<div class="formbox" style="margin:12px 0 0;padding:12px"><b style="font-size:12px">GLASANJE ČLANOVA</b><div class="actions"><button type="button" class="btn ${mine==='yes'?'':'secondary'}" data-vote-type="${type}" data-vote-id="${id}" data-vote-choice="yes">${yesLabel} · ${yes}</button><button type="button" class="btn ${mine==='no'?'':'secondary'}" data-vote-type="${type}" data-vote-id="${id}" data-vote-choice="no">${noLabel} · ${no}</button></div><p class="muted" style="margin-top:8px">${mine?'Tvoj izbor: '+(mine==='yes'?yesLabel:noLabel)+'. Možeš ga promeniti pritiskom na drugo dugme.':'Izaberi jednu opciju.'}</p></div>`;
