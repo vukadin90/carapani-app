@@ -283,11 +283,10 @@ ${avatar}
 </div>
 <div id="accountSettings" class="formbox" style="display:none"><h3>⚙️ Podešavanja</h3>
 ${profile?.approved?`<div style="margin:12px 0"><b>🔔 Zvuk push obaveštenja</b><p class="muted">Uključi ili isključi zvuk kada stigne klupsko push obaveštenje. Jačina zvuka se podešava na telefonu.</p><label for="pushSoundSelect">Zvuk obaveštenja</label><select class="field" id="pushSoundSelect" onchange="savePushSound(this.value)"><option value="on">Uključen</option><option value="off">Isključen</option></select><div id="pushSoundStatus" class="muted">Podešavanje važi za ovaj uređaj.</div></div>`:''}
-<div style="margin-top:12px"><label>Ostala podešavanja</label><select class="field" id="accountActionSelect" onchange="accountMenuChange(this.value)"><option value="">-- Izaberi opciju --</option>${profile?.approved?'<option value="push">Upravljanje push obaveštenjima</option><option value="motorcycle">Moj motor</option>':''}${isAdmin?'<option value="name">Promena imena</option><option value="admin">Administracija kluba</option>':''}</select></div></div>
+<div style="margin-top:12px"><label>Ostala podešavanja</label><select class="field" id="accountActionSelect" onchange="accountMenuChange(this.value)"><option value="">-- Izaberi opciju --</option>${profile?.approved?'<option value="push">Upravljanje push obaveštenjima</option>':''}${isAdmin?'<option value="name">Promena imena</option><option value="admin">Administracija kluba</option>':''}</select></div></div>
 
-${profile?.approved?`<div id="accountMotorcyclePanel" class="formbox" style="display:none;margin-top:12px">
-<div id="myMotorcycleView"></div>
-<div id="myMotorcycleEditForm" style="display:none">
+${profile?.approved?`<div id="myMotorcycleView" class="formbox" style="display:none;margin-top:12px"></div>
+<div id="myMotorcycleEditForm" class="formbox" style="display:none;margin-top:12px">
 <h3>🏍️ Podešavanja motora</h3>
 <p class="muted">Ovde možeš da dodaš ili izmeniš fotografiju i podatke o svom motoru.</p>
 <label>Fotografija motora</label><input class="field" id="bikePhotoFile" type="file" accept="image/jpeg,image/png,image/webp" onchange="previewMotorcyclePhoto()">
@@ -326,7 +325,7 @@ function openSoundDB(){return new Promise((resolve,reject)=>{const req=indexedDB
 async function savePushSound(value){try{const database=await openSoundDB();await new Promise((resolve,reject)=>{const tx=database.transaction('preferences','readwrite');tx.objectStore('preferences').put(value==='on','pushSoundEnabled');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});database.close();const status=$('pushSoundStatus');if(status)status.textContent=value==='on'?'Zvuk push obaveštenja je uključen.':'Zvuk push obaveštenja je isključen.';}catch(e){alert('Nije moguće sačuvati podešavanje zvuka: '+e.message);}}
 async function loadPushSoundSetting(){try{const database=await openSoundDB();const value=await new Promise((resolve,reject)=>{const tx=database.transaction('preferences','readonly');const req=tx.objectStore('preferences').get('pushSoundEnabled');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});database.close();const enabled=value!==false;const select=$('pushSoundSelect');if(select)select.value=enabled?'on':'off';const status=$('pushSoundStatus');if(status)status.textContent=enabled?'Zvuk push obaveštenja je uključen.':'Zvuk push obaveštenja je isključen.';}catch(e){console.warn('Ne mogu da učitam podešavanje zvuka',e);}}
 function accountMenuChange(value){
-  const panels={push:$('accountPushPanel'),motorcycle:$('accountMotorcyclePanel'),name:$('accountNamePanel'),admin:$('accountAdminPanel')};
+  const panels={push:$('accountPushPanel'),name:$('accountNamePanel'),admin:$('accountAdminPanel')};
   Object.entries(panels).forEach(([key,el])=>{if(el)el.style.display=key===value?'block':'none';});
 }
 async function saveAdminDisplayName(){
