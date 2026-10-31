@@ -39,7 +39,25 @@
 <section id="events" class="page"><div class="section"><div class="section-head"><h3>DOGAĐAJI</h3><span>KALENDAR</span></div><div id="eventsList" class="empty">Učitavanje događaja…</div></div></section>
 <section id="news" class="page"><div class="section"><div class="section-head"><h3>OBAVEŠTENJA</h3><span>KLUPSKE VESTI</span></div><div id="newsList" class="empty">Učitavanje obaveštenja…</div></div></section>
 <section id="members" class="page"><div class="section"><div class="section-head"><h3>ČLANOVI KLUBA</h3><span>ZA ČLANOVE</span></div><div id="membersList" class="empty">Prijavite se da biste videli spisak članova.</div></div></section>
-<section id="gallery" class="page"><div class="section"><div class="section-head"><h3>GALERIJA</h3><span>NAŠE USPOMENE</span></div><div id="galleryList" class="empty">Galerija će prikazati fotografije koje administratori objave.</div></div></section>
+<section id="gallery" class="page">
+  <div class="section">
+    <h2>📸 Galerija ČARAPANI</h2>
+    <p>Fotografije sa naših vožnji, skupova i druženja.</p>
+
+    <div id="galleryUpload" style="display:none;margin:15px 0;padding:15px;background:#222;border-radius:12px;">
+      <h3>Dodaj fotografiju</h3>
+      <input id="galleryTitle" type="text" placeholder="Naslov fotografije">
+      <textarea id="galleryDescription" placeholder="Opis fotografije"></textarea>
+      <input id="galleryFile" type="file" accept="image/*">
+      <button class="btn cta" onclick="uploadGalleryPhoto()">Objavi fotografiju</button>
+    </div>
+
+    <div id="galleryList">
+      <p>Učitavanje galerije...</p>
+    </div>
+  </div>
+</section>
+  
 <section id="account" class="page"><div class="section"><div class="section-head"><h3>NALOG ČLANA</h3><span>PRISTUP</span></div><div id="accountPanel"></div></div></section>
 <section id="admin" class="page"><div class="section"><div class="section-head"><h3>ADMINISTRACIJA</h3><span>UPRAVLJANJE KLUBOM</span></div><div id="adminPanel"></div></div></section>
 </main>
@@ -90,5 +108,144 @@ async function publishPost(){const table=$('postType').value,title=$('postTitle'
 db.auth.onAuthStateChange(()=>setTimeout(refresh,0));
 if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 refresh();
+async function loadGallery(){
+  const list=$('galleryList');
+  const uploadBox=$('galleryUpload');
+  if(!list)return;
+
+  let canUpload=false;
+  let canDelete=false;
+
+  const {data:{session:s}}=await db.auth.getSession();
+
+  if(s){
+    const {data:p}=await db.from('profiles')
+      .select('approved,is_admin')
+      .eq('id',s.user.id)
+      .maybeSingle();
+
+    canUpload=!!p?.approved;
+    canDelete=!!p?.is_admin;
+  }
+
+  if(uploadBox)uploadBox.style.display=canUpload?'block':'none';
+
+  const {data,error}=await db.from('club_gallery')
+    .select('*')
+    .order('created_at',{ascending:false});
+
+  if(error){
+    list.innerHTML='<p>Greška pri učitavanju galerije.</p>';
+    return;
+  }
+
+  if(!data||!data.length){
+    list.innerHTML='<p>Galerija je trenutno prazna. Prve fotografije uskoro stižu!</p>';
+    return;
+  }
+
+  list.innerHTML=data.map(x=>`
+    <div class="card" style="margin:15px 0;padding:12px;">
+      <img src="${esc(x.image_url)}" alt="${esc(x.title||'Fotografija')}" loading="lazy" style="width:100%;border-radius:10px;">
+      <h3>${esc(x.title||'Fotografija')}</h3>
+      <p>${esc(x.description||'')}</p>
+      ${canDelete?`<button class="btn secondary" onclick="deleteGalleryPhoto('${esc(x.id)}')">Obriši fotografiju</button>`:''}
+    </div>
+  `).join('');
+}
+
+async function uploadGalleryPhoto(){
+  const title=$('galleryTitle').value.trim();
+  const description=$('galleryDescription').value.trim();
+  const file=$('galleryFile').files[0];
+
+  if(!file){
+    alert('Izaberi fotografiju.');
+    return;
+  }
+
+  if(file.size>10*1024*1024){
+    alert('Fotografija ne sme biti veća od 10 MB.');
+    return;
+  }
+
+  const {data:{session:s}}=await db.auth.getSession();
+  if(!s){
+    alert('Moraš biti prijavljen.');
+    return;
+  }
+
+  const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  const path=s.user.id+'/'+Date.now()+'-'+safeName;
+
+  const {error:uploadError}=await db.storage
+    .from('club-gallery')
+    .upload(path,file,{contentType:file.type});
+
+  if(uploadError){
+    alert('Greška pri postavljanju fotografije: '+uploadError.message);
+    return;
+  }
+
+  const {data:urlData}=db.storage
+    .from('club-gallery')
+    .getPublicUrl(path);
+
+  const {error}=await db.from('club_gallery').insert({
+    title:title,
+    description:description,
+    image_url:urlData.publicUrl,
+    storage_path:path,
+    uploaded_by:s.user.id
+  });
+
+  if(error){
+    await db.storage.from('club-gallery').remove([path]);
+    alert('Greška pri čuvanju fotografije: '+error.message);
+    return;
+  }
+
+  $('galleryTitle').value='';
+  $('galleryDescription').value='';
+  $('galleryFile').value='';
+
+  alert('Fotografija je uspešno objavljena!');
+  await loadGallery();
+}
+
+async function deleteGalleryPhoto(id){
+  if(!confirm('Da li sigurno želiš da obrišeš ovu fotografiju?'))return;
+
+  const {data:item,error:findError}=await db.from('club_gallery')
+    .select('storage_path')
+    .eq('id',id)
+    .single();
+
+  if(findError){
+    alert('Fotografija nije pronađena.');
+    return;
+  }
+
+  const {error:storageError}=await db.storage
+    .from('club-gallery')
+    .remove([item.storage_path]);
+
+  if(storageError){
+    alert('Greška pri brisanju fotografije: '+storageError.message);
+    return;
+  }
+
+  const {error}=await db.from('club_gallery').delete().eq('id',id);
+
+  if(error){
+    alert('Greška pri brisanju zapisa: '+error.message);
+    return;
+  }
+
+  await loadGallery();
+}
+
+loadGallery();
+db.auth.onAuthStateChange(()=>setTimeout(loadGallery,500));
 </script>
 </body></html>
