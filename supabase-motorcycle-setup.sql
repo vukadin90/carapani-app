@@ -13,6 +13,9 @@ create table if not exists public.member_motorcycles (
 
 alter table public.member_motorcycles enable row level security;
 
+-- Dozvole za prijavljene članove (RLS politike i dalje ograničavaju pristup)
+grant select, insert, update, delete on table public.member_motorcycles to authenticated;
+
 drop policy if exists "Approved members can view motorcycle profiles" on public.member_motorcycles;
 create policy "Approved members can view motorcycle profiles"
 on public.member_motorcycles for select to authenticated
