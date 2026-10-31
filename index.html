@@ -157,6 +157,16 @@ async function loadEvents(){
 async function loadNews(){const el=$('newsList'),home=$('homeNews');const {data,error}=await db.from('club_announcements').select('*').order('created_at',{ascending:false});const html=error?'<div class="empty">Obaveštenja još nisu dostupna.</div>':data?.length?data.map(x=>card(x,'OBAVEŠTENJE','club_announcements')).join(''):'<div class="empty">Nema novih obaveštenja.</div>';el.innerHTML=html;home.innerHTML=html}
 async function loadMembers(){const el=$('membersList');if(!session||!profile?.approved){el.innerHTML='<div class="notice">Spisak članova je dostupan samo odobrenim članovima kluba.</div>';return}const {data,error}=await db.from('profiles').select('id,full_name,phone,avatar_url').eq('approved',true).order('full_name');el.innerHTML=error?'<div class="empty">Nije moguće učitati članove.</div>':data?.length?data.map(m=>`<div class="card member" role="button" tabindex="0" style="cursor:pointer" onclick="openMemberProfile('${esc(m.id)}')">${m.avatar_url?`<img src="${esc(m.avatar_url)}" style="width:55px;height:55px;border-radius:50%;object-fit:cover">`:`<div class="avatar">${esc((m.full_name||'?').slice(0,1).toUpperCase())}</div>`}<div><b>${esc(m.full_name||'Član kluba')}</b><div class="muted">Član kluba</div>${m.phone?`<div class="muted">${esc(m.phone)}</div>`:''}</div></div>`).join(''):'<div class="empty">Nema odobrenih članova.</div>'}
 
+function previewMotorcyclePhoto(){
+  const file=$('bikePhotoFile')?.files?.[0];
+  const preview=$('bikePhotoPreview');
+  if(!preview)return;
+  if(!file){preview.textContent='Fotografija nije izabrana.';return;}
+  if(!['image/jpeg','image/png','image/webp'].includes(file.type)){preview.textContent='Dozvoljeni su JPEG, PNG i WEBP formati.';return;}
+  const reader=new FileReader();
+  reader.onload=()=>{preview.innerHTML='<img src="'+reader.result+'" alt="Pregled fotografije motora" style="width:100%;max-height:220px;object-fit:cover;border-radius:10px">';};
+  reader.readAsDataURL(file);
+}
 async function loadMotorcycleProfileForm(){
   const fields=['bikeName','bikeBrand','bikeModel','bikeCc','bikeHp','bikeDescription'];
   if(!session||!profile?.approved||!$(fields[0]))return;
@@ -247,13 +257,13 @@ ${profile?.approved?`<div style="margin:12px 0"><b>🔔 Zvuk push obaveštenja</
 ${profile?.approved?`<div class="formbox" style="margin-top:12px">
 <h3>🏍️ Moj motor</h3>
 <p class="muted">Dodaj fotografiju i osnovne podatke o svom motoru. Ostali odobreni članovi moći će da ih vide kada otvore tvoj profil.</p>
+<label>Fotografija motora</label><input class="field" id="bikePhotoFile" type="file" accept="image/jpeg,image/png,image/webp" onchange="previewMotorcyclePhoto()">
+<div id="bikePhotoPreview" class="muted" style="margin:8px 0 14px">Fotografija nije izabrana.</div>
 <label>Marka</label><input class="field" id="bikeBrand" maxlength="60" placeholder="">
 <label>Model</label><input class="field" id="bikeModel" maxlength="80" placeholder="">
 <label>Zapremina (kubika)</label><input class="field" id="bikeCc" type="number" min="1" max="3000" placeholder="">
 <label>Snaga (KS)</label><input class="field" id="bikeHp" type="number" min="1" max="1000" placeholder="">
 <label>Opis motora</label><textarea class="field" id="bikeDescription" rows="3" maxlength="500" placeholder="Dodaj još nešto o svom motoru..."></textarea>
-<label>Fotografija motora</label><input class="field" id="bikePhotoFile" type="file" accept="image/jpeg,image/png,image/webp">
-<div id="bikePhotoPreview" class="muted">Fotografija nije izabrana.</div>
 <button class="btn" style="margin-top:10px" onclick="saveMotorcycleProfile()">SAČUVAJ PODATKE O MOTORU</button>
 </div>`:''}
 <div style="display:none">
