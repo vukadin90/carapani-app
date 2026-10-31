@@ -42,7 +42,7 @@
 <section id="events" class="page"><div class="section"><div class="section-head"><h3>DOGAĐAJI</h3><span>KALENDAR</span></div><div style="margin:15px 0"><button class="btn" onclick="toggleMemberEventForm()">+ OBJAVI NOVI DOGAĐAJ</button></div><div id="memberEventForm" class="formbox" style="display:none"><h3>Novi događaj</h3><label>Naziv događaja</label><input class="field" id="memberEventTitle" placeholder="Naziv događaja"><label>Opis događaja</label><textarea class="field" id="memberEventDescription" rows="4"></textarea><label>Datum i vreme</label><input class="field" id="memberEventDate" type="datetime-local"><label>Mesto / lokacija</label><input class="field" id="memberEventLocation" placeholder="Mesto održavanja"><button class="btn" onclick="publishMemberEvent()">OBJAVI DOGAĐAJ</button></div><div id="eventsList" class="empty">Učitavanje događaja…</div></div></section>
 <section id="news" class="page"><div class="section"><div class="section-head"><h3>OBAVEŠTENJA</h3><span>KLUPSKE VESTI</span></div><div id="newsList" class="empty">Učitavanje obaveštenja…</div></div></section>
 <section id="members" class="page"><div class="section"><div class="section-head"><h3>ČLANOVI KLUBA</h3><span>ZA ČLANOVE</span></div><div id="membersList" class="empty">Prijavite se da biste videli spisak članova.</div></div></section>
-<section id="chat" class="page"><div class="section"><div class="section-head"><h3>ČLANSKI CHAT</h3><span>ČARAPANI</span></div><div id="chatNotice" class="notice">Chat je dostupan samo prijavljenim i odobrenim članovima kluba.</div><div id="chatMessages" class="chat-messages"><div class="empty">Učitavanje poruka…</div></div><div id="chatComposer" class="chat-composer" style="display:none"><textarea id="chatMessageInput" class="field" rows="2" maxlength="1000" placeholder="Napiši poruku…"></textarea><button class="btn" id="chatSendButton" onclick="sendChatMessage()">POŠALJI</button></div></div></section>
+<section id="chat" class="page"><div class="section"><div class="section-head"><h3>ČLANSKI CHAT</h3><span>ČARAPANI</span></div><div id="chatNotice" class="notice">Chat je dostupan samo prijavljenim i odobrenim članovima kluba.</div><div id="chatAdminMembers" class="formbox" style="display:none"><h3>ADMINISTRACIJA ČLANOVA CHATA</h3><div id="chatAdminMemberList" class="muted">Učitavanje članova…</div></div><div id="chatMessages" class="chat-messages"><div class="empty">Učitavanje poruka…</div></div><div id="chatComposer" class="chat-composer" style="display:none"><textarea id="chatMessageInput" class="field" rows="2" maxlength="1000" placeholder="Napiši poruku…"></textarea><button class="btn" id="chatSendButton" onclick="sendChatMessage()">POŠALJI</button></div></div></section>
   
 <section id="account" class="page"><div class="section"><div id="accountPanel"></div></div></section>
 <section id="admin" class="page"><div class="section"><div class="section-head"><h3>ADMINISTRACIJA</h3><span>UPRAVLJANJE KLUBOM</span></div><div id="adminPanel"></div></div></section>
@@ -96,9 +96,16 @@ async function loadChatMessages(){
  myChatBlocked=!!chatRestrictions[session.user.id];
  if(composer)composer.style.display=myChatBlocked?'none':'flex';
  if(notice){notice.style.display=myChatBlocked?'block':'none';notice.textContent=myChatBlocked?'Administrator vam je privremeno zabranio slanje poruka. Možete i dalje da čitate chat.':'Chat je dostupan članovima kluba.';}
- renderChatMessages(data||[]);
+ renderChatMessages(data||[]);if(isAdmin)await loadChatAdminMembers();
  if(chatChannel)db.removeChannel(chatChannel);
  chatChannel=db.channel('club-chat-live').on('postgres_changes',{event:'*',schema:'public',table:'chat_messages'},()=>loadChatMessages()).subscribe();
+}
+async function loadChatAdminMembers(){
+ const panel=$('chatAdminMembers'),list=$('chatAdminMemberList');if(!panel||!list)return;
+ panel.style.display='block';
+ const {data,error}=await db.from('profiles').select('id,full_name').eq('approved',true).order('full_name');
+ if(error){list.textContent='Nije moguće učitati članove: '+error.message;return;}
+ list.innerHTML=(data||[]).filter(m=>m.id!==session?.user?.id).map(m=>'<div class="member" style="justify-content:space-between;padding:8px 0;border-bottom:1px solid #30343a"><b>'+esc(m.full_name||'Član kluba')+'</b><button class="btn '+(chatRestrictions[m.id]?'':'secondary')+'" style="padding:7px 9px" onclick="setChatWriteAccess(\''+m.id+'\','+(!chatRestrictions[m.id])+')">'+(chatRestrictions[m.id]?'DOZVOLI PISANJE':'ZABRANI PISANJE')+'</button></div>').join('')||'<p class="muted">Nema drugih odobrenih članova.</p>';
 }
 function renderChatMessages(rows){
  const box=$('chatMessages');if(!box)return;
