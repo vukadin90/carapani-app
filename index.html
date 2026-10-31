@@ -1,62 +1,94 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="sr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#090909">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0b0d">
+<meta name="description" content="Zvanična aplikacija Moto kluba ČARAPANI">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/icon-192.png">
 <title>Moto klub ČARAPANI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box}
-body{margin:0;background:#090909;color:#fff;font-family:Arial,sans-serif}
-header{text-align:center;padding:28px 18px;background:linear-gradient(#191919,#090909);border-bottom:2px solid #b91c28}
-.crest{width:180px;height:180px;object-fit:contain;border-radius:12px}
-h1{margin:12px 0 4px;font-size:27px;letter-spacing:2px}
-.sub{color:#ccc;font-size:13px;letter-spacing:2px}
-nav{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:18px}
-nav a{color:white;text-decoration:none;text-align:center;padding:15px 8px;border:1px solid #9c2029;border-radius:10px;background:#171717;font-weight:bold}
-main{padding:0 18px 28px}
-section{margin:12px 0 22px;padding:18px;background:#151515;border-radius:12px;border:1px solid #292929}
-h2{font-size:20px;color:#f1c84b;margin-top:0}
-p{color:#ddd;line-height:1.6}
-.btn{display:inline-block;padding:11px 15px;background:#b91c28;color:white;text-decoration:none;border-radius:7px;font-weight:bold}
-footer{text-align:center;padding:20px;color:#aaa;border-top:1px solid #333;font-size:12px}
+:root{--bg:#090a0c;--panel:#141619;--panel2:#1b1e22;--red:#d9272e;--red2:#a91820;--text:#f4f4f4;--muted:#a4a8ad;--line:#30343a;--gold:#d4ad62}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#22252a 0,#090a0c 50%);color:var(--text);font-family:Inter,system-ui,sans-serif;min-height:100vh}button,input,textarea,select{font:inherit}button{cursor:pointer}.app{max-width:760px;margin:auto;min-height:100vh;padding-bottom:86px}.top{padding:calc(env(safe-area-inset-top) + 18px) 18px 14px;background:linear-gradient(130deg,#17191d,#08090a);border-bottom:1px solid #34373c;display:flex;align-items:center;gap:14px}.crest{width:64px;height:64px;object-fit:contain;border-radius:12px;background:#fff1;padding:4px}.brand{flex:1}.brand small{color:var(--red);font-weight:800;letter-spacing:3px;font-size:10px}.brand h1{font:800 27px 'Barlow Condensed',sans-serif;letter-spacing:1.4px;margin:2px 0}.brand p{margin:0;color:var(--muted);font-size:11px;letter-spacing:1.4px}.status{font-size:10px;color:#b9bec4;border:1px solid var(--line);padding:6px 8px;border-radius:20px}
+.hero{margin:16px;padding:25px 20px;border:1px solid #393d43;border-radius:18px;background:linear-gradient(115deg,#25282d,#111316 62%,#4a1116);position:relative;overflow:hidden}.hero:after{content:"";position:absolute;width:190px;height:190px;border:22px solid #ffffff0a;border-radius:50%;right:-70px;top:-55px}.eyebrow{color:#ff555b;font-size:10px;letter-spacing:3px;font-weight:800}.hero h2{font:800 38px/0.98 'Barlow Condensed',sans-serif;margin:10px 0;max-width:390px}.hero p{color:#c4c7ca;font-size:13px;max-width:390px;line-height:1.6}.hero .cta{margin-top:12px}.section{padding:0 16px;margin:22px 0}.section-head{display:flex;justify-content:space-between;align-items:center;margin:0 2px 12px}.section h3{font:700 23px 'Barlow Condensed',sans-serif;letter-spacing:1px;margin:0}.section-head span{font-size:10px;color:var(--red);letter-spacing:1.4px;font-weight:800}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.tile,.card{background:linear-gradient(145deg,#1b1e22,#111316);border:1px solid var(--line);border-radius:14px;padding:15px}.tile .ico{font-size:22px}.tile strong{display:block;font:700 20px 'Barlow Condensed',sans-serif;margin:8px 0 3px}.tile small,.muted{color:var(--muted);font-size:12px;line-height:1.5}.card{margin-bottom:10px}.card h4{margin:0 0 7px;font-size:15px}.card p{font-size:12px;color:#c0c4c8;line-height:1.55;margin:5px 0}.tag{display:inline-block;background:#4b171b;color:#ff9296;border:1px solid #783036;border-radius:20px;padding:4px 8px;font-size:10px;font-weight:700}.btn{border:0;border-radius:10px;background:var(--red);color:white;padding:11px 15px;font-weight:800;font-size:12px}.btn.secondary{background:#282c31;border:1px solid #42474e}.btn.ghost{background:transparent;border:1px solid #555b63}.btn.danger{background:#5c171c}.btn:disabled{opacity:.5;cursor:not-allowed}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.field{width:100%;background:#090b0d;color:white;border:1px solid #41464d;border-radius:9px;padding:12px;margin:5px 0 11px}.field:focus{outline:1px solid var(--red);border-color:var(--red)}label{font-size:11px;color:#c6c9cc;font-weight:700}.formbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin:12px 0}.tabs{position:fixed;z-index:10;bottom:0;left:0;right:0;background:#101215f2;backdrop-filter:blur(18px);border-top:1px solid #34383e;display:flex;justify-content:center;padding:8px 5px calc(env(safe-area-inset-bottom) + 7px)}.tabs button{flex:1;max-width:120px;background:none;border:0;color:#969ba2;font-size:10px;padding:5px 2px}.tabs button b{display:block;font-size:19px;margin-bottom:3px}.tabs button.active{color:#ff555b}.page{display:none}.page.active{display:block}.notice{border-left:3px solid var(--red);padding:10px 12px;background:#281518;border-radius:5px;font-size:12px;line-height:1.5;margin:12px 0}.empty{text-align:center;padding:28px 12px;color:var(--muted);border:1px dashed #3a3e44;border-radius:12px;font-size:12px}.member{display:flex;align-items:center;gap:12px}.avatar{width:42px;height:42px;border-radius:50%;background:#4a171c;display:grid;place-items:center;font-weight:800;color:#ff9ca0}.hidden{display:none!important}.foot{text-align:center;color:#737980;font-size:10px;padding:25px 12px}.modalback{position:fixed;inset:0;background:#000b;z-index:30;display:none;align-items:flex-end;justify-content:center}.modalback.show{display:flex}.modal{width:min(760px,100%);max-height:88vh;overflow:auto;background:#15181c;border:1px solid #444;border-radius:18px 18px 0 0;padding:20px 16px calc(env(safe-area-inset-bottom) + 24px)}.modal h3{font:700 25px 'Barlow Condensed';margin:0 0 14px}.close{float:right;background:#292d32;color:white;border:0;border-radius:8px;padding:7px 10px}
+@media(min-width:650px){.hero{padding:38px}.hero h2{font-size:48px}.section{padding:0 22px}.top{padding-left:24px;padding-right:24px}}
 </style>
 </head>
 <body>
-<header>
+<div class="app">
+<header class="top">
 <img class="crest" src="FBCB3318-0E2D-4C6F-83DB-675274930448.png" alt="Grb Moto kluba ČARAPANI" onerror="this.style.display='none'">
-<h1>ČARAPANI</h1>
-<div class="sub">MOTO KLUB • SRBIJA</div>
+<div class="brand"><small>MOTO KLUB</small><h1>ČARAPANI</h1><p>KRUŠEVAC · SERBIA</p></div>
+<div class="status" id="authStatus">GOST</div>
 </header>
-<nav>
-<a href="#ture">🏍️ Moto ture</a>
-<a href="#dogadjaji">📅 Događaji</a>
-<a href="#galerija">📸 Galerija</a>
-<a href="#kontakt">✉️ Kontakt</a>
-</nav>
 <main>
-<section>
-<h2>Dobro došli!</h2>
-<p>Zvanična stranica Moto kluba ČARAPANI. Pratite naše vožnje, okupljanja i druženja na dva točka.</p>
+<section id="home" class="page active">
+<div class="hero"><div class="eyebrow">JEDAN PUT · JEDNA EKIPA</div><h2>PUT NAS SPAJA.<br>BRATSTVO OSTАJE.</h2><p>Zvanična aplikacija Moto kluba ČARAPANI. Sve klupske informacije, vožnje, događaji i članovi – na jednom mestu.</p><button class="btn cta" onclick="showPage('rides')">POGLEDAJ MOTO TURE</button></div>
+<div class="section"><div class="section-head"><h3>KLUPSKI MENI</h3><span>ČARAPANI</span></div><div class="grid">
+<button class="tile" onclick="showPage('rides')"><span class="ico">🏍️</span><strong>Moto ture</strong><small>Planirane vožnje i rute</small></button>
+<button class="tile" onclick="showPage('events')"><span class="ico">📅</span><strong>Događaji</strong><small>Skupovi i okupljanja</small></button>
+<button class="tile" onclick="showPage('news')"><span class="ico">📢</span><strong>Obaveštenja</strong><small>Važne klupske vesti</small></button>
+<button class="tile" onclick="showPage('members')"><span class="ico">🛡️</span><strong>Članovi</strong><small>Klupska zajednica</small></button>
+</div></div>
+<div class="section"><div class="section-head"><h3>NAJNOVIJE OBJAVE</h3><span>IZ KLUBA</span></div><div id="homeNews" class="empty">Objave će se prikazati kada se učitaju.</div></div>
 </section>
-<section id="ture">
-<h2>🏍️ Moto ture</h2>
-<p>Ovde ćemo objavljivati planove vožnji, vreme polaska, mesta okupljanja i rute.</p>
-<p>Pratite obaveštenja kluba za narednu turu.</p>
-</section>
-<section id="dogadjaji">
-<h2>📅 Događaji</h2>
-<p>Informacije o moto skupovima, klupskim druženjima i gostovanjima biće dostupne ovde.</p>
-</section>
-<section id="galerija">
-<h2>📸 Galerija</h2>
-<p>Uskoro: fotografije i snimci sa naših moto tura i susreta.</p>
-</section>
-<section id="kontakt">
-<h2>✉️ Kontakt</h2>
-<p>Za informacije o klubu i događajima obratite se zvaničnim kanalima Moto kluba ČARAPANI.</p>
-</section>
+<section id="rides" class="page"><div class="section"><div class="section-head"><h3>MOTO TURE</h3><span>NA PUTU SMO</span></div><div id="ridesList" class="empty">Učitavanje moto tura…</div></div></section>
+<section id="events" class="page"><div class="section"><div class="section-head"><h3>DOGAĐAJI</h3><span>KALENDAR</span></div><div id="eventsList" class="empty">Učitavanje događaja…</div></div></section>
+<section id="news" class="page"><div class="section"><div class="section-head"><h3>OBAVEŠTENJA</h3><span>KLUPSKE VESTI</span></div><div id="newsList" class="empty">Učitavanje obaveštenja…</div></div></section>
+<section id="members" class="page"><div class="section"><div class="section-head"><h3>ČLANOVI KLUBA</h3><span>ZA ČLANOVE</span></div><div id="membersList" class="empty">Prijavite se da biste videli spisak članova.</div></div></section>
+<section id="gallery" class="page"><div class="section"><div class="section-head"><h3>GALERIJA</h3><span>NAŠE USPOMENE</span></div><div id="galleryList" class="empty">Galerija će prikazati fotografije koje administratori objave.</div></div></section>
+<section id="account" class="page"><div class="section"><div class="section-head"><h3>NALOG ČLANA</h3><span>PRISTUP</span></div><div id="accountPanel"></div></div></section>
+<section id="admin" class="page"><div class="section"><div class="section-head"><h3>ADMINISTRACIJA</h3><span>UPRAVLJANJE KLUBOM</span></div><div id="adminPanel"></div></div></section>
 </main>
-<footer>© Moto klub ČARAPANI • Srbija</footer>
-</body>
-</html>
+<div class="foot">MOTO KLUB ČARAPANI · KRUŠEVAC<br>VOZIMO ZAJEDNO. ČUVAMO JEDNI DRUGE.</div>
+</div>
+<nav class="tabs">
+<button class="active" data-page="home" onclick="showPage('home')"><b>⌂</b>Početna</button>
+<button data-page="rides" onclick="showPage('rides')"><b>🏍</b>Ture</button>
+<button data-page="events" onclick="showPage('events')"><b>▦</b>Događaji</button>
+<button data-page="gallery" onclick="showPage('gallery')"><b>▧</b>Galerija</button>
+<button data-page="account" onclick="showPage('account')"><b>♟</b>Nalog</button>
+</nav>
+<div class="modalback" id="modalBack" onclick="if(event.target===this)closeModal()"><div class="modal"><button class="close" onclick="closeModal()">Zatvori ✕</button><div id="modalContent"></div></div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL='https://gbmbnapxvetedlfpgtit.supabase.co';
+const SUPABASE_KEY='sb_publishable_9GrOIhDzus7HQYGfTXpJqw_3GobgKaI';
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let session=null, profile=null, isAdmin=false;
+const $=id=>document.getElementById(id);
+function showPage(name){document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===name));document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.page===name));if(name==='account')renderAccount();if(name==='admin')renderAdmin();if(name==='members')loadMembers();window.scrollTo(0,0)}
+function modal(html){$('modalContent').innerHTML=html;$('modalBack').classList.add('show')}
+function closeModal(){$('modalBack').classList.remove('show')}
+function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function date(v){if(!v)return 'Datum nije određen';return new Date(v).toLocaleString('sr-RS',{dateStyle:'medium',timeStyle:'short'})}
+function card(x,kind){return `<article class="card"><span class="tag">${esc(kind)}</span><h4>${esc(x.title||'Bez naslova')}</h4>${x.starts_at?`<p>📅 ${date(x.starts_at)}</p>`:''}${x.location?`<p>📍 ${esc(x.location)}</p>`:''}<p>${esc(x.description||'')}</p></article>`}
+async function refresh(){const {data:{session:s}}=await db.auth.getSession();session=s;profile=null;isAdmin=false;if(session){const {data}=await db.from('profiles').select('*').eq('id',session.user.id).maybeSingle();profile=data;isAdmin=!!data?.is_admin}
+$('authStatus').textContent=session?(profile?.approved?'ČLAN':'NA ČEKANJU'):'GOST';renderAccount();await Promise.all([loadRides(),loadEvents(),loadNews()]);if(session&&profile?.approved)loadMembers();if(isAdmin)renderAdmin()}
+async function loadRides(){const el=$('ridesList');const {data,error}=await db.from('club_rides').select('*').order('starts_at',{ascending:true});el.innerHTML=error?'<div class="empty">Moto ture još nisu dostupne.</div>':data?.length?data.map(x=>card(x,'MOTO TURA')).join(''):'<div class="empty">Trenutno nema objavljenih moto tura.</div>'}
+async function loadEvents(){const el=$('eventsList');const {data,error}=await db.from('club_events').select('*').order('starts_at',{ascending:true});el.innerHTML=error?'<div class="empty">Događaji još nisu dostupni.</div>':data?.length?data.map(x=>card(x,'DOGAĐAJ')).join(''):'<div class="empty">Trenutno nema najavljenih događaja.</div>'}
+async function loadNews(){const el=$('newsList'),home=$('homeNews');const {data,error}=await db.from('club_announcements').select('*').order('created_at',{ascending:false});const html=error?'<div class="empty">Obaveštenja još nisu dostupna.</div>':data?.length?data.map(x=>card(x,'OBAVEŠTENJE')).join(''):'<div class="empty">Nema novih obaveštenja.</div>';el.innerHTML=html;home.innerHTML=html}
+async function loadMembers(){const el=$('membersList');if(!session||!profile?.approved){el.innerHTML='<div class="notice">Spisak članova je dostupan samo odobrenim članovima kluba.</div>';return}const {data,error}=await db.from('profiles').select('id,full_name,phone').eq('approved',true).order('full_name');el.innerHTML=error?'<div class="empty">Nije moguće učitati članove.</div>':data?.length?data.map(m=>`<div class="card member"><div class="avatar">${esc((m.full_name||'?').slice(0,1).toUpperCase())}</div><div><b>${esc(m.full_name||'Član kluba')}</b><div class="muted">Član kluba</div>${m.phone?`<div class="muted">${esc(m.phone)}</div>`:''}</div></div>`).join(''):'<div class="empty">Nema odobrenih članova.</div>'}
+function renderAccount(){const el=$('accountPanel');if(!el)return;if(!session){el.innerHTML=`<div class="formbox"><h3>Prijava člana</h3><label>E-mail</label><input class="field" id="loginEmail" type="email" autocomplete="email"><label>Lozinka</label><input class="field" id="loginPass" type="password" autocomplete="current-password"><button class="btn" onclick="login()">PRIJAVI SE</button><div class="muted" style="margin-top:14px">Nemaš nalog? <a href="#" style="color:#ff666b" onclick="showRegister();return false">Registruj se</a></div></div>`;return}
+let html=`<div class="card member"><div class="avatar">${esc((profile?.full_name||session.user.email||'?').slice(0,1).toUpperCase())}</div><div><b>${esc(profile?.full_name||session.user.email)}</b><div class="muted">${esc(session.user.email)}</div><div class="tag">${profile?.approved?'ODOBREN ČLAN':'NALOG ČEKA ODOBRENJE'}</div></div></div>`;
+if(!profile?.approved)html+='<div class="notice">Registracija je uspešna. Administrator kluba treba da odobri tvoj nalog pre pristupa sadržaju za članove.</div>';
+if(isAdmin)html+='<button class="btn secondary" onclick="showPage(&quot;admin&quot;)">OTVORI ADMINISTRACIJU</button>';
+html+='<div class="actions"><button class="btn secondary" onclick="logout()">ODJAVI SE</button></div>';el.innerHTML=html}
+function showRegister(){modal(`<h3>Registracija člana</h3><label>Ime i prezime</label><input class="field" id="regName" autocomplete="name"><label>Telefon</label><input class="field" id="regPhone" type="tel"><label>E-mail</label><input class="field" id="regEmail" type="email" autocomplete="email"><label>Lozinka (najmanje 8 karaktera)</label><input class="field" id="regPass" type="password" autocomplete="new-password"><button class="btn" onclick="register()">POŠALJI REGISTRACIJU</button>`)}
+async function register(){const full_name=$('regName').value.trim(),phone=$('regPhone').value.trim(),email=$('regEmail').value.trim(),password=$('regPass').value;if(!full_name||!email||password.length<8){alert('Unesi ime, ispravan e-mail i lozinku od najmanje 8 karaktera.');return}const {error}=await db.auth.signUp({email,password,options:{data:{full_name,phone}}});if(error){alert(error.message);return}closeModal();alert('Registracija je poslata. Proveri e-mail ako je potvrda uključena. Nalog čeka odobrenje administratora.');await refresh()}
+async function login(){const email=$('loginEmail').value.trim(),password=$('loginPass').value;const {error}=await db.auth.signInWithPassword({email,password});if(error){alert(error.message);return}await refresh();showPage('account')}
+async function logout(){await db.auth.signOut();await refresh();showPage('home')}
+function renderAdmin(){const el=$('adminPanel');if(!el)return;if(!isAdmin){el.innerHTML='<div class="notice">Ovaj deo je dostupan samo administratorima kluba.</div>';return}
+el.innerHTML=`<div class="formbox"><h3>Članovi na čekanju</h3><div id="pendingList">Učitavanje…</div></div><div class="formbox"><h3>Nova objava</h3><label>Vrsta objave</label><select class="field" id="postType"><option value="club_announcements">Obaveštenje</option><option value="club_events">Događaj</option><option value="club_rides">Moto tura</option></select><label>Naslov</label><input class="field" id="postTitle"><label>Opis</label><textarea class="field" id="postDesc" rows="4"></textarea><label>Datum i vreme</label><input class="field" id="postDate" type="datetime-local"><label>Mesto / lokacija</label><input class="field" id="postLocation"><button class="btn" onclick="publishPost()">OBJAVI</button></div><div class="formbox"><h3>Galerija</h3><p class="muted">Objavljivanje fotografija zahteva podešavanje Supabase Storage prostora. Ovaj deo je pripremljen za sledeću fazu.</p></div>`;
+loadPending()}
+async function loadPending(){const el=$('pendingList');if(!el)return;const {data,error}=await db.from('profiles').select('id,full_name,phone,created_at').eq('approved',false).order('created_at');el.innerHTML=error?'<p class="muted">Ne mogu da učitam zahteve.</p>':data?.length?data.map(m=>`<div class="card"><b>${esc(m.full_name||'Bez imena')}</b><p>${esc(m.phone||'Telefon nije unet')}</p><p class="muted">${esc(m.id)}</p><button class="btn" onclick="approveMember('${esc(m.id)}')">ODOBRI ČLANA</button></div>`).join(''):'<p class="muted">Nema novih zahteva.</p>'}
+async function approveMember(id){const {error}=await db.from('profiles').update({approved:true}).eq('id',id);if(error){alert(error.message);return}loadPending()}
+async function publishPost(){const table=$('postType').value,title=$('postTitle').value.trim(),description=$('postDesc').value.trim(),location=$('postLocation').value.trim(),starts_at=$('postDate').value?new Date($('postDate').value).toISOString():null;if(!title){alert('Unesi naslov.');return}const row={title,description,location,starts_at,created_by:session.user.id};const {error}=await db.from(table).insert(row);if(error){alert(error.message);return}alert('Objava je sačuvana.');$('postTitle').value='';$('postDesc').value='';await refresh()}
+db.auth.onAuthStateChange(()=>setTimeout(refresh,0));
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+refresh();
+</script>
+</body></html>
