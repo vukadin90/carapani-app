@@ -8,7 +8,8 @@ create table if not exists public.chat_restrictions (
 );
 
 alter table public.chat_restrictions enable row level security;
-grant select, insert, delete on public.chat_restrictions to authenticated;
+grant select, insert, update, delete on public.chat_restrictions to authenticated;
+grant delete on public.chat_messages to authenticated;
 
 drop policy if exists "Members can see own chat restriction" on public.chat_restrictions;
 create policy "Members can see own chat restriction"
