@@ -191,8 +191,8 @@ function toggleMotorcycleEdit(){
   const form=$('myMotorcycleEditForm'),view=$('myMotorcycleView');
   if(!form||!view)return;
   const opening=form.style.display==='none';
-  form.style.display=opening?'block':'none';
-  view.style.display=opening?'none':'block';
+  if(opening){form.style.display='block';view.style.display='none';}
+  else if(view.innerHTML.trim()){form.style.display='none';view.style.display='block';}
 }
 async function loadMotorcycleProfileForm(){
   if(!session||!profile?.approved||!$('bikeBrand'))return;
@@ -287,7 +287,7 @@ ${profile?.approved?`<div style="margin:12px 0"><b>🔔 Zvuk push obaveštenja</
 
 ${profile?.approved?`<div id="myMotorcycleView" class="formbox" style="display:none;margin-top:12px"></div>
 <div id="myMotorcycleEditForm" class="formbox" style="display:none;margin-top:12px">
-<h3>🏍️ ${$('bikeBrand')?.value?'Izmena podataka o motoru':'Dodavanje motora'}</h3>
+<h3>🏍️ Podešavanja motora</h3>
 <p class="muted">Ovde možeš da dodaš ili izmeniš fotografiju i podatke o svom motoru.</p>
 <label>Fotografija motora</label><input class="field" id="bikePhotoFile" type="file" accept="image/jpeg,image/png,image/webp" onchange="previewMotorcyclePhoto()">
 <div id="bikePhotoPreview" class="muted" style="margin:8px 0 14px">Fotografija nije izabrana.</div>
