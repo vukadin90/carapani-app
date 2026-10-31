@@ -77,7 +77,7 @@ const SUPABASE_URL='https://gbmbnapxvetedlfpgtit.supabase.co';
 const SUPABASE_KEY='sb_publishable_9GrOIhDzus7HQYGfTXpJqw_3GobgKaI';
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let session=null, profile=null, isAdmin=false;
-const PUSH_VAPID_PUBLIC_KEY='BO_FzDieZVEBdNBA4bOVIGLdbKM8j1f5xICSNQv46RSMKQiaxktfMbFSTZKkEAqUauEQSeEcHj-8wkvGY04G7PA';
+const PUSH_VAPID_PUBLIC_KEY='BK2ot_5Yhl1SkAHwCn19KXAYRkzSFNS2Xv9f6KKXqi0WEXXizmkZGOMLfYP5JyzwCNNgH9F6jVTDI9nSBiJNEMA';
 const $=id=>document.getElementById(id);
 function showPage(name){document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===name));document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.page===name));if(name==='account')renderAccount();if(name==='admin')renderAdmin();if(name==='members')loadMembers();if(name==='gallery')loadGallery();window.scrollTo(0,0)}
 function modal(html){$('modalContent').innerHTML=html;$('modalBack').classList.add('show')}
