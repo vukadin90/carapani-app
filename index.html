@@ -146,7 +146,7 @@ async function loadGallery(){
 
   list.innerHTML=data.map(x=>`
     <div class="card" style="margin:15px 0;padding:12px;">
-      <img src="${esc(x.image_url)}" alt="${esc(x.title||'Fotografija')}" loading="lazy" style="width:100%;border-radius:10px;">
+      <img src="${esc(x.image_url)}" alt="${esc(x.title||'Fotografija')}" loading="lazy" style="width:100%;border-radius:10px;cursor:zoom-in;">
       <h3>${esc(x.title||'Fotografija')}</h3>
       <p>${esc(x.description||'')}</p>
       ${canDelete?`<button class="btn secondary" onclick="deleteGalleryPhoto('${esc(x.id)}')">Obriši fotografiju</button>`:''}
@@ -245,7 +245,17 @@ async function deleteGalleryPhoto(id){
   await loadGallery();
 }
 
-loadGallery();
+function openGalleryImage(src){
+  const viewer=document.createElement('div');
+  viewer.id='galleryViewer';
+  viewer.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:99999;display:flex;align-items:center;justify-content:center;padding:15px;';
+
+  viewer.innerHTML='<span style="position:absolute;top:25px;right:25px;color:white;font-size:38px;cursor:pointer;">×</span><img src="'+esc(src)+'" style="max-width:100%;max-height:90vh;object-fit:contain;border-radius:8px;">';
+
+  viewer.onclick=function(){viewer.remove();};
+  document.body.appendChild(viewer);
+}
+  loadGallery();
 db.auth.onAuthStateChange(()=>setTimeout(loadGallery,500));
 </script>
 </body></html>
