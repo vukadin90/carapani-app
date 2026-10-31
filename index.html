@@ -13,7 +13,7 @@
 <style>
 :root{--bg:#090a0c;--panel:#141619;--panel2:#1b1e22;--red:#d9272e;--red2:#a91820;--text:#f4f4f4;--muted:#a4a8ad;--line:#30343a;--gold:#d4ad62}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#22252a 0,#090a0c 50%);color:var(--text);font-family:Inter,system-ui,sans-serif;min-height:100vh}button,input,textarea,select{font:inherit}button{cursor:pointer}.app{max-width:760px;margin:auto;min-height:100vh;padding-bottom:86px}.top{padding:calc(env(safe-area-inset-top) + 18px) 18px 14px;background:linear-gradient(130deg,#17191d,#08090a);border-bottom:1px solid #34373c;display:flex;align-items:center;gap:14px}.crest{width:64px;height:64px;object-fit:contain;border-radius:12px;background:#fff1;padding:4px}.brand{flex:1}.brand small{color:var(--red);font-weight:800;letter-spacing:3px;font-size:10px}.brand h1{font:800 27px 'Barlow Condensed',sans-serif;letter-spacing:1.4px;margin:2px 0}.brand p{margin:0;color:var(--muted);font-size:11px;letter-spacing:1.4px}.status{font-size:10px;color:#b9bec4;border:1px solid var(--line);padding:6px 8px;border-radius:20px}
-.hero{margin:16px;padding:25px 20px;border:1px solid #393d43;border-radius:18px;background:linear-gradient(115deg,#25282d,#111316 62%,#4a1116);position:relative;overflow:hidden}.hero:after{content:"";position:absolute;width:190px;height:190px;border:22px solid #ffffff0a;border-radius:50%;right:-70px;top:-55px}.eyebrow{color:#ff555b;font-size:10px;letter-spacing:3px;font-weight:800}.hero h2{font:800 38px/0.98 'Barlow Condensed',sans-serif;margin:10px 0;max-width:390px}.hero p{color:#c4c7ca;font-size:13px;max-width:390px;line-height:1.6}.hero .cta{margin-top:12px}.section{padding:0 16px;margin:22px 0}.section-head{display:flex;justify-content:space-between;align-items:center;margin:0 2px 12px}.section h3{font:700 23px 'Barlow Condensed',sans-serif;letter-spacing:1px;margin:0}.section-head span{font-size:10px;color:var(--red);letter-spacing:1.4px;font-weight:800}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.tile,.card{background:linear-gradient(145deg,#1b1e22,#111316);border:1px solid var(--line);border-radius:14px;padding:15px}.tile .ico{font-size:22px}.tile strong{display:block;font:700 20px 'Barlow Condensed',sans-serif;margin:8px 0 3px}.tile small,.muted{color:var(--muted);font-size:12px;line-height:1.5}.card{margin-bottom:10px}.card h4{margin:0 0 7px;font-size:15px}.card p{font-size:12px;color:#c0c4c8;line-height:1.55;margin:5px 0}.tag{display:inline-block;background:#4b171b;color:#ff9296;border:1px solid #783036;border-radius:20px;padding:4px 8px;font-size:10px;font-weight:700}.btn{border:0;border-radius:10px;background:var(--red);color:white;padding:11px 15px;font-weight:800;font-size:12px}.btn.secondary{background:#282c31;border:1px solid #42474e}.btn.ghost{background:transparent;border:1px solid #555b63}.btn.danger{background:#5c171c}.btn:disabled{opacity:.5;cursor:not-allowed}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.field{width:100%;background:#090b0d;color:white;border:1px solid #41464d;border-radius:9px;padding:12px;margin:5px 0 11px}.field:focus{outline:1px solid var(--red);border-color:var(--red)}label{font-size:11px;color:#c6c9cc;font-weight:700}.formbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin:12px 0}.tabs{position:fixed;z-index:10;bottom:0;left:0;right:0;background:#101215f2;backdrop-filter:blur(18px);border-top:1px solid #34383e;display:flex;justify-content:center;padding:8px 5px calc(env(safe-area-inset-bottom) + 7px)}.tabs button{flex:1;max-width:120px;background:none;border:0;color:#969ba2;font-size:10px;padding:5px 2px}.tabs button b{display:block;font-size:19px;margin-bottom:3px}.tabs button.active{color:#ff555b}.page{display:none}.page.active{display:block}.notice{border-left:3px solid var(--red);padding:10px 12px;background:#281518;border-radius:5px;font-size:12px;line-height:1.5;margin:12px 0}.empty{text-align:center;padding:28px 12px;color:var(--muted);border:1px dashed #3a3e44;border-radius:12px;font-size:12px}.member{display:flex;align-items:center;gap:12px}.avatar{width:42px;height:42px;border-radius:50%;background:#4a171c;display:grid;place-items:center;font-weight:800;color:#ff9ca0}.hidden{display:none!important}.foot{text-align:center;color:#737980;font-size:10px;padding:25px 12px}.modalback{position:fixed;inset:0;background:#000b;z-index:30;display:none;align-items:flex-end;justify-content:center}.modalback.show{display:flex}.modal{width:min(760px,100%);max-height:88vh;overflow:auto;background:#15181c;border:1px solid #444;border-radius:18px 18px 0 0;padding:20px 16px calc(env(safe-area-inset-bottom) + 24px)}.modal h3{font:700 25px 'Barlow Condensed';margin:0 0 14px}.close{float:right;background:#292d32;color:white;border:0;border-radius:8px;padding:7px 10px}
+.hero{margin:16px;padding:25px 20px;border:1px solid #393d43;border-radius:18px;background:linear-gradient(115deg,#25282d,#111316 62%,#4a1116);position:relative;overflow:hidden}.hero:after{content:"";position:absolute;width:190px;height:190px;border:22px solid #ffffff0a;border-radius:50%;right:-70px;top:-55px}.eyebrow{color:#ff555b;font-size:10px;letter-spacing:3px;font-weight:800}.hero h2{font:800 38px/0.98 'Barlow Condensed',sans-serif;margin:10px 0;max-width:390px}.hero p{color:#c4c7ca;font-size:13px;max-width:390px;line-height:1.6}.hero .cta{margin-top:12px}.section{padding:0 16px;margin:22px 0}.section-head{display:flex;justify-content:space-between;align-items:center;margin:0 2px 12px}.section h3{font:700 23px 'Barlow Condensed',sans-serif;letter-spacing:1px;margin:0}.section-head span{font-size:10px;color:var(--red);letter-spacing:1.4px;font-weight:800}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.tile,.card{background:linear-gradient(145deg,#1b1e22,#111316);border:1px solid var(--line);border-radius:14px;padding:15px}.tile .ico{font-size:22px}.tile strong{display:block;font:700 20px 'Barlow Condensed',sans-serif;margin:8px 0 3px}.tile small,.muted{color:var(--muted);font-size:12px;line-height:1.5}.card{margin-bottom:10px}.card h4{margin:0 0 7px;font-size:15px}.card p{font-size:12px;color:#c0c4c8;line-height:1.55;margin:5px 0}.tag{display:inline-block;background:#4b171b;color:#ff9296;border:1px solid #783036;border-radius:20px;padding:4px 8px;font-size:10px;font-weight:700}.btn{border:0;border-radius:10px;background:var(--red);color:white;padding:11px 15px;font-weight:800;font-size:12px}.btn.secondary{background:#282c31;border:1px solid #42474e}.btn.ghost{background:transparent;border:1px solid #555b63}.btn.danger{background:#5c171c}.btn:disabled{opacity:.5;cursor:not-allowed}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.field{width:100%;background:#090b0d;color:white;border:1px solid #41464d;border-radius:9px;padding:12px;margin:5px 0 11px}.field:focus{outline:1px solid var(--red);border-color:var(--red)}label{font-size:11px;color:#c6c9cc;font-weight:700}.formbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin:12px 0}.tabs{position:fixed;z-index:10;bottom:0;left:0;right:0;background:#101215f2;backdrop-filter:blur(18px);border-top:1px solid #34383e;display:flex;justify-content:center;padding:8px 5px calc(env(safe-area-inset-bottom) + 7px)}.tabs button{flex:1;max-width:120px;background:none;border:0;color:#969ba2;font-size:10px;padding:5px 2px}.tabs button b{display:block;font-size:19px;margin-bottom:3px}.tabs button.active{color:#ff555b}.page{display:none}.page.active{display:block}.notice{border-left:3px solid var(--red);padding:10px 12px;background:#281518;border-radius:5px;font-size:12px;line-height:1.5;margin:12px 0}.empty{text-align:center;padding:28px 12px;color:var(--muted);border:1px dashed #3a3e44;border-radius:12px;font-size:12px}.member{display:flex;align-items:center;gap:12px}.avatar{width:42px;height:42px;border-radius:50%;background:#4a171c;display:grid;place-items:center;font-weight:800;color:#ff9ca0}.hidden{display:none!important}.foot{text-align:center;color:#737980;font-size:10px;padding:25px 12px}.modalback{position:fixed;inset:0;background:#000b;z-index:30;display:none;align-items:flex-end;justify-content:center}.modalback.show{display:flex}.modal{width:min(760px,100%);max-height:88vh;overflow:auto;background:#15181c;border:1px solid #444;border-radius:18px 18px 0 0;padding:20px 16px calc(env(safe-area-inset-bottom) + 24px)}.modal h3{font:700 25px 'Barlow Condensed';margin:0 0 14px}.close{float:right;background:#292d32;color:white;border:0;border-radius:8px;padding:7px 10px}.gallery-image{width:100%;max-height:420px;object-fit:cover;border-radius:10px;display:block}.gallery-meta{margin-top:10px}.admin-gallery-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.admin-gallery-item{background:#101215;border:1px solid var(--line);border-radius:10px;padding:8px}.admin-gallery-item img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:7px;display:block}.admin-gallery-item p{font-size:11px;color:var(--muted);overflow-wrap:anywhere}
 @media(min-width:650px){.hero{padding:38px}.hero h2{font-size:48px}.section{padding:0 22px}.top{padding-left:24px;padding-right:24px}}
 </style>
 </head>
@@ -48,7 +48,7 @@
       <h3>Dodaj fotografiju</h3>
       <input id="galleryTitle" type="text" placeholder="Naslov fotografije">
       <textarea id="galleryDescription" placeholder="Opis fotografije"></textarea>
-      <input id="galleryFile" type="file" accept="image/*">
+      <input id="galleryFile" class="field" type="file" accept="image/jpeg,image/png,image/webp">
       <button class="btn cta" onclick="uploadGalleryPhoto()">Objavi fotografiju</button>
     </div>
 
@@ -78,19 +78,19 @@ const SUPABASE_KEY='sb_publishable_9GrOIhDzus7HQYGfTXpJqw_3GobgKaI';
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let session=null, profile=null, isAdmin=false;
 const $=id=>document.getElementById(id);
-function showPage(name){document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===name));document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.page===name));if(name==='account')renderAccount();if(name==='admin')renderAdmin();if(name==='members')loadMembers();window.scrollTo(0,0)}
+function showPage(name){document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===name));document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.page===name));if(name==='account')renderAccount();if(name==='admin')renderAdmin();if(name==='members')loadMembers();if(name==='gallery')loadGallery();window.scrollTo(0,0)}
 function modal(html){$('modalContent').innerHTML=html;$('modalBack').classList.add('show')}
 function closeModal(){$('modalBack').classList.remove('show')}
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function date(v){if(!v)return 'Datum nije određen';return new Date(v).toLocaleString('sr-RS',{dateStyle:'medium',timeStyle:'short'})}
-function card(x,kind){return `<article class="card"><span class="tag">${esc(kind)}</span><h4>${esc(x.title||'Bez naslova')}</h4>${x.starts_at?`<p>📅 ${date(x.starts_at)}</p>`:''}${x.location?`<p>📍 ${esc(x.location)}</p>`:''}<p>${esc(x.description||'')}</p>${isAdmin?`<button class="btn secondary" onclick="deleteEvent('${x.id}')">OBRIŠI DOGAĐAJ</button>`:''}</article>`}
-async function deleteEvent(id){if(!isAdmin){alert('Samo administrator može brisati događaje.');return}if(!confirm('Da li sigurno želiš da obrišeš ovaj događaj?'))return;const {error}=await db.from('club_events').delete().eq('id',id);if(error){alert('Greška pri brisanju: '+error.message);return}alert('Događaj je obrisan.');await loadEvents()}
+function card(x,kind,table){return `<article class="card"><span class="tag">${esc(kind)}</span><h4>${esc(x.title||'Bez naslova')}</h4>${x.starts_at?`<p>📅 ${date(x.starts_at)}</p>`:''}${x.location?`<p>📍 ${esc(x.location)}</p>`:''}<p>${esc(x.description||'')}</p>${isAdmin?`<button class="btn secondary" onclick="deleteContent('${table}','${esc(x.id)}')">OBRIŠI OBJAVU</button>`:''}</article>`}
+async function deleteContent(table,id){if(!isAdmin){alert('Samo administrator može brisati objave.');return}if(!['club_events','club_announcements'].includes(table)){alert('Nepoznata vrsta objave.');return}if(!confirm('Da li sigurno želiš da obrišeš ovu objavu?'))return;const {error}=await db.from(table).delete().eq('id',id);if(error){alert('Greška pri brisanju: '+error.message);return}alert('Objava je obrisana.');if(table==='club_events')await loadEvents();else await loadNews()}
 async function refresh(){const {data:{session:s}}=await db.auth.getSession();session=s;profile=null;isAdmin=false;if(session){const {data}=await db.from('profiles').select('*').eq('id',session.user.id).maybeSingle();profile=data;isAdmin=!!data?.is_admin}
-$('authStatus').textContent=session?(profile?.approved?'ČLAN':'NA ČEKANJU'):'GOST';renderAccount();await Promise.all([loadRides(),loadEvents(),loadNews()]);if(session&&profile?.approved)loadMembers();if(isAdmin)renderAdmin()}
+$('authStatus').textContent=session?(profile?.approved?'ČLAN':'NA ČEKANJU'):'GOST';renderAccount();await Promise.all([loadRides(),loadEvents(),loadNews()]);if(session&&profile?.approved)loadMembers();if(isAdmin)renderAdmin();if($('gallery')?.classList.contains('active'))loadGallery()}
 async function loadRides(){const el=$('ridesList');const {data,error}=await db.from('rides').select('*').order('ride_date',{ascending:true});el.innerHTML=error?'<div class="empty">Moto ture još nisu dostupne.</div>':data?.length?data.map(x=>`<article class="card"><span class="tag">MOTO TURA</span><h4>${esc(x.title||'Bez naslova')}</h4>${x.description?`<p>${esc(x.description)}</p>`:''}${x.start_location?`<p>📍 Polazna lokacija: ${esc(x.start_location)}</p>`:''}${x.end_location?`<p>🏁 Krajnja lokacija: ${esc(x.end_location)}</p>`:''}${x.ride_date?`<p>📅 Datum vožnje: ${date(x.ride_date)}</p>`:''}${x.departure_time?`<p>🕒 Vreme polaska: ${esc(String(x.departure_time).slice(0,5))}</p>`:''}${x.route_url?`<a class="btn" href="${esc(x.route_url)}" target="_blank" rel="noopener">OTVORI RUTU U GOOGLE MAPS</a>`:''}${isAdmin?`<button class="btn secondary" onclick="deleteRide('${x.id}')">OBRIŠI TURU</button>`:''}</article>`).join(''):'<div class="empty">Trenutno nema objavljenih moto tura.</div>'}
 async function deleteRide(id){if(!isAdmin){alert('Samo administrator može brisati moto ture.');return}if(!confirm('Da li sigurno želiš da obrišeš ovu moto turu?'))return;const {error}=await db.from('rides').delete().eq('id',id);if(error){alert('Greška pri brisanju: '+error.message);return}alert('Moto tura je obrisana.');await loadRides()}
-async function loadEvents(){const el=$('eventsList');const {data,error}=await db.from('club_events').select('*').order('starts_at',{ascending:true});el.innerHTML=error?'<div class="empty">Događaji još nisu dostupni.</div>':data?.length?data.map(x=>card(x,'DOGAĐAJ')).join(''):'<div class="empty">Trenutno nema najavljenih događaja.</div>'}
-async function loadNews(){const el=$('newsList'),home=$('homeNews');const {data,error}=await db.from('club_announcements').select('*').order('created_at',{ascending:false});const html=error?'<div class="empty">Obaveštenja još nisu dostupna.</div>':data?.length?data.map(x=>card(x,'OBAVEŠTENJE')).join(''):'<div class="empty">Nema novih obaveštenja.</div>';el.innerHTML=html;home.innerHTML=html}
+async function loadEvents(){const el=$('eventsList');const {data,error}=await db.from('club_events').select('*').order('starts_at',{ascending:true});el.innerHTML=error?'<div class="empty">Događaji još nisu dostupni.</div>':data?.length?data.map(x=>card(x,'DOGAĐAJ','club_events')).join(''):'<div class="empty">Trenutno nema najavljenih događaja.</div>'}
+async function loadNews(){const el=$('newsList'),home=$('homeNews');const {data,error}=await db.from('club_announcements').select('*').order('created_at',{ascending:false});const html=error?'<div class="empty">Obaveštenja još nisu dostupna.</div>':data?.length?data.map(x=>card(x,'OBAVEŠTENJE','club_announcements')).join(''):'<div class="empty">Nema novih obaveštenja.</div>';el.innerHTML=html;home.innerHTML=html}
 async function loadMembers(){const el=$('membersList');if(!session||!profile?.approved){el.innerHTML='<div class="notice">Spisak članova je dostupan samo odobrenim članovima kluba.</div>';return}const {data,error}=await db.from('profiles').select('id,full_name,phone,avatar_url').eq('approved',true).order('full_name');el.innerHTML=error?'<div class="empty">Nije moguće učitati članove.</div>':data?.length?data.map(m=>`<div class="card member">${m.avatar_url?`<img src="${esc(m.avatar_url)}" style="width:55px;height:55px;border-radius:50%;object-fit:cover">`:`<div class="avatar">${esc((m.full_name||'?').slice(0,1).toUpperCase())}</div>`}<div><b>${esc(m.full_name||'Član kluba')}</b><div class="muted">Član kluba</div>${m.phone?`<div class="muted">${esc(m.phone)}</div>`:''}</div></div>`).join(''):'<div class="empty">Nema odobrenih članova.</div>'}
 
 function renderAccount(){
@@ -122,7 +122,7 @@ ${avatar}
 <div style="display:none">
 <input class="field" id="profilePhotoFile" type="file" accept="image/jpeg,image/png,image/webp" onchange="uploadProfilePhoto()">
 </div>
-
+`;
 
 if(!profile?.approved)html+='<div class="notice">Registracija je uspešna. Administrator kluba treba da odobri tvoj nalog pre pristupa sadržaju za članove.</div>';
 
@@ -139,8 +139,8 @@ async function register(){const full_name=$('regName').value.trim(),phone=$('reg
 async function login(){const email=$('loginEmail').value.trim(),password=$('loginPass').value;const {error}=await db.auth.signInWithPassword({email,password});if(error){alert(error.message);return}await refresh();showPage('account')}
 async function logout(){await db.auth.signOut();await refresh();showPage('home')}
 function renderAdmin(){const el=$('adminPanel');if(!el)return;if(!isAdmin){el.innerHTML='<div class="notice">Ovaj deo je dostupan samo administratorima kluba.</div>';return}
-el.innerHTML=`<div class="formbox"><h3>Članovi na čekanju</h3><div id="pendingList">Učitavanje…</div></div><div class="formbox"><h3>Nova objava</h3><label>Vrsta objave</label><select class="field" id="postType" onchange="document.getElementById('rideFields').style.display=this.value==='rides'?'block':'none';document.getElementById('normalFields').style.display=this.value==='rides'?'none':'block'"><option value="club_announcements">Obaveštenje</option><option value="club_events">Događaj</option><option value="rides">Moto tura</option></select><label>Naziv</label><input class="field" id="postTitle"><div id="normalFields"><label>Opis</label><textarea class="field" id="postDesc" rows="4"></textarea><label>Datum i vreme</label><input class="field" id="postDate" type="datetime-local"><label>Mesto / lokacija</label><input class="field" id="postLocation"></div><div id="rideFields" style="display:none"><label>Opis ture</label><textarea class="field" id="rideDescription" rows="4"></textarea><label>Polazna lokacija</label><input class="field" id="rideStart"><label>Krajnja lokacija</label><input class="field" id="rideEnd"><label>Datum vožnje</label><input class="field" id="rideDate" type="date"><label>Vreme polaska</label><input class="field" id="rideTime" type="time"><label>Google Maps link rute</label><input class="field" id="rideUrl" type="url" placeholder="Nalepi Google Maps link rute"></div><button class="btn" onclick="publishPost()">OBJAVI</button></div><div class="formbox"><h3>Galerija</h3><p class="muted">Galerija fotografija.</p></div>`;
-loadPending()}
+el.innerHTML=`<div class="formbox"><h3>Članovi na čekanju</h3><div id="pendingList">Učitavanje…</div></div><div class="formbox"><h3>Nova objava</h3><label>Vrsta objave</label><select class="field" id="postType" onchange="document.getElementById('rideFields').style.display=this.value==='rides'?'block':'none';document.getElementById('normalFields').style.display=this.value==='rides'?'none':'block'"><option value="club_announcements">Obaveštenje</option><option value="club_events">Događaj</option><option value="rides">Moto tura</option></select><label>Naziv</label><input class="field" id="postTitle"><div id="normalFields"><label>Opis</label><textarea class="field" id="postDesc" rows="4"></textarea><label>Datum i vreme</label><input class="field" id="postDate" type="datetime-local"><label>Mesto / lokacija</label><input class="field" id="postLocation"></div><div id="rideFields" style="display:none"><label>Opis ture</label><textarea class="field" id="rideDescription" rows="4"></textarea><label>Polazna lokacija</label><input class="field" id="rideStart"><label>Krajnja lokacija</label><input class="field" id="rideEnd"><label>Datum vožnje</label><input class="field" id="rideDate" type="date"><label>Vreme polaska</label><input class="field" id="rideTime" type="time"><label>Google Maps link rute</label><input class="field" id="rideUrl" type="url" placeholder="Nalepi Google Maps link rute"></div><button class="btn" onclick="publishPost()">OBJAVI</button></div><div class="formbox"><h3>Upravljanje galerijom</h3><p class="muted">Pregled i brisanje fotografija iz klupske galerije.</p><div id="adminGalleryList">Učitavanje fotografija…</div></div>`;
+loadPending();loadAdminGallery()}
 async function loadPending(){const el=$('pendingList');if(!el)return;const {data,error}=await db.from('profiles').select('id,full_name,phone,created_at').eq('approved',false).order('created_at');el.innerHTML=error?'<p class="muted">Ne mogu da učitam zahteve.</p>':data?.length?data.map(m=>`<div class="card"><b>${esc(m.full_name||'Bez imena')}</b><p>${esc(m.phone||'Telefon nije unet')}</p><p class="muted">${esc(m.id)}</p><button class="btn" onclick="approveMember('${esc(m.id)}')">ODOBRI ČLANA</button></div>`).join(''):'<p class="muted">Nema novih zahteva.</p>'}
 async function approveMember(id){const {error}=await db.from('profiles').update({approved:true}).eq('id',id);if(error){alert(error.message);return}loadPending()}
 async function publishPost(){const table=$('postType').value,title=$('postTitle').value.trim();if(!title){alert('Unesi naziv ture ili objave.');return}let error;if(table==='rides'){const description=$('rideDescription').value.trim(),start_location=$('rideStart').value.trim(),end_location=$('rideEnd').value.trim(),ride_date=$('rideDate').value,departure_time=$('rideTime').value,route_url=$('rideUrl').value.trim();if(!description||!start_location||!end_location||!ride_date||!departure_time||!route_url){alert('Popuni sva polja za moto turu.');return}if(!/^https?:\/\//i.test(route_url)){alert('Unesi ispravan Google Maps link.');return}({error}=await db.from('rides').insert({user_id:session.user.id,title,description,start_location,end_location,ride_date,departure_time,route_url}))}else{const description=$('postDesc').value.trim(),location=$('postLocation').value.trim(),starts_at=$('postDate').value?new Date($('postDate').value).toISOString():null;({error}=await db.from(table).insert({title,description,location,starts_at,created_by:session.user.id}))}if(error){alert(error.message);return}alert('Objava je sačuvana.');['postTitle','postDesc','postDate','postLocation','rideDescription','rideStart','rideEnd','rideDate','rideTime','rideUrl'].forEach(id=>{if($(id))$(id).value=''});await refresh()}
@@ -156,136 +156,79 @@ async function loadGallery(){
   const uploadBox=$('galleryUpload');
   if(!list)return;
 
-  let canUpload=false;
-  let canDelete=false;
-
-  const {data:{session:s}}=await db.auth.getSession();
-
-  if(s){
-    const {data:p}=await db.from('profiles')
-      .select('approved,is_admin')
-      .eq('id',s.user.id)
-      .maybeSingle();
-
-    canUpload=!!p?.approved;
-    canDelete=!!p?.is_admin;
-  }
-
+  const canUpload=!!(session&&profile?.approved);
   if(uploadBox)uploadBox.style.display=canUpload?'block':'none';
 
-  const {data,error}=await db.from('club_gallery')
-    .select('*')
-    .order('created_at',{ascending:false});
-
+  const {data,error}=await db.from('club_gallery').select('*').order('created_at',{ascending:false});
   if(error){
-    list.innerHTML='<p>Greška pri učitavanju galerije.</p>';
+    list.innerHTML='<div class="empty">Greška pri učitavanju galerije. Pokušaj ponovo kasnije.</div>';
     return;
   }
-
   if(!data||!data.length){
-    list.innerHTML='<p>Galerija je trenutno prazna. Prve fotografije uskoro stižu!</p>';
+    list.innerHTML='<div class="empty">Galerija je trenutno prazna. Prve fotografije uskoro stižu!</div>';
     return;
   }
-
   list.innerHTML=data.map(x=>`
-    <div class="card" style="margin:15px 0;padding:12px;">
-      <img src="${esc(x.image_url)}" alt="${esc(x.title||'Fotografija')}" loading="lazy" onclick="openGalleryImage(this.src)" style="width:100%;border-radius:10px;cursor:zoom-in;"
-      <h3>${esc(x.title||'Fotografija')}</h3>
-      <p>${esc(x.description||'')}</p>
-      ${canDelete?`<button class="btn secondary" onclick="deleteGalleryPhoto('${esc(x.id)}')">Obriši fotografiju</button>`:''}
-    </div>
+    <article class="card" style="margin:15px 0;padding:12px;">
+      <img class="gallery-image" src="${esc(x.image_url)}" alt="${esc(x.title||'Fotografija')}" loading="lazy" onclick="openGalleryImage(this.src)" style="cursor:zoom-in">
+      <div class="gallery-meta"><h3>${esc(x.title||'Fotografija')}</h3><p>${esc(x.description||'')}</p></div>
+      ${isAdmin?`<button class="btn secondary" onclick="deleteGalleryPhoto('${esc(x.id)}')">OBRIŠI FOTOGRAFIJU</button>`:''}
+    </article>
   `).join('');
 }
 
+async function loadAdminGallery(){
+  const el=$('adminGalleryList');
+  if(!el)return;
+  if(!isAdmin){el.innerHTML='<p class="muted">Samo administrator može upravljati galerijom.</p>';return;}
+  const {data,error}=await db.from('club_gallery').select('id,title,description,image_url').order('created_at',{ascending:false});
+  if(error){el.innerHTML='<p class="muted">Nije moguće učitati fotografije.</p>';return;}
+  if(!data?.length){el.innerHTML='<p class="muted">Galerija je trenutno prazna.</p>';return;}
+  el.innerHTML='<div class="admin-gallery-grid">'+data.map(x=>`<div class="admin-gallery-item"><img src="${esc(x.image_url)}" alt="${esc(x.title||'Fotografija')}" loading="lazy"><p><b>${esc(x.title||'Fotografija')}</b></p><button class="btn danger" style="width:100%" onclick="deleteGalleryPhoto('${esc(x.id)}')">OBRIŠI</button></div>`).join('')+'</div>';
+}
+
 async function uploadGalleryPhoto(){
+  if(!session||!profile?.approved){alert('Samo prijavljeni i odobreni članovi mogu dodavati fotografije.');return;}
   const title=$('galleryTitle').value.trim();
   const description=$('galleryDescription').value.trim();
   const file=$('galleryFile').files[0];
-
-  if(!file){
-    alert('Izaberi fotografiju.');
-    return;
-  }
-
-  if(file.size>10*1024*1024){
-    alert('Fotografija ne sme biti veća od 10 MB.');
-    return;
-  }
-
-  const {data:{session:s}}=await db.auth.getSession();
-  if(!s){
-    alert('Moraš biti prijavljen.');
-    return;
-  }
+  if(!file){alert('Izaberi fotografiju.');return;}
+  if(!['image/jpeg','image/png','image/webp'].includes(file.type)){alert('Dozvoljeni su JPEG, PNG i WEBP formati.');return;}
+  if(file.size>10*1024*1024){alert('Fotografija ne sme biti veća od 10 MB.');return;}
 
   const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-  const path=s.user.id+'/'+Date.now()+'-'+safeName;
+  const path=session.user.id+'/'+Date.now()+'-'+safeName;
+  const {error:uploadError}=await db.storage.from('club-gallery').upload(path,file,{contentType:file.type});
+  if(uploadError){alert('Greška pri postavljanju fotografije: '+uploadError.message);return;}
 
-  const {error:uploadError}=await db.storage
-    .from('club-gallery')
-    .upload(path,file,{contentType:file.type});
-
-  if(uploadError){
-    alert('Greška pri postavljanju fotografije: '+uploadError.message);
-    return;
-  }
-
-  const {data:urlData}=db.storage
-    .from('club-gallery')
-    .getPublicUrl(path);
-
+  const {data:urlData}=db.storage.from('club-gallery').getPublicUrl(path);
   const {error}=await db.from('club_gallery').insert({
-    title:title,
-    description:description,
-    image_url:urlData.publicUrl,
-    storage_path:path,
-    uploaded_by:s.user.id
+    title:title||'Fotografija',description,image_url:urlData.publicUrl,storage_path:path,uploaded_by:session.user.id
   });
-
   if(error){
     await db.storage.from('club-gallery').remove([path]);
     alert('Greška pri čuvanju fotografije: '+error.message);
     return;
   }
-
-  $('galleryTitle').value='';
-  $('galleryDescription').value='';
-  $('galleryFile').value='';
-
+  $('galleryTitle').value='';$('galleryDescription').value='';$('galleryFile').value='';
   alert('Fotografija je uspešno objavljena!');
   await loadGallery();
+  if(isAdmin)await loadAdminGallery();
 }
 
 async function deleteGalleryPhoto(id){
+  if(!isAdmin){alert('Samo administrator može brisati fotografije.');return;}
   if(!confirm('Da li sigurno želiš da obrišeš ovu fotografiju?'))return;
-
-  const {data:item,error:findError}=await db.from('club_gallery')
-    .select('storage_path')
-    .eq('id',id)
-    .single();
-
-  if(findError){
-    alert('Fotografija nije pronađena.');
-    return;
+  const {data:item,error:findError}=await db.from('club_gallery').select('storage_path').eq('id',id).single();
+  if(findError||!item){alert('Fotografija nije pronađena.');return;}
+  if(item.storage_path){
+    const {error:storageError}=await db.storage.from('club-gallery').remove([item.storage_path]);
+    if(storageError){alert('Greška pri brisanju fotografije iz skladišta: '+storageError.message);return;}
   }
-
-  const {error:storageError}=await db.storage
-    .from('club-gallery')
-    .remove([item.storage_path]);
-
-  if(storageError){
-    alert('Greška pri brisanju fotografije: '+storageError.message);
-    return;
-  }
-
   const {error}=await db.from('club_gallery').delete().eq('id',id);
-
-  if(error){
-    alert('Greška pri brisanju zapisa: '+error.message);
-    return;
-  }
-
+  if(error){alert('Greška pri brisanju zapisa: '+error.message);return;}
   await loadGallery();
+  await loadAdminGallery();
 }
 
 function openGalleryImage(src){
@@ -293,12 +236,12 @@ function openGalleryImage(src){
   viewer.id='galleryViewer';
   viewer.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:99999;display:flex;align-items:center;justify-content:center;padding:15px;';
 
-  viewer.innerHTML='<span style="position:absolute;top:25px;right:25px;color:white;font-size:38px;cursor:pointer;">×</span><img src="'+esc(src)+'" style="max-width:100%;max-height:90vh;object-fit:contain;border-radius:8px;">';
+  viewer.innerHTML='<button type="button" aria-label="Zatvori fotografiju" style="position:absolute;top:18px;right:18px;color:white;background:#333;border:0;border-radius:8px;padding:8px 13px;font-size:24px;cursor:pointer;">×</button><img src="'+esc(src)+'" alt="Uvećana fotografija" style="max-width:100%;max-height:90vh;object-fit:contain;border-radius:8px;">';
 
   viewer.onclick=function(){viewer.remove();};
   document.body.appendChild(viewer);
 }
   loadGallery();
-db.auth.onAuthStateChange(()=>setTimeout(loadGallery,500));
+db.auth.onAuthStateChange(()=>setTimeout(()=>{loadGallery();if(isAdmin)loadAdminGallery()},500));
 </script>
 </body></html>
