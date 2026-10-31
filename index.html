@@ -155,8 +155,69 @@ async function loadEvents(){
   el.innerHTML=data?.length?data.map(x=>`<article class="card"><span class="tag">DOGAĐAJ</span><h4>${esc(x.title||'Bez naslova')}</h4>${x.starts_at?`<p>📅 ${date(x.starts_at)}</p>`:''}${x.location?`<p>📍 ${esc(x.location)}</p>`:''}<p>${esc(x.description||'')}</p>${votePanel('event',x.id,votes.rows,votes.members)}${votes.error&&session&&profile?.approved?'<p class="muted">Glasanje će biti aktivno nakon podešavanja baze.</p>':''}${isAdmin?`<button class="btn secondary" onclick="deleteContent('club_events','${esc(x.id)}')">OBRIŠI OBJAVU</button>`:''}</article>`).join(''):'<div class="empty">Trenutno nema najavljenih događaja.</div>';
 }
 async function loadNews(){const el=$('newsList'),home=$('homeNews');const {data,error}=await db.from('club_announcements').select('*').order('created_at',{ascending:false});const html=error?'<div class="empty">Obaveštenja još nisu dostupna.</div>':data?.length?data.map(x=>card(x,'OBAVEŠTENJE','club_announcements')).join(''):'<div class="empty">Nema novih obaveštenja.</div>';el.innerHTML=html;home.innerHTML=html}
-async function loadMembers(){const el=$('membersList');if(!session||!profile?.approved){el.innerHTML='<div class="notice">Spisak članova je dostupan samo odobrenim članovima kluba.</div>';return}const {data,error}=await db.from('profiles').select('id,full_name,phone,avatar_url').eq('approved',true).order('full_name');el.innerHTML=error?'<div class="empty">Nije moguće učitati članove.</div>':data?.length?data.map(m=>`<div class="card member">${m.avatar_url?`<img src="${esc(m.avatar_url)}" style="width:55px;height:55px;border-radius:50%;object-fit:cover">`:`<div class="avatar">${esc((m.full_name||'?').slice(0,1).toUpperCase())}</div>`}<div><b>${esc(m.full_name||'Član kluba')}</b><div class="muted">Član kluba</div>${m.phone?`<div class="muted">${esc(m.phone)}</div>`:''}</div></div>`).join(''):'<div class="empty">Nema odobrenih članova.</div>'}
+async function loadMembers(){const el=$('membersList');if(!session||!profile?.approved){el.innerHTML='<div class="notice">Spisak članova je dostupan samo odobrenim članovima kluba.</div>';return}const {data,error}=await db.from('profiles').select('id,full_name,phone,avatar_url').eq('approved',true).order('full_name');el.innerHTML=error?'<div class="empty">Nije moguće učitati članove.</div>':data?.length?data.map(m=>`<div class="card member" role="button" tabindex="0" style="cursor:pointer" onclick="openMemberProfile('${esc(m.id)}')">${m.avatar_url?`<img src="${esc(m.avatar_url)}" style="width:55px;height:55px;border-radius:50%;object-fit:cover">`:`<div class="avatar">${esc((m.full_name||'?').slice(0,1).toUpperCase())}</div>`}<div><b>${esc(m.full_name||'Član kluba')}</b><div class="muted">Član kluba</div>${m.phone?`<div class="muted">${esc(m.phone)}</div>`:''}</div></div>`).join(''):'<div class="empty">Nema odobrenih članova.</div>'}
 
+async function loadMotorcycleProfileForm(){
+  const fields=['bikeName','bikeBrand','bikeModel','bikeCc','bikeHp','bikeDescription'];
+  if(!session||!profile?.approved||!$(fields[0]))return;
+  const {data,error}=await db.from('member_motorcycles').select('*').eq('user_id',session.user.id).maybeSingle();
+  if(error){console.warn('Podaci o motoru nisu učitani:',error.message);return;}
+  if(!data)return;
+  $('bikeName').value=data.bike_name||'';
+  $('bikeBrand').value=data.brand||'';
+  $('bikeModel').value=data.model||'';
+  $('bikeCc').value=data.cc||'';
+  $('bikeHp').value=data.horsepower||'';
+  $('bikeDescription').value=data.description||'';
+  if(data.photo_url)$('bikePhotoPreview').innerHTML='<img src="'+esc(data.photo_url)+'" alt="Moj motor" style="width:100%;max-height:180px;object-fit:cover;border-radius:10px">';
+}
+async function saveMotorcycleProfile(){
+  if(!session||!profile?.approved){alert('Ova opcija je dostupna samo odobrenim članovima.');return;}
+  const bike_name=$('bikeName').value.trim(),brand=$('bikeBrand').value.trim(),model=$('bikeModel').value.trim();
+  const cc=$('bikeCc').value?Number($('bikeCc').value):null,horsepower=$('bikeHp').value?Number($('bikeHp').value):null;
+  const description=$('bikeDescription').value.trim(),file=$('bikePhotoFile').files[0];
+  if(cc!==null&&(!Number.isInteger(cc)||cc<1||cc>3000)){alert('Unesi ispravnu kubikažu.');return;}
+  if(horsepower!==null&&(!Number.isInteger(horsepower)||horsepower<1||horsepower>1000)){alert('Unesi ispravnu snagu u KS.');return;}
+  let photo_url;
+  if(file){
+    if(!['image/jpeg','image/png','image/webp'].includes(file.type)){alert('Dozvoljeni su JPEG, PNG i WEBP formati.');return;}
+    if(file.size>8*1024*1024){alert('Fotografija ne sme biti veća od 8 MB.');return;}
+    const ext=file.name.split('.').pop().toLowerCase().replace(/[^a-z0-9]/g,'')||'jpg';
+    const path=session.user.id+'/motor.'+ext;
+    const {error:uploadError}=await db.storage.from('motorcycle-photos').upload(path,file,{upsert:true,contentType:file.type});
+    if(uploadError){alert('Greška pri postavljanju fotografije: '+uploadError.message);return;}
+    photo_url=db.storage.from('motorcycle-photos').getPublicUrl(path).data.publicUrl+'?t='+Date.now();
+  }
+  const record={user_id:session.user.id,bike_name,brand,model,cc,horsepower,description,updated_at:new Date().toISOString()};
+  if(photo_url)record.photo_url=photo_url;
+  const {error}=await db.from('member_motorcycles').upsert(record,{onConflict:'user_id'});
+  if(error){alert('Greška pri čuvanju podataka o motoru: '+error.message);return;}
+  $('bikePhotoFile').value='';
+  alert('Podaci o motoru su sačuvani!');
+  await loadMotorcycleProfileForm();
+}
+async function openMemberProfile(userId){
+  if(!session||!profile?.approved){alert('Profil motora mogu da pregledaju samo prijavljeni i odobreni članovi.');return;}
+  const {data:member,error:memberError}=await db.from('profiles').select('full_name,avatar_url,phone').eq('id',userId).maybeSingle();
+  if(memberError||!member){alert('Profil člana nije pronađen.');return;}
+  const {data:bike,error}=await db.from('member_motorcycles').select('*').eq('user_id',userId).maybeSingle();
+  const avatar=member.avatar_url?'<img src="'+esc(member.avatar_url)+'" alt="Profilna fotografija" style="width:76px;height:76px;border-radius:50%;object-fit:cover">':'<div class="avatar" style="width:76px;height:76px;font-size:25px">'+esc((member.full_name||'?').slice(0,1).toUpperCase())+'</div>';
+  let html='<div style="display:flex;align-items:center;gap:14px;margin:8px 0 18px">'+avatar+'<div><h3 style="margin:0">'+esc(member.full_name||'Član kluba')+'</h3><div class="muted">Član Moto kluba ČARAPANI</div></div></div>';
+  if(error){html+='<div class="notice">Podaci o motoru trenutno nisu dostupni.</div>';}
+  else if(!bike){html+='<div class="empty">Ovaj član još nije dodao podatke o svom motoru.</div>';}
+  else{
+    html+='<h3>🏍️ '+esc(bike.bike_name||[bike.brand,bike.model].filter(Boolean).join(' ')||'Motor člana')+'</h3>';
+    if(bike.photo_url)html+='<img src="'+esc(bike.photo_url)+'" alt="Motor člana" style="width:100%;max-height:300px;object-fit:cover;border-radius:12px;margin:8px 0 14px">';
+    html+='<div class="card">';
+    if(bike.brand)html+='<p><b>Marka:</b> '+esc(bike.brand)+'</p>';
+    if(bike.model)html+='<p><b>Model:</b> '+esc(bike.model)+'</p>';
+    if(bike.cc)html+='<p><b>Zapremina:</b> '+esc(bike.cc)+' cm³</p>';
+    if(bike.horsepower)html+='<p><b>Snaga:</b> '+esc(bike.horsepower)+' KS</p>';
+    if(bike.description)html+='<p><b>Opis:</b> '+esc(bike.description)+'</p>';
+    html+='</div>';
+  }
+  modal(html);
+}
 function renderAccount(){
 const el=$('accountPanel');
 if(!el)return;
@@ -183,6 +244,19 @@ ${avatar}
 ${profile?.approved?`<div style="margin:12px 0"><b>🔔 Zvuk push obaveštenja</b><p class="muted">Uključi ili isključi zvuk kada stigne klupsko push obaveštenje. Jačina zvuka se podešava na telefonu.</p><label for="pushSoundSelect">Zvuk obaveštenja</label><select class="field" id="pushSoundSelect" onchange="savePushSound(this.value)"><option value="on">Uključen</option><option value="off">Isključen</option></select><div id="pushSoundStatus" class="muted">Podešavanje važi za ovaj uređaj.</div></div>`:''}
 <div style="margin-top:12px"><label>Ostala podešavanja</label><select class="field" id="accountActionSelect" onchange="accountMenuChange(this.value)"><option value="">-- Izaberi opciju --</option>${profile?.approved?'<option value="push">Upravljanje push obaveštenjima</option>':''}${isAdmin?'<option value="name">Promena imena</option><option value="admin">Administracija kluba</option>':''}</select></div></div>
 
+${profile?.approved?`<div class="formbox" style="margin-top:12px">
+<h3>🏍️ Moj motor</h3>
+<p class="muted">Dodaj fotografiju i osnovne podatke o svom motoru. Ostali odobreni članovi moći će da ih vide kada otvore tvoj profil.</p>
+<label>Naziv motora</label><input class="field" id="bikeName" maxlength="100" placeholder="Npr. Moj Kawasaki">
+<label>Marka</label><input class="field" id="bikeBrand" maxlength="60" placeholder="Npr. Kawasaki">
+<label>Model</label><input class="field" id="bikeModel" maxlength="80" placeholder="Npr. Z1000SX">
+<label>Zapremina (kubika)</label><input class="field" id="bikeCc" type="number" min="1" max="3000" placeholder="Npr. 1043">
+<label>Snaga (KS)</label><input class="field" id="bikeHp" type="number" min="1" max="1000" placeholder="Npr. 142">
+<label>Opis motora</label><textarea class="field" id="bikeDescription" rows="3" maxlength="500" placeholder="Dodaj još nešto o svom motoru..."></textarea>
+<label>Fotografija motora</label><input class="field" id="bikePhotoFile" type="file" accept="image/jpeg,image/png,image/webp">
+<div id="bikePhotoPreview" class="muted">Fotografija nije izabrana.</div>
+<button class="btn" style="margin-top:10px" onclick="saveMotorcycleProfile()">SAČUVAJ PODATKE O MOTORU</button>
+</div>`:''}
 <div style="display:none">
 <input class="field" id="profilePhotoFile" type="file" accept="image/jpeg,image/png,image/webp" onchange="uploadProfilePhoto()">
 </div>
@@ -198,7 +272,7 @@ ${isAdmin?`<div id="accountNamePanel" class="formbox" style="display:none"><h3>�
 html+='<div class="actions"><button class="btn secondary" onclick="logout()">ODJAVI SE</button></div>';
 
 el.innerHTML=html;
-if(profile?.approved){setTimeout(updatePushUI,0);loadPushSoundSetting();}
+if(profile?.approved){setTimeout(updatePushUI,0);loadPushSoundSetting();loadMotorcycleProfileForm();}
 }
 
 function urlBase64ToUint8Array(base64String){const padding='='.repeat((4-base64String.length%4)%4);const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');const raw=atob(base64);return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));}
