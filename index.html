@@ -92,7 +92,47 @@ async function deleteRide(id){if(!isAdmin){alert('Samo administrator može brisa
 async function loadEvents(){const el=$('eventsList');const {data,error}=await db.from('club_events').select('*').order('starts_at',{ascending:true});el.innerHTML=error?'<div class="empty">Događaji još nisu dostupni.</div>':data?.length?data.map(x=>card(x,'DOGAĐAJ')).join(''):'<div class="empty">Trenutno nema najavljenih događaja.</div>'}
 async function loadNews(){const el=$('newsList'),home=$('homeNews');const {data,error}=await db.from('club_announcements').select('*').order('created_at',{ascending:false});const html=error?'<div class="empty">Obaveštenja još nisu dostupna.</div>':data?.length?data.map(x=>card(x,'OBAVEŠTENJE')).join(''):'<div class="empty">Nema novih obaveštenja.</div>';el.innerHTML=html;home.innerHTML=html}
 async function loadMembers(){const el=$('membersList');if(!session||!profile?.approved){el.innerHTML='<div class="notice">Spisak članova je dostupan samo odobrenim članovima kluba.</div>';return}const {data,error}=await db.from('profiles').select('id,full_name,phone,avatar_url').eq('approved',true).order('full_name');el.innerHTML=error?'<div class="empty">Nije moguće učitati članove.</div>':data?.length?data.map(m=>`<div class="card member">${m.avatar_url?`<img src="${esc(m.avatar_url)}" style="width:55px;height:55px;border-radius:50%;object-fit:cover">`:`<div class="avatar">${esc((m.full_name||'?').slice(0,1).toUpperCase())}</div>`}<div><b>${esc(m.full_name||'Član kluba')}</b><div class="muted">Član kluba</div>${m.phone?`<div class="muted">${esc(m.phone)}</div>`:''}</div></div>`).join(''):'<div class="empty">Nema odobrenih članova.</div>'}
-function renderAccount(){const el=$('accountPanel');if(!el)return;if(!session){el.innerHTML=`<div class="formbox"><h3>Prijava člana</h3><label>E-mail</label><input class="field" id="loginEmail" type="email" autocomplete="email"><label>Lozinka</label><input class="field" id="loginPass" type="password" autocomplete="current-password"><button class="btn" onclick="login()">PRIJAVI SE</button><div class="muted" style="margin-top:14px">Nemaš nalog? <a href="#" style="color:#ff666b" onclick="showRegister();return false">Registruj se</a></div></div>`;return}const avatar=profile?.avatar_url?`<img src="${esc(profile.avatar_url)}" style="width:90px;height:90px;border-radius:50%;object-fit:cover">`:`<div class="avatar">${esc((profile?.full_name||session.user.email||'?').slice(0,1).toUpperCase())}</div>`;let html=`<div class="card member">${avatar}<div><b>${esc(profile?.full_name||session.user.email)}</b><div class="muted">${esc(session.user.email)}</div><div class="tag">${profile?.approved?'ODOBREN ČLAN':'NALOG ČEKA ODOBRENJE'}</div></div></div><div class="formbox"><h3>Profilna fotografija</h3><input class="field" id="profilePhotoFile" type="file" accept="image/jpeg,image/png,image/webp"><button class="btn" onclick="uploadProfilePhoto()">PROMENI PROFILNU SLIKU</button></div>`;if(!profile?.approved)html+='<div class="notice">Registracija je uspešna. Administrator kluba treba da odobri tvoj nalog pre pristupa sadržaju za članove.</div>';if(isAdmin)html+='<button class="btn secondary" onclick="showPage(&quot;admin&quot;)">OTVORI ADMINISTRACIJU</button>';html+='<div class="actions"><button class="btn secondary" onclick="logout()">ODJAVI SE</button></div>';el.innerHTML=html}
+
+function renderAccount(){
+const el=$('accountPanel');
+if(!el)return;
+
+if(!session){
+el.innerHTML=`<div class="formbox"><h3>Prijava člana</h3><label>E-mail</label><input class="field" id="loginEmail" type="email" autocomplete="email"><label>Lozinka</label><input class="field" id="loginPass" type="password" autocomplete="current-password"><button class="btn" onclick="login()">PRIJAVI SE</button><div class="muted" style="margin-top:14px">Nemaš nalog? <a href="#" style="color:#ff666b" onclick="showRegister();return false">Registruj se</a></div></div>`;
+return;
+}
+
+const avatar=profile?.avatar_url
+? `<img src="${esc(profile.avatar_url)}" style="width:90px;height:90px;border-radius:50%;object-fit:cover">`
+: `<div class="avatar">${esc((profile?.full_name||session.user.email||'?').slice(0,1).toUpperCase())}</div>`;
+
+let html=`
+<div class="card member">
+<div onclick="document.getElementById('profilePhotoFile').click()" style="position:relative;cursor:pointer;display:inline-block" title="Klikni za promenu fotografije">
+${avatar}
+<div style="position:absolute;bottom:0;right:0;background:#e53939;color:white;border-radius:50%;width:27px;height:27px;display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid #222">✎</div>
+</div>
+<div>
+<b>${esc(profile?.full_name||session.user.email)}</b>
+<div class="muted">${esc(session.user.email)}</div>
+<div class="tag">${profile?.approved?'ODOBREN ČLAN':'NALOG ČEKA ODOBRENJE'}</div>
+</div>
+</div>
+
+<div style="display:none">
+<input class="field" id="profilePhotoFile" type="file" accept="image/jpeg,image/png,image/webp" onchange="uploadProfilePhoto()">
+</div>
+
+
+if(!profile?.approved)html+='<div class="notice">Registracija je uspešna. Administrator kluba treba da odobri tvoj nalog pre pristupa sadržaju za članove.</div>';
+
+if(isAdmin)html+='<button class="btn secondary" onclick="showPage(&quot;admin&quot;)">OTVORI ADMINISTRACIJU</button>';
+
+html+='<div class="actions"><button class="btn secondary" onclick="logout()">ODJAVI SE</button></div>';
+
+el.innerHTML=html;
+}
+
 async function uploadProfilePhoto(){if(!session||!profile){alert('Prvo se prijavi.');return}const file=$('profilePhotoFile').files[0];if(!file){alert('Izaberi fotografiju.');return}if(!['image/jpeg','image/png','image/webp'].includes(file.type)){alert('Dozvoljeni su JPEG, PNG i WEBP formati.');return}if(file.size>5*1024*1024){alert('Fotografija ne sme biti veća od 5 MB.');return}const path=session.user.id+'/avatar.'+file.name.split('.').pop().toLowerCase();const {error:uploadError}=await db.storage.from('profile-photos').upload(path,file,{upsert:true,contentType:file.type});if(uploadError){alert(uploadError.message);return}const {data}=db.storage.from('profile-photos').getPublicUrl(path);const avatar_url=data.publicUrl+'?t='+Date.now();const {error}=await db.from('profiles').update({avatar_url}).eq('id',session.user.id);if(error){alert(error.message);return}profile.avatar_url=avatar_url;alert('Profilna fotografija je sačuvana.');renderAccount()}
 function showRegister(){modal(`<h3>Registracija člana</h3><label>Ime i prezime</label><input class="field" id="regName" autocomplete="name"><label>Telefon</label><input class="field" id="regPhone" type="tel"><label>E-mail</label><input class="field" id="regEmail" type="email" autocomplete="email"><label>Lozinka (najmanje 8 karaktera)</label><input class="field" id="regPass" type="password" autocomplete="new-password"><button class="btn" onclick="register()">POŠALJI REGISTRACIJU</button>`)}
 async function register(){const full_name=$('regName').value.trim(),phone=$('regPhone').value.trim(),email=$('regEmail').value.trim(),password=$('regPass').value;if(!full_name||!email||password.length<8){alert('Unesi ime, ispravan e-mail i lozinku od najmanje 8 karaktera.');return}const {error}=await db.auth.signUp({email,password,options:{data:{full_name,phone}}});if(error){alert(error.message);return}closeModal();alert('Registracija je poslata. Proveri e-mail ako je potvrda uključena. Nalog čeka odobrenje administratora.');await refresh()}
