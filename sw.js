@@ -1,5 +1,7 @@
-const CACHE='carapani-pwa-v1';
+const CACHE='carapani-pwa-v2';
 const CORE=['./','./index.html','./manifest.webmanifest'];
-self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE))));
-self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))));
+self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting())));
+self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(fetch(e.request).then(r=>{if(r.ok&&new URL(e.request.url).origin===location.origin){const copy=r.clone();caches.open(CACHE).then(c=>c.put(e.request,copy))}return r}).catch(()=>caches.match(e.request)))});
+self.addEventListener('push',e=>{let data={title:'Moto klub ČARAPANI',body:'Imate novo klupsko obaveštenje.',url:'./'};try{if(e.data)data={...data,...e.data.json()}}catch(_){if(e.data)data.body=e.data.text()}e.waitUntil(self.registration.showNotification(data.title,{body:data.body,icon:'./assets/icon-192.png',badge:'./assets/icon-192.png',tag:data.tag||'carapani-club',data:{url:data.url||'./'},vibrate:[150,80,150]}))});
+self.addEventListener('notificationclick',e=>{e.notification.close();const target=new URL(e.notification.data?.url||'./',self.location.origin).href;e.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(list=>{for(const client of list){if(client.url.startsWith(self.location.origin)&&'focus'in client)return client.focus().then(c=>c.navigate(target))}return clients.openWindow(target)}))});
