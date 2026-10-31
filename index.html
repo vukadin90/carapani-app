@@ -102,15 +102,26 @@ function votePanel(type,id,rows){
   const no=rows.filter(v=>v.post_id===id&&v.choice==='no').length;
   const yesLabel=type==='ride'?'VOZIM':'DOLAZIM';
   const noLabel=type==='ride'?'NE VOZIM':'NE DOLAZIM';
-  return `<div class="formbox" style="margin:12px 0 0;padding:12px"><b style="font-size:12px">GLASANJE ČLANOVA</b><div class="actions"><button class="btn ${mine==='yes'?'':'secondary'}" onclick="castVote('${type}','${id}','yes')">${yesLabel} · ${yes}</button><button class="btn ${mine==='no'?'':'secondary'}" onclick="castVote('${type}','${id}','no')">${noLabel} · ${no}</button></div><p class="muted" style="margin-top:8px">${mine?'Tvoj izbor: '+(mine==='yes'?yesLabel:noLabel)+'. Možeš ga promeniti pritiskom na drugo dugme.':'Izaberi jednu opciju.'}</p></div>`;
+  return `<div class="formbox" style="margin:12px 0 0;padding:12px"><b style="font-size:12px">GLASANJE ČLANOVA</b><div class="actions"><button type="button" class="btn ${mine==='yes'?'':'secondary'}" onclick="window.castVote('${type}','${id}','yes',this)">${yesLabel} · ${yes}</button><button type="button" class="btn ${mine==='no'?'':'secondary'}" onclick="window.castVote('${type}','${id}','no',this)">${noLabel} · ${no}</button></div><p class="muted" style="margin-top:8px">${mine?'Tvoj izbor: '+(mine==='yes'?yesLabel:noLabel)+'. Možeš ga promeniti pritiskom na drugo dugme.':'Izaberi jednu opciju.'}</p></div>`;
 }
-async function castVote(type,id,choice){
-  if(!session||!profile?.approved){alert('Glasanje je dostupno samo prijavljenim i odobrenim članovima.');return;}
-  if(!['ride','event'].includes(type)||!['yes','no'].includes(choice))return;
-  const {error}=await db.from('post_votes').upsert({post_type:type,post_id:id,user_id:session.user.id,choice},{onConflict:'post_type,post_id,user_id'});
-  if(error){alert('Glasanje trenutno nije dostupno: '+error.message+'\\nProveri da li je tabela za glasanje napravljena u Supabase-u.');return;}
-  if(type==='ride')await loadRides();else await loadEvents();
-}
+window.castVote = async function(type,id,choice,button){
+  if(button)button.disabled=true;
+  try{
+    if(!session||!profile?.approved){alert('Glasanje je dostupno samo prijavljenim i odobrenim članovima.');return;}
+    if(!['ride','event'].includes(type)||!['yes','no'].includes(choice)){alert('Neispravan izbor glasanja.');return;}
+    const {error}=await db.from('post_votes').upsert(
+      {post_type:type,post_id:String(id),user_id:session.user.id,choice},
+      {onConflict:'post_type,post_id,user_id'}
+    );
+    if(error){console.error('Vote error:',error);alert('Greška pri glasanju: '+error.message);return;}
+    if(type==='ride')await loadRides();else await loadEvents();
+  }catch(e){
+    console.error('Vote exception:',e);
+    alert('Greška pri glasanju: '+(e.message||String(e)));
+  }finally{
+    if(button)button.disabled=false;
+  }
+};
 
 async function loadRides(){
   const el=$('ridesList');
