@@ -171,7 +171,7 @@ $('authStatus').textContent=session?(profile?.approved?'ČLAN':'NA ČEKANJU'):'G
 async function getPostVotes(type){
   if(!session||!profile?.approved)return {rows:[],members:{},error:null};
   const [{data:voteRows,error},{data:memberRows}] = await Promise.all([
-    db.from('post_votes').select('post_id,user_id,choice').eq('post_type',type),
+    db.from('post_votes').select('post_id,user_id,choice,created_at').eq('post_type',type),
     db.from('profiles').select('id,full_name').eq('approved',true)
   ]);
   const members={};
@@ -185,10 +185,17 @@ function votePanel(type,id,rows,members={}){
   const no=rows.filter(v=>String(v.post_id)===String(id)&&v.choice==='no').length;
   const yesLabel=type==='ride'?'VOZIM':'DOLAZIM';
   const noLabel=type==='ride'?'NE VOZIM':'NE DOLAZIM';
-  const yesNames=rows.filter(v=>String(v.post_id)===String(id)&&v.choice==='yes').map(v=>members[v.user_id]||'Član kluba');
-  const noNames=rows.filter(v=>String(v.post_id)===String(id)&&v.choice==='no').map(v=>members[v.user_id]||'Član kluba');
-  const names=(arr)=>arr.length?arr.map(n=>'<div style="padding:5px 0;border-bottom:1px solid #30343a">• '+esc(n)+'</div>').join(''):'<span class="muted">Još nema glasova.</span>';
-  return `<div class="formbox" style="margin:12px 0 0;padding:12px"><b style="font-size:12px">GLASANJE ČLANOVA</b><div class="actions" style="gap:6px"><button type="button" class="btn ${mine==='yes'?'':'secondary'}" style="font-size:10px;padding:5px 9px;min-height:28px;opacity:.88;${mine==='yes'?'background:#168447;border:1px solid #25a45d;color:#fff':''}" data-vote-type="${type}" data-vote-id="${id}" data-vote-choice="yes">${yesLabel} · ${yes}</button><button type="button" class="btn ${mine==='no'?'':'secondary'}" style="font-size:10px;padding:5px 9px;min-height:28px;opacity:.88;${mine==='no'?'background:#d9272e;border:1px solid #f0444b;color:#fff':''}" data-vote-type="${type}" data-vote-id="${id}" data-vote-choice="no">${noLabel} · ${no}</button></div><p class="muted" style="margin-top:8px">${mine?'':'Izaberi jednu opciju.'}</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px"><div><b style="color:#35c477;font-size:11px">${yesLabel}</b><div style="font-size:12px;margin-top:5px">${names(yesNames)}</div></div><div><b style="color:#ff6268;font-size:11px">${noLabel}</b><div style="font-size:12px;margin-top:5px">${names(noNames)}</div></div></div></div>`;
+  const yesRows=rows.filter(v=>String(v.post_id)===String(id)&&v.choice==='yes');
+  const noRows=rows.filter(v=>String(v.post_id)===String(id)&&v.choice==='no');
+  const byTime=(a,b)=>(new Date(a.created_at||0).getTime())-(new Date(b.created_at||0).getTime());
+  yesRows.sort(byTime); noRows.sort(byTime);
+  const voterList=(arr)=>{
+    if(!arr.length)return '<span class="muted">Još nema glasova.</span>';
+    const last=members[arr[arr.length-1].user_id]||'Član kluba';
+    const all=arr.map(v=>'<div style="padding:6px 0;border-bottom:1px solid #30343a">• '+esc(members[v.user_id]||'Član kluba')+'</div>').join('');
+    return '<details style="margin-top:6px"><summary style="cursor:pointer;color:#d9dce0;font-size:12px;list-style: none"> '+esc(last)+' <span style="color:#999">▾ Prikaži sve ('+arr.length+')</span></summary><div style="margin-top:7px;max-height:150px;overflow-y:auto">'+all+'</div></details>';
+  };
+  return `<div class="formbox" style="margin:12px 0 0;padding:12px"><b style="font-size:12px">GLASANJE ČLANOVA</b><div class="actions" style="gap:6px"><button type="button" class="btn ${mine==='yes'?'':'secondary'}" style="font-size:10px;padding:5px 9px;min-height:28px;opacity:.88;${mine==='yes'?'background:#168447;border:1px solid #25a45d;color:#fff':''}" data-vote-type="${type}" data-vote-id="${id}" data-vote-choice="yes">${yesLabel} · ${yes}</button><button type="button" class="btn ${mine==='no'?'':'secondary'}" style="font-size:10px;padding:5px 9px;min-height:28px;opacity:.88;${mine==='no'?'background:#d9272e;border:1px solid #f0444b;color:#fff':''}" data-vote-type="${type}" data-vote-id="${id}" data-vote-choice="no">${noLabel} · ${no}</button></div><p class="muted" style="margin-top:8px">${mine?'':'Izaberi jednu opciju.'}</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px"><div><b style="color:#35c477;font-size:11px">${yesLabel}</b><div style="font-size:12px;margin-top:5px">${voterList(yesRows)}</div></div><div><b style="color:#ff6268;font-size:11px">${noLabel}</b><div style="font-size:12px;margin-top:5px">${voterList(noRows)}</div></div></div></div>`;
 }
 document.addEventListener('click',function(event){
   const button=event.target.closest('button[data-vote-choice]');
