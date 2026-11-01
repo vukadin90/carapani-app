@@ -73,7 +73,29 @@ function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt
 function date(v){if(!v)return 'Datum nije određen';return new Date(v).toLocaleString('sr-RS',{dateStyle:'medium',timeStyle:'short'})}
 function dateOnly(v){if(!v)return 'Datum nije određen';const [y,m,d]=String(v).slice(0,10).split('-');return d+'.'+m+'.'+y+'.'}
 function eventTime(v){if(!v)return '';return new Date(v).toLocaleTimeString('sr-RS',{hour:'2-digit',minute:'2-digit'})}
-function card(x,kind,table){return `<article class="card"><span class="tag">${esc(kind)}</span><h4>${esc(x.title||'Bez naslova')}</h4>${x.starts_at?`<p>📅 Datum: ${new Date(x.starts_at).toLocaleDateString('sr-RS',{day:'2-digit',month:'2-digit',year:'numeric'})}</p><p>🕒 Vreme: ${eventTime(x.starts_at)}</p>`:''}${x.location?`<p>📍 ${esc(x.location)}</p>`:''}<p>${esc(x.description||'')}</p>${isAdmin?`<button class="btn secondary" style="font-size:10px;padding:5px 8px;min-height:28px;opacity:.78" onclick="deleteContent('${table}','${esc(x.id)}')">OBRIŠI OBJAVU</button>`:''}</article>`}
+function card(x,kind,table){return `<article class="card"><span class="tag">${esc(kind)}</span><h4>${esc(x.title||'Bez naslova')}</h4>${x.starts_at?`<p>📅 Datum: ${new Date(x.starts_at).toLocaleDateString('sr-RS',{day:'2-digit',month:'2-digit',year:'numeric'})}</p><p>🕒 Vreme: ${eventTime(x.starts_at)}</p>`:''}${x.location?`<p>📍 ${esc(x.location)}</p>`:''}<p>${esc(x.description||'')}</p>${isAdmin?`<div class="actions"><button class="btn secondary" style="font-size:10px;padding:5px 8px;min-height:28px" onclick="editAnnouncement('${esc(x.id)}')">IZMENI OBAVEŠTENJE</button><button class="btn secondary" style="font-size:10px;padding:5px 8px;min-height:28px;opacity:.78" onclick="deleteContent('${table}','${esc(x.id)}')">OBRIŠI OBJAVU</button></div>`:''}</article>`}
+async function editAnnouncement(id){
+ if(!isAdmin){alert('Samo administrator može menjati obaveštenja.');return;}
+ const {data,error}=await db.from('club_announcements').select('*').eq('id',id).maybeSingle();
+ if(error||!data){alert('Ne mogu da učitam obaveštenje.');return;}
+ const title=prompt('Naziv obaveštenja:',data.title||'');if(title===null)return;
+ const description=prompt('Tekst obaveštenja:',data.description||'');if(description===null)return;
+ const location=prompt('Mesto / lokacija:',data.location||'');if(location===null)return;
+ const currentDate=data.starts_at?new Date(data.starts_at).toISOString().slice(0,16):'';
+ const dateTime=prompt('Datum i vreme (YYYY-MM-DDTHH:MM), ostavi prazno ako nema datuma:',currentDate);if(dateTime===null)return;
+ let starts_at=null;
+ if(dateTime.trim()){
+  const parsed=new Date(dateTime);
+  if(!/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}$/.test(dateTime)||isNaN(parsed.getTime())){alert('Unesi datum i vreme u formatu YYYY-MM-DDTHH:MM.');return;}
+  starts_at=parsed.toISOString();
+ }
+ if(!title.trim()||!description.trim()){alert('Naziv i tekst obaveštenja su obavezni.');return;}
+ const {data:updated,error:updateError}=await db.from('club_announcements').update({title:title.trim(),description:description.trim(),location:location.trim()||null,starts_at}).eq('id',id).select('id');
+ if(updateError){alert('Greška pri izmeni: '+updateError.message);return;}
+ if(!updated?.length){alert('Izmena nije sačuvana. Proveri SQL dozvole za uređivanje obaveštenja.');return;}
+ alert('Obaveštenje je uspešno izmenjeno.');
+ await loadNews();
+}
 async function deleteContent(table,id){if(!isAdmin){alert('Samo administrator može brisati objave.');return}if(!['club_events','club_announcements'].includes(table)){alert('Nepoznata vrsta objave.');return}if(!confirm('Da li sigurno želiš da obrišeš ovu objavu?'))return;const {data,error}=await db.from(table).delete().eq('id',id).select('id');if(error){alert('Greška pri brisanju: '+error.message);return}if(!data?.length){alert('Objava nije obrisana. Baza ne dozvoljava administratoru brisanje ove objave. Primeni SQL podešavanje za administratorsko brisanje objava.');return}alert('Objava je uspešno obrisana.');if(table==='club_events')await loadEvents();else await loadNews();await loadClubNotifications()}
 let clubNotifications=[];
 let notificationPanelOpen=false;
