@@ -466,10 +466,36 @@ ${isAdmin?`<div id="accountNamePanel" class="formbox" style="display:none"><h3>�
 
 
 el.innerHTML=html;
-if(profile?.approved){setTimeout(updatePushUI,0);loadPushSoundSetting();loadMotorcycleProfileForm();}
+if(profile?.approved){setTimeout(updatePushUI,0);loadPushSoundSetting();loadMotorcycleProfileForm();setTimeout(showPushWelcomePrompt,700);}
 }
 
 function urlBase64ToUint8Array(base64String){const padding='='.repeat((4-base64String.length%4)%4);const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');const raw=atob(base64);return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));}
+async function showPushWelcomePrompt(){
+ if(!session||!profile?.approved||!('serviceWorker'in navigator)||!('PushManager'in window)||!('Notification'in window))return;
+ const key='carapani-push-welcome-'+session.user.id;
+ if(localStorage.getItem(key)==='done'||Notification.permission==='denied')return;
+ try{const reg=await navigator.serviceWorker.ready;const existing=await reg.pushManager.getSubscription();if(existing)return;}catch(_){return;}
+ if($('modalBack')?.classList.contains('show'))return;
+ modal(`<div style="text-align:center;padding:12px 4px"><div style="font-size:42px">🔔</div><h3>Odobrite obaveštenja aplikacije Moto klub ČARAPANI</h3><p class="muted">Uključite obaveštenja kako biste uvek bili informisani o moto turama, događajima i važnim klupskim informacijama.</p><button class="btn" id="pushWelcomeApprove" onclick="enablePushFromWelcome()">ODOBRI OBAVEŠTENJA</button></div>`);
+}
+async function enablePushFromWelcome(){
+ if(!session||!profile?.approved)return;
+ const button=$('pushWelcomeApprove');if(button)button.disabled=true;
+ try{
+  if(!('serviceWorker'in navigator)||!('PushManager'in window)||!('Notification'in window))throw new Error('Ovaj uređaj ne podržava push obaveštenja.');
+  const permission=await Notification.requestPermission();
+  if(permission!=='granted')throw new Error(permission==='denied'?'Dozvola je odbijena. Obaveštenja možeš kasnije uključiti u podešavanjima telefona.':'Dozvola za obaveštenja nije odobrena.');
+  const reg=await navigator.serviceWorker.ready;
+  let sub=await reg.pushManager.getSubscription();
+  if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(PUSH_VAPID_PUBLIC_KEY)});
+  const json=sub.toJSON();
+  const {error}=await db.from('push_subscriptions').upsert({user_id:session.user.id,endpoint:json.endpoint,p256dh:json.keys.p256dh,auth:json.keys.auth},{onConflict:'endpoint'});
+  if(error){if(!await reg.pushManager.getSubscription())await sub.unsubscribe();throw error;}
+  localStorage.setItem('carapani-push-welcome-'+session.user.id,'done');
+  closeModal();alert('Push obaveštenja su uspešno uključena!');
+  await updatePushUI();
+ }catch(e){console.error('Push welcome setup error:',e);if(Notification.permission==='denied')localStorage.setItem('carapani-push-welcome-'+session.user.id,'done');alert(e.message||'Nije uspelo uključivanje obaveštenja.');if(button)button.disabled=false;}
+}
 async function updatePushUI(){const status=$('pushStatus'),button=$('pushToggle');if(!status||!button)return;if(!('serviceWorker'in navigator)||!('PushManager'in window)||!('Notification'in window)){status.textContent='Ovaj pregledač ne podržava push obaveštenja. Na iPhone-u instaliraj aplikaciju preko opcije Dodaj na početni ekran.';button.disabled=true;return;}try{const reg=await navigator.serviceWorker.ready;const sub=await reg.pushManager.getSubscription();status.textContent=sub?'Obaveštenja su uključena na ovom uređaju.':(Notification.permission==='denied'?'Obaveštenja su blokirana u podešavanjima pregledača.':'Obaveštenja su isključena na ovom uređaju.');button.textContent=sub?'ISKLJUČI OBAVEŠTENJA':'UKLJUČI OBAVEŠTENJA';}catch(e){status.textContent='Nije moguće proveriti status obaveštenja.';}}
 async function togglePushNotifications(){if(!session||!profile?.approved){alert('Push obaveštenja su dostupna samo odobrenim članovima.');return;}if(!('serviceWorker'in navigator)||!('PushManager'in window)||!('Notification'in window)){alert('Push nije podržan u ovom pregledaču. Na iPhone-u prvo dodaj aplikaciju na početni ekran i otvori je odatle.');return;}const button=$('pushToggle');if(button)button.disabled=true;try{const reg=await navigator.serviceWorker.ready;let sub=await reg.pushManager.getSubscription();if(sub){const endpoint=sub.endpoint;await sub.unsubscribe();const {error}=await db.from('push_subscriptions').delete().eq('endpoint',endpoint);if(error)throw error;alert('Push obaveštenja su isključena na ovom uređaju.');}else{const permission=await Notification.requestPermission();if(permission!=='granted')throw new Error('Dozvola za obaveštenja nije odobrena.');sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(PUSH_VAPID_PUBLIC_KEY)});const json=sub.toJSON();const {error}=await db.from('push_subscriptions').upsert({user_id:session.user.id,endpoint:json.endpoint,p256dh:json.keys.p256dh,auth:json.keys.auth},{onConflict:'endpoint'});if(error){await sub.unsubscribe();throw error;}alert('Push obaveštenja su uspešno uključena!');}}catch(e){console.error('Push setup error',e);alert('Nije uspelo podešavanje obaveštenja: '+(e.message||e));}finally{if(button)button.disabled=false;await updatePushUI();}}
 async function sendClubPush(title,body,kind){if(!session||!profile?.approved)return {ok:false,error:'Nema dozvole za slanje obaveštenja.'};try{const {data,error}=await db.functions.invoke('quick-service',{body:{title,body,kind}});if(error){let detail=error.message||'Greška pri slanju push obaveštenja.';try{const response=error.context;if(response){const status=response.status;let raw='';if(typeof response.clone==='function')raw=await response.clone().text();else if(typeof response.text==='function')raw=await response.text();if(raw){try{const bodyError=JSON.parse(raw);detail=bodyError?.error||bodyError?.message||raw;}catch(_){detail=raw;}}if(status)detail+=' (HTTP '+status+')';}}catch(readError){console.warn('Ne mogu da pročitam detalje push odgovora:',readError);}throw new Error(detail);}if(data?.error)throw new Error(data.error);console.log('Push rezultat:',data);return {ok:true,...(data||{})};}catch(e){console.error('Push nije poslat:',e);return {ok:false,error:e.message||'Greška pri slanju push obaveštenja.'};}}
