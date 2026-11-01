@@ -418,7 +418,7 @@ ${avatar}
 </div>
 <div id="accountSettings" class="formbox" style="display:none"><h3>⚙️ Podešavanja</h3>
 ${profile?.approved?`<div style="margin:12px 0"><b>🔔 Zvuk push obaveštenja</b><p class="muted">Uključi ili isključi zvuk kada stigne klupsko push obaveštenje. Jačina zvuka se podešava na telefonu.</p><label for="pushSoundSelect">Zvuk obaveštenja</label><select class="field" id="pushSoundSelect" onchange="savePushSound(this.value)"><option value="on">Uključen</option><option value="off">Isključen</option></select><div id="pushSoundStatus" class="muted">Podešavanje važi za ovaj uređaj.</div></div>`:''}
-<div style="margin-top:12px"><label>Ostala podešavanja</label><select class="field" id="accountActionSelect" onchange="accountMenuChange(this.value)"><option value="">-- Izaberi opciju --</option><option value="phone">Dodaj / izmeni broj telefona</option>${profile?.approved?'<option value="motorEdit">Izmeni podatke o motoru</option>':''}${isAdmin?'<option value="name">Promena imena</option><option value="admin">Administracija kluba</option>':''}</select></div></div>
+<div style="margin-top:12px"><label>Ostala podešavanja</label><select class="field" id="accountActionSelect" onchange="accountMenuChange(this.value)"><option value="">-- Izaberi opciju --</option><option value="phone">Dodaj / izmeni broj telefona</option>${profile?.approved?'<option value="motorEdit">Izmeni podatke o motoru</option>':''}${isAdmin?'<option value="name">Promena imena</option><option value="admin">Administracija kluba</option>':''}</select></div><div style="margin-top:12px"><button class="btn secondary" style="width:100%" onclick="logout()">ODJAVI SE</button></div></div>
 
 ${profile?.approved?`<div id="myMotorcycleView" class="formbox" style="display:none;margin-top:12px"></div>
 <div id="myMotorcycleEditForm" class="formbox" style="display:none;margin-top:12px">
@@ -444,7 +444,7 @@ ${profile?.approved?`<div id="accountPushPanel" class="formbox" style="display:n
 ${isAdmin?`<div id="accountNamePanel" class="formbox" style="display:none"><h3>✏️ Promena imena administratora</h3><label>Ime koje će članovi videti kod glasanja</label><input class="field" id="adminDisplayName" maxlength="80" value="${esc(profile?.full_name||'')}" placeholder="Unesi ime i prezime"><button class="btn" onclick="saveAdminDisplayName()">SAČUVAJ IME</button></div><div id="accountAdminPanel" class="formbox" style="display:none"><h3>🛠️ Administracija kluba</h3><button class="btn secondary" onclick="showPage('admin')">OTVORI ADMINISTRACIJU</button></div>`:''}
 </div>`;
 
-html+='<div class="actions"><button class="btn secondary" onclick="logout()">ODJAVI SE</button></div>';
+
 
 el.innerHTML=html;
 if(profile?.approved){setTimeout(updatePushUI,0);loadPushSoundSetting();loadMotorcycleProfileForm();}
