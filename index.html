@@ -321,6 +321,26 @@ async function loadMotorcycleProfileForm(){
   if(data.photo_url)$('bikePhotoPreview').innerHTML='<img src="'+esc(data.photo_url)+'" alt="Moj motor" style="width:100%;max-height:180px;object-fit:cover;border-radius:10px">';
   renderMyMotorcycle(data);
 }
+async function deleteMyMotorcycleProfile(){
+ if(!session||!profile?.approved){alert('Ova opcija je dostupna samo odobrenim članovima.');return;}
+ if(!confirm('Da li sigurno želiš da obrišeš sve podatke o motoru i njegovu fotografiju? Ova radnja se ne može poništiti.'))return;
+ const {error}=await db.from('member_motorcycles').delete().eq('user_id',session.user.id);
+ if(error){alert('Nije moguće obrisati podatke o motoru: '+error.message);return;}
+ const {data:files,error:listError}=await db.storage.from('motorcycle-photos').list(session.user.id);
+ if(listError){alert('Podaci o motoru su obrisani, ali fotografiju nije bilo moguće pronaći za brisanje: '+listError.message);}
+ else if(files?.length){
+  const paths=files.map(file=>session.user.id+'/'+file.name);
+  const {error:removeError}=await db.storage.from('motorcycle-photos').remove(paths);
+  if(removeError)alert('Podaci su obrisani, ali fotografija nije uklonjena iz skladišta: '+removeError.message);
+ }
+ ['bikeBrand','bikeModel','bikeCc','bikeHp','bikePhotoFile'].forEach(id=>{if($(id))$(id).value='';});
+ if($('bikePhotoPreview'))$('bikePhotoPreview').textContent='Fotografija nije izabrana.';
+ renderMyMotorcycle(null);
+ const form=$('myMotorcycleEditForm'),view=$('myMotorcycleView');
+ if(form)form.style.display='none';
+ if(view)view.style.display='block';
+ alert('Svi podaci o motoru i fotografija su obrisani.');
+}
 async function saveMotorcycleProfile(){
   if(!session||!profile?.approved){alert('Ova opcija je dostupna samo odobrenim članovima.');return;}
   const brand=$('bikeBrand').value.trim(),model=$('bikeModel').value.trim();
@@ -410,7 +430,7 @@ ${profile?.approved?`<div id="myMotorcycleView" class="formbox" style="display:n
 <label>Model</label><input class="field" id="bikeModel" maxlength="80" placeholder="">
 <label>Zapremina (kubika)</label><input class="field" id="bikeCc" type="number" min="1" max="3000" placeholder="">
 <label>Snaga (KS)</label><input class="field" id="bikeHp" type="number" min="1" max="1000" placeholder="">
-<div class="actions"><button class="btn" style="margin-top:10px" onclick="saveMotorcycleProfile()">SAČUVAJ PODATKE O MOTORU</button><button class="btn secondary" type="button" onclick="toggleMotorcycleEdit()">OTKAŽI</button></div>
+<div class="actions"><button class="btn" style="margin-top:10px" onclick="saveMotorcycleProfile()">SAČUVAJ PODATKE O MOTORU</button><button class="btn secondary" type="button" onclick="toggleMotorcycleEdit()">OTKAŽI</button><button class="btn danger" type="button" style="margin-top:10px" onclick="deleteMyMotorcycleProfile()">OBRIŠI PODATKE MOTORA</button></div>
 </div></div>`:''}
 <div style="display:none">
 <input class="field" id="profilePhotoFile" type="file" accept="image/*" onchange="uploadProfilePhoto()">
