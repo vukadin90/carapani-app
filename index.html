@@ -128,7 +128,7 @@ let notificationPanelOpen=false;
 function notificationSeenKey(){return 'carapani_notifications_seen_'+(session?.user?.id||'guest');}
 function pendingSeenKey(){return 'carapani_pending_seen_'+(session?.user?.id||'guest');}
 function getSeenNotificationKeys(){try{return JSON.parse(localStorage.getItem(notificationSeenKey())||'[]')}catch(_){return []}}
-function notificationKey(n){return [n.type||'',n.id||n.post_id||'',n.user_id||'',n.created_at||'',n.choice||''].join('|')}
+function notificationKey(n){return [n.type||'',n.post_type||'',n.id||n.post_id||'',n.user_id||'',n.created_at||'',n.choice||''].join('|')}
 function visibleNotifications(){const seen=getSeenNotificationKeys();return clubNotifications.filter(n=>!seen.includes(notificationKey(n)))}
 function updateNotificationBadge(){const badge=$('notificationBadge');if(!badge)return;badge.style.display=visibleNotifications().length?'block':'none';}
 function renderNotificationItems(){const el=$('notificationItems');if(!el)return;const items=visibleNotifications();el.innerHTML=items.length?items.map(n=>'<button class="notification-item" onclick="openClubNotification('+clubNotifications.indexOf(n)+')"><b>'+esc(n.title||'Nova objava')+'</b><small>'+esc(n.type)+' · '+date(n.created_at)+'</small></button>').join(''):'<div class="muted" style="padding:12px 4px">Nema novih obaveštenja. Pogledana obaveštenja se uklanjaju sa liste.</div>';}
