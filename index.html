@@ -452,7 +452,7 @@ async function openMemberProfile(userId){
   if(memberError||!member){alert('Profil člana nije pronađen.');return;}
   const {data:bike,error}=await db.from('member_motorcycles').select('*').eq('user_id',userId).maybeSingle();
   const avatar=member.avatar_url?'<img src="'+esc(member.avatar_url)+'" alt="Profilna fotografija" style="width:76px;height:76px;border-radius:50%;object-fit:cover">':'<div class="avatar" style="width:76px;height:76px;font-size:25px">'+esc((member.full_name||'?').slice(0,1).toUpperCase())+'</div>';
-  let html='<div style="display:flex;align-items:center;gap:14px;margin:8px 0 18px">'+avatar+'<div><h3 style="margin:0">'+esc(member.full_name||'Član kluba')+'</h3><div class="muted">Moto klub ČARAPANI</div></div></div>';
+  let html='<div style="display:flex;align-items:center;gap:14px;margin:8px 0 18px">'+avatar+'<div><h3 style="margin:0">'+esc(member.full_name||'Član kluba')+'</h3></div></div>';
   if(error){html+='<div class="notice">Podaci o motoru trenutno nisu dostupni.</div>';}
   else if(!bike){html+='<div class="empty">Ovaj član još nije dodao podatke o svom motoru.</div>';}
   else{
