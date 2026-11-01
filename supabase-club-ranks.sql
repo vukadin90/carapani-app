@@ -9,7 +9,7 @@ alter table public.profiles
 
 alter table public.profiles
   add constraint profiles_club_rank_check
-  check (club_rank in ('Član kluba', 'Gost', 'Prijatelj kluba'));
+  check (club_rank in ('Član kluba', 'Gost kluba', 'Prijatelj kluba'));
 
 create or replace function public.is_club_admin()
 returns boolean
