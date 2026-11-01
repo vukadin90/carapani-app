@@ -2,7 +2,12 @@
 -- Pokreni ovaj SQL jednom u Supabase SQL Editor-u.
 
 alter table public.profiles
-  add column if not exists club_rank text not null default 'Član kluba';
+  add column if not exists club_rank text not null default 'Gost kluba';
+
+-- Svaki novi profil automatski dobija status Gost kluba.
+-- Postojeći statusi članova ostaju nepromenjeni.
+alter table public.profiles
+  alter column club_rank set default 'Gost kluba';
 
 alter table public.profiles
   drop constraint if exists profiles_club_rank_check;
