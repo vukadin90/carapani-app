@@ -532,7 +532,7 @@ async function showPushWelcomePrompt(){
  if(localStorage.getItem(key)==='done'||Notification.permission==='denied')return;
  try{const reg=await navigator.serviceWorker.ready;const existing=await reg.pushManager.getSubscription();if(existing)return;}catch(_){return;}
  if($('modalBack')?.classList.contains('show'))return;
- modal(`<div style="text-align:center;padding:12px 4px"><div style="font-size:42px">🔔</div><h3>Odobrite obaveštenja aplikacije Moto klub ČARAPANI</h3><p class="muted">Uključite obaveštenja kako biste uvek bili informisani o moto turama, događajima i važnim klupskim informacijama.</p><button class="btn" id="pushWelcomeApprove" onclick="enablePushFromWelcome()">ODOBRI OBAVEŠTENJA</button></div>`);
+ modal(`<div style="text-align:center;padding:12px 4px"><div style="font-size:42px">🔔</div><h3>Odobrite obaveštenja aplikacije Moto klub ČARAPANI</h3><p class="muted">Uključite obaveštenja kako biste uvek bili informisani o moto vožnjama, događajima i važnim klupskim informacijama.</p><button class="btn" id="pushWelcomeApprove" onclick="enablePushFromWelcome()">ODOBRI OBAVEŠTENJA</button></div>`);
 }
 async function enablePushFromWelcome(){
  if(!session||!profile?.approved)return;
