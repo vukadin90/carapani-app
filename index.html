@@ -533,6 +533,12 @@ function openSoundDB(){return new Promise((resolve,reject)=>{const req=indexedDB
 async function savePushSound(value){try{const database=await openSoundDB();await new Promise((resolve,reject)=>{const tx=database.transaction('preferences','readwrite');tx.objectStore('preferences').put(value==='on','pushSoundEnabled');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});database.close();const status=$('pushSoundStatus');if(status)status.textContent=value==='on'?'Zvuk push obaveštenja je uključen.':'Zvuk push obaveštenja je isključen.';}catch(e){alert('Nije moguće sačuvati podešavanje zvuka: '+e.message);}}
 async function loadPushSoundSetting(){try{const database=await openSoundDB();const value=await new Promise((resolve,reject)=>{const tx=database.transaction('preferences','readonly');const req=tx.objectStore('preferences').get('pushSoundEnabled');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});database.close();const enabled=value!==false;const select=$('pushSoundSelect');if(select)select.value=enabled?'on':'off';const status=$('pushSoundStatus');if(status)status.textContent=enabled?'Zvuk push obaveštenja je uključen.':'Zvuk push obaveštenja je isključen.';}catch(e){console.warn('Ne mogu da učitam podešavanje zvuka',e);}}
 function accountMenuChange(value){
+  if(value==='admin'){
+    if(!isAdmin){alert('Samo administrator može pristupiti administraciji kluba.');return;}
+    const select=$('accountActionSelect');if(select)select.value='';
+    showPage('admin');
+    return;
+  }
   const panels={push:$('accountPushPanel'),name:$('accountNamePanel'),admin:$('accountAdminPanel'),phone:$('accountPhonePanel')};
   Object.entries(panels).forEach(([key,el])=>{if(el)el.style.display=key===value?'block':'none';});
   const motorForm=$('myMotorcycleEditForm');
