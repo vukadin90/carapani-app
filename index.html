@@ -586,8 +586,12 @@ async function publishMemberAnnouncement(){
  if(!title||!description){alert('Unesi naziv i tekst obaveštenja.');return}
  const {error}=await db.from('club_announcements').insert({title,description,location:location||null,starts_at,created_by:session.user.id});
  if(error){alert('Objava nije sačuvana: '+error.message);return}
- await sendClubPush('Novo klupsko obaveštenje',title,'announcement');
- alert('Obaveštenje je uspešno objavljeno.');
+ const pushResult=await sendClubPush('Novo klupsko obaveštenje',title,'announcement');
+ if(pushResult.ok){
+  alert('Obaveštenje je objavljeno i push obaveštenja su poslata. Uspešno poslato: '+(pushResult.sent??0)+'.');
+ }else{
+  alert('Obaveštenje je sačuvano, ali push nije poslat: '+(pushResult.error||'Nepoznata greška')+'.');
+ }
  ['publisherAnnouncementTitle','publisherAnnouncementDescription','publisherAnnouncementDate','publisherAnnouncementLocation'].forEach(id=>$(id).value='');
  $('publisherAnnouncementForm').style.display='none';
  await refresh();
