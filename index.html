@@ -243,7 +243,7 @@ function postAuthorMarkup(author){
 }
 async function loadRides(){
   const el=$('ridesList');
-  const {data,error}=await db.from('rides').select('*').order('ride_date',{ascending:true});
+  const {data,error}=await db.from('rides').select('*').order('created_at',{ascending:false});
   if(error){el.innerHTML='<div class="empty">Moto ture još nisu dostupne.</div>';return;}
   const votes=await getPostVotes('ride');
   const authors=await getPostAuthors(data?.map(x=>x.user_id));
@@ -283,7 +283,7 @@ async function editClubEvent(id){
 async function deleteRide(id){if(!isAdmin){alert('Samo administrator može brisati moto ture.');return}if(!confirm('Da li sigurno želiš da obrišeš ovu moto turu?'))return;const {data,error}=await db.from('rides').delete().eq('id',id).select('id');if(error){alert('Greška pri brisanju: '+error.message);return}if(!data||data.length===0){alert('Tura nije obrisana. Baza ne dozvoljava administratoru da obriše tuđu turu. Potrebno je primeniti SQL podešavanje za administratorsko brisanje.');return}alert('Moto tura je uspešno obrisana.');await loadRides();await loadClubNotifications()}
 async function loadEvents(){
   const el=$('eventsList');if(!session||!profile?.approved){if(el)el.innerHTML='<div class="notice">Događaje mogu da vide samo prijavljeni i odobreni članovi kluba.</div>';return;}
-  const {data,error}=await db.from('club_events').select('*').order('starts_at',{ascending:true});
+  const {data,error}=await db.from('club_events').select('*').order('created_at',{ascending:false});
   if(error){el.innerHTML='<div class="empty">Događaji još nisu dostupni.</div>';return;}
   const votes=await getPostVotes('event');
   el.innerHTML=data?.length?data.map(x=>`<article class="card"><span class="tag">DOGAĐAJ</span><h4>${esc(x.title||'Bez naslova')}</h4>${x.starts_at?`<p>📅 Datum: ${new Date(x.starts_at).toLocaleDateString('sr-RS',{day:'2-digit',month:'2-digit',year:'numeric'})}</p><p>🕒 Vreme: ${new Date(x.starts_at).toLocaleTimeString('sr-RS',{hour:'2-digit',minute:'2-digit'})}</p>`:''}${x.location?`<p>📍 ${esc(x.location)}</p>`:''}<p>${esc(x.description||'')}</p>${votePanel('event',x.id,votes.rows,votes.members)}${votes.error&&session&&profile?.approved?'<p class="muted">Glasanje će biti aktivno nakon podešavanja baze.</p>':''}${(isAdmin||x.created_by===session?.user?.id)?`<button class="btn secondary" style="font-size:10px;padding:5px 8px;min-height:28px;opacity:.78" onclick="editClubEvent('${x.id}')">IZMENI DOGAĐAJ</button>`:''}${isAdmin?`<button class="btn secondary" style="font-size:10px;padding:5px 8px;min-height:28px;opacity:.78" onclick="deleteContent('club_events','${esc(x.id)}')">OBRIŠI OBJAVU</button>`:''}</article>`).join(''):'<div class="empty">Trenutno nema najavljenih događaja.</div>';
