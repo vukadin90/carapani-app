@@ -418,7 +418,7 @@ ${avatar}
 </div>
 <div id="accountSettings" class="formbox" style="display:none"><h3>⚙️ Podešavanja</h3>
 ${profile?.approved?`<div style="margin:12px 0"><b>🔔 Zvuk push obaveštenja</b><p class="muted">Uključi ili isključi zvuk kada stigne klupsko push obaveštenje. Jačina zvuka se podešava na telefonu.</p><label for="pushSoundSelect">Zvuk obaveštenja</label><select class="field" id="pushSoundSelect" onchange="savePushSound(this.value)"><option value="on">Uključen</option><option value="off">Isključen</option></select><div id="pushSoundStatus" class="muted">Podešavanje važi za ovaj uređaj.</div></div>`:''}
-<div style="margin-top:12px"><label>Ostala podešavanja</label><select class="field" id="accountActionSelect" onchange="accountMenuChange(this.value)"><option value="">-- Izaberi opciju --</option>${profile?.approved?'<option value="motorEdit">Izmeni podatke o motoru</option>':''}${isAdmin?'<option value="name">Promena imena</option><option value="admin">Administracija kluba</option>':''}</select></div></div>
+<div style="margin-top:12px"><label>Ostala podešavanja</label><select class="field" id="accountActionSelect" onchange="accountMenuChange(this.value)"><option value="">-- Izaberi opciju --</option><option value="phone">Dodaj / izmeni broj telefona</option>${profile?.approved?'<option value="motorEdit">Izmeni podatke o motoru</option>':''}${isAdmin?'<option value="name">Promena imena</option><option value="admin">Administracija kluba</option>':''}</select></div></div>
 
 ${profile?.approved?`<div id="myMotorcycleView" class="formbox" style="display:none;margin-top:12px"></div>
 <div id="myMotorcycleEditForm" class="formbox" style="display:none;margin-top:12px">
@@ -439,7 +439,7 @@ ${profile?.approved?`<div id="myMotorcycleView" class="formbox" style="display:n
 
 if(!profile?.approved)html+='<div class="notice">Registracija je uspešna. Administrator kluba treba da odobri tvoj nalog pre pristupa sadržaju za članove.</div>';
 
-html+=`<div id="accountActionPanels">
+html+=`<div id="accountActionPanels"><div id="accountPhonePanel" class="formbox" style="display:none"><h3>📞 Broj telefona</h3><p class="muted">Unesi broj koji će drugi odobreni članovi videti na tvom profilu.</p><label>Broj telefona</label><input class="field" id="profilePhoneInput" type="tel" inputmode="tel" maxlength="30" value="${esc(profile?.phone||'')}" placeholder="06x xxx xxxx"><button class="btn" onclick="saveProfilePhone()">SAČUVAJ BROJ TELEFONA</button></div>
 ${profile?.approved?`<div id="accountPushPanel" class="formbox" style="display:none"><h3>🔔 Push obaveštenja</h3><p class="muted">Primaj obaveštenja kluba o novim turama, događajima i vestima, čak i kada aplikacija nije otvorena.</p><div id="pushStatus" class="muted" style="margin:8px 0">Provera statusa…</div><button class="btn" id="pushToggle" onclick="togglePushNotifications()">UKLJUČI OBAVEŠTENJA</button></div>`:''}
 ${isAdmin?`<div id="accountNamePanel" class="formbox" style="display:none"><h3>✏️ Promena imena administratora</h3><label>Ime koje će članovi videti kod glasanja</label><input class="field" id="adminDisplayName" maxlength="80" value="${esc(profile?.full_name||'')}" placeholder="Unesi ime i prezime"><button class="btn" onclick="saveAdminDisplayName()">SAČUVAJ IME</button></div><div id="accountAdminPanel" class="formbox" style="display:none"><h3>🛠️ Administracija kluba</h3><button class="btn secondary" onclick="showPage('admin')">OTVORI ADMINISTRACIJU</button></div>`:''}
 </div>`;
@@ -460,13 +460,24 @@ function openSoundDB(){return new Promise((resolve,reject)=>{const req=indexedDB
 async function savePushSound(value){try{const database=await openSoundDB();await new Promise((resolve,reject)=>{const tx=database.transaction('preferences','readwrite');tx.objectStore('preferences').put(value==='on','pushSoundEnabled');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});database.close();const status=$('pushSoundStatus');if(status)status.textContent=value==='on'?'Zvuk push obaveštenja je uključen.':'Zvuk push obaveštenja je isključen.';}catch(e){alert('Nije moguće sačuvati podešavanje zvuka: '+e.message);}}
 async function loadPushSoundSetting(){try{const database=await openSoundDB();const value=await new Promise((resolve,reject)=>{const tx=database.transaction('preferences','readonly');const req=tx.objectStore('preferences').get('pushSoundEnabled');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});database.close();const enabled=value!==false;const select=$('pushSoundSelect');if(select)select.value=enabled?'on':'off';const status=$('pushSoundStatus');if(status)status.textContent=enabled?'Zvuk push obaveštenja je uključen.':'Zvuk push obaveštenja je isključen.';}catch(e){console.warn('Ne mogu da učitam podešavanje zvuka',e);}}
 function accountMenuChange(value){
-  const panels={push:$('accountPushPanel'),name:$('accountNamePanel'),admin:$('accountAdminPanel')};
+  const panels={push:$('accountPushPanel'),name:$('accountNamePanel'),admin:$('accountAdminPanel'),phone:$('accountPhonePanel')};
   Object.entries(panels).forEach(([key,el])=>{if(el)el.style.display=key===value?'block':'none';});
   const motorForm=$('myMotorcycleEditForm');
   if(motorForm){
     motorForm.style.display=value==='motorEdit'?'block':'none';
     if(value==='motorEdit')motorForm.scrollIntoView({behavior:'smooth',block:'center'});
   }
+}
+async function saveProfilePhone(){
+ if(!session||!profile?.approved){alert('Samo odobreni članovi mogu menjati profil.');return;}
+ const phone=$('profilePhoneInput')?.value.trim()||'';
+ if(phone.length>30){alert('Broj telefona je predugačak.');return;}
+ const {error}=await db.from('profiles').update({phone:phone||null}).eq('id',session.user.id);
+ if(error){alert('Broj telefona nije sačuvan: '+error.message);return;}
+ profile={...profile,phone:phone||null};
+ alert(phone?'Broj telefona je sačuvan.':'Broj telefona je uklonjen sa profila.');
+ renderAccount();
+ await loadMembers();
 }
 async function saveAdminDisplayName(){
   if(!isAdmin||!session){alert('Ova opcija je dostupna samo administratoru.');return;}
