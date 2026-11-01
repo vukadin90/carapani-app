@@ -399,7 +399,7 @@ ${profile?.approved?`<div id="myMotorcycleView" class="formbox" style="display:n
 <div class="actions"><button class="btn" style="margin-top:10px" onclick="saveMotorcycleProfile()">SAČUVAJ PODATKE O MOTORU</button><button class="btn secondary" type="button" onclick="toggleMotorcycleEdit()">OTKAŽI</button></div>
 </div></div>`:''}
 <div style="display:none">
-<input class="field" id="profilePhotoFile" type="file" accept="image/jpeg,image/png,image/webp" onchange="uploadProfilePhoto()">
+<input class="field" id="profilePhotoFile" type="file" accept="image/*" onchange="uploadProfilePhoto()">
 </div>
 `;
 
@@ -445,7 +445,47 @@ async function saveAdminDisplayName(){
   await Promise.all([loadRides(),loadEvents()]);
   alert('Ime je uspešno promenjeno.');
 }
-async function uploadProfilePhoto(){if(!session||!profile){alert('Prvo se prijavi.');return}const file=$('profilePhotoFile').files[0];if(!file){alert('Izaberi fotografiju.');return}if(!['image/jpeg','image/png','image/webp'].includes(file.type)){alert('Dozvoljeni su JPEG, PNG i WEBP formati.');return}if(file.size>5*1024*1024){alert('Fotografija ne sme biti veća od 5 MB.');return}const path=session.user.id+'/avatar.'+file.name.split('.').pop().toLowerCase();const {error:uploadError}=await db.storage.from('profile-photos').upload(path,file,{upsert:true,contentType:file.type});if(uploadError){alert(uploadError.message);return}const {data}=db.storage.from('profile-photos').getPublicUrl(path);const avatar_url=data.publicUrl+'?t='+Date.now();const {error}=await db.from('profiles').update({avatar_url}).eq('id',session.user.id);if(error){alert(error.message);return}profile.avatar_url=avatar_url;alert('Profilna fotografija je sačuvana.');renderAccount()}
+async function compressProfileImage(file){
+ const objectUrl=URL.createObjectURL(file);
+ try{
+  const img=new Image();
+  await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error('Pregledač ne može da otvori ovu fotografiju. Pokušaj sa JPG slikom.'));img.src=objectUrl;});
+  let scale=Math.min(1,1600/Math.max(img.naturalWidth,img.naturalHeight));
+  const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');
+  let blob=null;
+  for(let attempt=0;attempt<5;attempt++){
+   canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));
+   canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
+   ctx.clearRect(0,0,canvas.width,canvas.height);
+   ctx.drawImage(img,0,0,canvas.width,canvas.height);
+   const quality=[0.84,0.78,0.72,0.66,0.60][attempt];
+   blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',quality));
+   if(blob&&blob.size<=2*1024*1024)break;
+   scale*=0.82;
+  }
+  if(!blob)throw new Error('Nije moguće obraditi fotografiju.');
+  if(blob.size>2*1024*1024)throw new Error('Fotografija je i dalje prevelika. Izaberi drugu sliku.');
+  return blob;
+ }finally{URL.revokeObjectURL(objectUrl);}
+}
+async function uploadProfilePhoto(){
+ if(!session||!profile){alert('Prvo se prijavi.');return}
+ const file=$('profilePhotoFile').files[0];if(!file){alert('Izaberi fotografiju.');return}
+ if(!file.type.startsWith('image/')){alert('Izaberi fotografiju u formatu slike.');return}
+ try{
+  const compressed=await compressProfileImage(file);
+  const path=session.user.id+'/avatar.jpg';
+  const {error:uploadError}=await db.storage.from('profile-photos').upload(path,compressed,{upsert:true,contentType:'image/jpeg'});
+  if(uploadError){alert('Greška pri slanju fotografije: '+uploadError.message);return}
+  const {data}=db.storage.from('profile-photos').getPublicUrl(path);
+  const avatar_url=data.publicUrl+'?t='+Date.now();
+  const {error}=await db.from('profiles').update({avatar_url}).eq('id',session.user.id);
+  if(error){alert(error.message);return}
+  profile.avatar_url=avatar_url;
+  alert('Profilna fotografija je sačuvana. Fotografija je automatski smanjena.');
+  renderAccount();
+ }catch(error){alert(error.message||'Greška pri obradi fotografije.');}
+}
 function showRegister(){modal(`<h3>Registracija člana</h3><label>Ime i prezime</label><input class="field" id="regName" autocomplete="name"><label>Telefon</label><input class="field" id="regPhone" type="tel"><label>E-mail</label><input class="field" id="regEmail" type="email" autocomplete="email"><label>Lozinka (najmanje 8 karaktera)</label><input class="field" id="regPass" type="password" autocomplete="new-password"><button class="btn" onclick="register()">POŠALJI REGISTRACIJU</button>`)}
 async function register(){const full_name=$('regName').value.trim(),phone=$('regPhone').value.trim(),email=$('regEmail').value.trim(),password=$('regPass').value;if(!full_name||!email||password.length<8){alert('Unesi ime, ispravan e-mail i lozinku od najmanje 8 karaktera.');return}const {error}=await db.auth.signUp({email,password,options:{data:{full_name,phone},emailRedirectTo:'https://vukadin90.github.io/carapani-app/'}});if(error){alert(error.message);return}closeModal();alert('Registracija je poslata. Proveri e-mail ako je potvrda uključena. Nalog čeka odobrenje administratora.');await refresh()}
 async function login(){const email=$('loginEmail').value.trim(),password=$('loginPass').value;const {error}=await db.auth.signInWithPassword({email,password});if(error){alert(error.message);return}await refresh();showPage('account')}
