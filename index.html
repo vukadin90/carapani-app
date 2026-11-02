@@ -73,8 +73,11 @@ const $=id=>document.getElementById(id);
 
 let deferredInstallPrompt=null;
 window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredInstallPrompt=event;});
-function showInstallComplete(){document.querySelectorAll('.install-area').forEach(area=>area.innerHTML='<div class="install-help" style="color:#8bd49a;font-size:12px;font-weight:700">✓ APLIKACIJA JE INSTALIRANA</div>');}
+function showInstallComplete(){document.querySelectorAll('.install-area').forEach(area=>{if(area.closest('#accountSettings')){area.remove();}else{area.innerHTML='<div class="install-help" style="color:#8bd49a;font-size:12px;font-weight:700">✓ APLIKACIJA JE INSTALIRANA</div>';}});}
+function hideAccountInstallIfStandalone(){const standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;if(standalone){document.querySelectorAll('#accountSettings .install-area').forEach(area=>area.remove());}}
 window.addEventListener('appinstalled',()=>{showInstallComplete();deferredInstallPrompt=null;});
+window.addEventListener('pageshow',hideAccountInstallIfStandalone);
+window.addEventListener('DOMContentLoaded',hideAccountInstallIfStandalone);
 function installClubApp(){
  const ua=navigator.userAgent||'';
  const isIOS=/iPad|iPhone|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
@@ -82,7 +85,7 @@ function installClubApp(){
  if(isInStandalone){alert('Aplikacija ČARAPANI je već dodata na početni ekran.');return;}
  if(deferredInstallPrompt){
   deferredInstallPrompt.prompt();
-  deferredInstallPrompt.userChoice.then(choice=>{if(choice.outcome==='accepted'){document.querySelectorAll('.install-area').forEach(area=>area.innerHTML='<div class="install-help" style="color:#8bd49a;font-size:12px;font-weight:700">✓ APLIKACIJA JE DODATA</div>');}deferredInstallPrompt=null;});
+  deferredInstallPrompt.userChoice.then(choice=>{if(choice.outcome==='accepted'){showInstallComplete();}deferredInstallPrompt=null;});
   return;
  }
  if(isIOS){
