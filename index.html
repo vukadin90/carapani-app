@@ -566,17 +566,15 @@ async function loadPushSoundSetting(){try{const database=await openSoundDB();con
 function accountMenuChange(value){
   if(value==='admin'){
     if(!isAdmin){alert('Samo administrator može pristupiti administraciji kluba.');return;}
-    const select=$('accountActionSelect');if(select)select.value='';
     showPage('admin');
     return;
   }
   const panels={push:$('accountPushPanel'),name:$('accountNamePanel'),admin:$('accountAdminPanel'),phone:$('accountPhonePanel')};
   Object.entries(panels).forEach(([key,el])=>{if(el)el.style.display=key===value?'block':'none';});
   const motorForm=$('myMotorcycleEditForm');
-  if(motorForm){
-    motorForm.style.display=value==='motorEdit'?'block':'none';
-    if(value==='motorEdit')motorForm.scrollIntoView({behavior:'smooth',block:'center'});
-  }
+  if(motorForm)motorForm.style.display=value==='motorEdit'?'block':'none';
+  const target=value==='motorEdit'?motorForm:panels[value];
+  if(target)setTimeout(()=>target.scrollIntoView({behavior:'smooth',block:'center'}),50);
 }
 async function saveProfilePhone(){
  if(!session||!profile){alert('Prvo se prijavi na svoj nalog.');return;}
