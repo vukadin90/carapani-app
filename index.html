@@ -654,7 +654,29 @@ async function uploadProfilePhoto(){
 }
 function showRegister(){modal(`<h3>Registracija člana</h3><label>Ime i prezime</label><input class="field" id="regName" autocomplete="name"><label>Telefon</label><input class="field" id="regPhone" type="tel"><label>E-mail</label><input class="field" id="regEmail" type="email" autocomplete="email"><label>Lozinka (najmanje 8 karaktera)</label><input class="field" id="regPass" type="password" autocomplete="new-password"><button class="btn" onclick="register()">POŠALJI REGISTRACIJU</button>`)}
 async function register(){const full_name=$('regName').value.trim(),phone=$('regPhone').value.trim(),email=$('regEmail').value.trim(),password=$('regPass').value;if(!full_name||!email||password.length<8){alert('Unesi ime, ispravan e-mail i lozinku od najmanje 8 karaktera.');return}const {data,error}=await db.auth.signUp({email,password,options:{data:{full_name,phone},emailRedirectTo:'https://vukadin90.github.io/carapani-app/'}});if(error){alert(error.message);return}if(data?.user?.id){db.functions.invoke('notify-new-member',{body:{user_id:data.user.id}}).then(({data:pushData,error:pushError})=>{if(pushError)console.warn('Push za novu registraciju nije poslat:',pushError);else console.log('Push za novu registraciju:',pushData)}).catch(e=>console.warn('Push za novu registraciju nije poslat:',e));}closeModal();alert('Registracija je poslata. Proveri e-mail ako je potvrda uključena. Nalog čeka odobrenje administratora.');await refresh()}
-async function login(){const email=$('loginEmail').value.trim(),password=$('loginPass').value;const {error}=await db.auth.signInWithPassword({email,password});if(error){alert(error.message);return}await refresh();showPage('account')}
+async function login(){
+ const email=$('loginEmail').value.trim(),password=$('loginPass').value;
+ if(!email||!password){alert('Unesi e-mail adresu i lozinku.');return;}
+ const {error}=await db.auth.signInWithPassword({email,password});
+ if(error){
+  const code=String(error.code||'').toLowerCase();
+  const message=String(error.message||'').toLowerCase();
+  if(code==='email_not_confirmed'||message.includes('email not confirmed')||message.includes('email_not_confirmed')){
+   alert('Tvoj e-mail još nije aktiviran. Unesi e-mail u polje za prijavu i klikni na „Ponovo pošalji aktivacioni mejl“, pa potvrdi adresu iz poruke koju dobiješ.');
+  }else if(code==='invalid_credentials'||message.includes('invalid login credentials')||message.includes('invalid credentials')){
+   alert('E-mail ili lozinka nisu ispravni. Proveri podatke i pokušaj ponovo. Ako si zaboravio lozinku, potrebno je da je resetuješ.');
+  }else{
+   console.error('Greška pri prijavi:',error);
+   alert('Prijava trenutno nije uspela. Pokušaj ponovo za nekoliko trenutaka.');
+  }
+  return;
+ }
+ await refresh();
+ showPage('account');
+ if(!profile?.approved){
+  alert('Uspešno si se prijavio, ali tvoj nalog još čeka odobrenje administratora kluba. Kada administrator odobri članstvo, moći ćeš da pristupiš aplikaciji.');
+ }
+}
 async function resendSignupConfirmation(){const email=$('loginEmail').value.trim();if(!email){alert('Prvo unesi e-mail adresu u polje za prijavu.');$('loginEmail').focus();return}const {error}=await db.auth.resend({type:'signup',email,options:{emailRedirectTo:'https://vukadin90.github.io/carapani-app/'}});if(error){alert('Slanje nije uspelo: '+error.message);return}alert('Zahtev za ponovno slanje potvrde je poslat. Proveri prijemno sanduče i SPAM folder.');}
 async function logout(){if(!confirm('Da li sigurno želiš da se odjaviš sa svog naloga?'))return;const {error}=await db.auth.signOut();if(error){alert('Odjavljivanje nije uspelo: '+error.message);return;}await refresh();showPage('home')}
 function renderAdmin(){const el=$('adminPanel');if(!el)return;if(!isAdmin){el.innerHTML='<div class="notice">Ovaj deo je dostupan samo administratorima kluba.</div>';return}
