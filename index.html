@@ -482,7 +482,7 @@ const el=$('accountPanel');
 if(!el)return;
 
 if(!session){
-el.innerHTML=`<div class="formbox"><div class="install-area"><button class="install-app-btn" type="button" onclick="installClubApp()">⬇ INSTALIRAJ APLIKACIJU</button></div><h3>Prijava člana</h3><label>E-mail</label><input class="field" id="loginEmail" type="email" autocomplete="email"><label>Lozinka</label><input class="field" id="loginPass" type="password" autocomplete="current-password"><button class="btn" onclick="login()">PRIJAVI SE</button><div style="margin-top:10px;font-size:13px;text-align:center;color:#ddd">Nemaš nalog? <a href="#" style="color:#ff666b;font-weight:700" onclick="showRegister();return false">Registruj se</a></div><div class="muted" style="margin-top:12px;text-align:center">Nakon registracije sačekaj odobrenje administratora kluba. Potvrda e-maila nije potrebna.</div></div>`;
+el.innerHTML=`<div class="formbox"><div class="install-area"><button class="install-app-btn" type="button" onclick="installClubApp()">⬇ INSTALIRAJ APLIKACIJU</button></div><h3>Prijava člana</h3><label>E-mail</label><input class="field" id="loginEmail" type="email" autocomplete="email"><label>Lozinka</label><input class="field" id="loginPass" type="password" autocomplete="current-password"><button class="btn" onclick="login()">PRIJAVI SE</button><div style="margin-top:10px;font-size:13px;text-align:center;color:#ddd">Nemaš nalog? <a href="#" style="color:#ff666b;font-weight:700" onclick="showRegister();return false">Registruj se</a></div><div class="muted" style="margin-top:12px;text-align:center">Nakon registracije sačekaj odobrenje administratora kluba.</div></div>`;
 return;
 }
 
