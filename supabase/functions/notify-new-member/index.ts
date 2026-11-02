@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
     }
     if (logError) throw logError;
 
-    webpush.setVapidDetails("mailto:carapani-klub@example.com", publicKey, privateKey);
+    webpush.setVapidDetails("https://vukadin90.github.io/carapani-app/", publicKey, privateKey);
 
     const name = String(member.full_name || "Novi član").slice(0, 100);
     const message = JSON.stringify({
