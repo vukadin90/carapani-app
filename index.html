@@ -529,6 +529,8 @@ html+='<div id="accountActionPanels">'+
 
 
 el.innerHTML=html;
+// Proveri instalirani PWA režim tek nakon što je panel naloga napravljen.
+setTimeout(hideAccountInstallIfStandalone,0);
 if(profile?.approved){setTimeout(updatePushUI,0);loadPushSoundSetting();loadMotorcycleProfileForm();setTimeout(showPushWelcomePrompt,700);}
 }
 
