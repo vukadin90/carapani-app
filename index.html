@@ -30,7 +30,7 @@
 <div class="status" id="authStatus">GOST</div>
 <button class="bell-button" id="notificationBell" onclick="toggleNotificationPanel()" aria-label="Obaveštenja">🔔<span id="notificationBadge" class="notification-badge" style="display:none"></span></button>
 </header>
-<div class="install-area" id="installArea"><button class="install-app-btn" id="installAppButton" type="button" onclick="installClubApp()">⬇ INSTALIRAJ APLIKACIJU</button><div class="install-help" id="installHelp">Dodaj aplikaciju ČARAPANI na početni ekran telefona</div></div>
+
 <div id="notificationPanel" class="notification-panel" style="display:none"><div class="notification-panel-head"><b>OBAVEŠTENJA</b><button onclick="toggleNotificationPanel()">✕</button></div><div id="notificationItems" class="notification-items"><div class="muted">Učitavanje…</div></div></div>
 <main>
 <section id="home" class="page active">
@@ -73,7 +73,8 @@ const $=id=>document.getElementById(id);
 
 let deferredInstallPrompt=null;
 window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredInstallPrompt=event;});
-window.addEventListener('appinstalled',()=>{const area=document.getElementById('installArea');if(area)area.innerHTML='<div class="install-help" style="color:#8bd49a;font-size:12px;font-weight:700">✓ APLIKACIJA JE INSTALIRANA</div>';deferredInstallPrompt=null;});
+function showInstallComplete(){document.querySelectorAll('.install-area').forEach(area=>area.innerHTML='<div class="install-help" style="color:#8bd49a;font-size:12px;font-weight:700">✓ APLIKACIJA JE INSTALIRANA</div>');}
+window.addEventListener('appinstalled',()=>{showInstallComplete();deferredInstallPrompt=null;});
 function installClubApp(){
  const ua=navigator.userAgent||'';
  const isIOS=/iPad|iPhone|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
@@ -81,7 +82,7 @@ function installClubApp(){
  if(isInStandalone){alert('Aplikacija ČARAPANI je već dodata na početni ekran.');return;}
  if(deferredInstallPrompt){
   deferredInstallPrompt.prompt();
-  deferredInstallPrompt.userChoice.then(choice=>{if(choice.outcome==='accepted'){const area=document.getElementById('installArea');if(area)area.innerHTML='<div class="install-help" style="color:#8bd49a;font-size:12px;font-weight:700">✓ APLIKACIJA JE DODATA</div>';}deferredInstallPrompt=null;});
+  deferredInstallPrompt.userChoice.then(choice=>{if(choice.outcome==='accepted'){document.querySelectorAll('.install-area').forEach(area=>area.innerHTML='<div class="install-help" style="color:#8bd49a;font-size:12px;font-weight:700">✓ APLIKACIJA JE DODATA</div>');}deferredInstallPrompt=null;});
   return;
  }
  if(isIOS){
@@ -475,7 +476,7 @@ const el=$('accountPanel');
 if(!el)return;
 
 if(!session){
-el.innerHTML=`<div class="formbox"><h3>Prijava člana</h3><label>E-mail</label><input class="field" id="loginEmail" type="email" autocomplete="email"><label>Lozinka</label><input class="field" id="loginPass" type="password" autocomplete="current-password"><button class="btn" onclick="login()">PRIJAVI SE</button><div style="margin-top:10px;font-size:13px;text-align:center;color:#ddd">Nemaš nalog? <a href="#" style="color:#ff666b;font-weight:700" onclick="showRegister();return false">Registruj se</a></div><button type="button" style="display:block;clear:both;width:max-content;max-width:100%;margin:12px auto 0;padding:0;background:none;border:0;box-shadow:none;color:#69aaff;font-size:13px;font-weight:600;text-align:center;cursor:pointer" onclick="resendSignupConfirmation()">Ponovo pošalji aktivacioni mejl</button><div class="muted" style="margin-top:8px;text-align:center">Unesi e-mail iz registracije pa izaberi ponovno slanje potvrde.</div></div>`;
+el.innerHTML=`<div class="formbox"><div class="install-area"><button class="install-app-btn" type="button" onclick="installClubApp()">⬇ INSTALIRAJ APLIKACIJU</button></div><h3>Prijava člana</h3><label>E-mail</label><input class="field" id="loginEmail" type="email" autocomplete="email"><label>Lozinka</label><input class="field" id="loginPass" type="password" autocomplete="current-password"><button class="btn" onclick="login()">PRIJAVI SE</button><div style="margin-top:10px;font-size:13px;text-align:center;color:#ddd">Nemaš nalog? <a href="#" style="color:#ff666b;font-weight:700" onclick="showRegister();return false">Registruj se</a></div><button type="button" style="display:block;clear:both;width:max-content;max-width:100%;margin:12px auto 0;padding:0;background:none;border:0;box-shadow:none;color:#69aaff;font-size:13px;font-weight:600;text-align:center;cursor:pointer" onclick="resendSignupConfirmation()">Ponovo pošalji aktivacioni mejl</button><div class="muted" style="margin-top:8px;text-align:center">Unesi e-mail iz registracije pa izaberi ponovno slanje potvrde.</div></div>`;
 return;
 }
 
@@ -492,7 +493,7 @@ ${avatar}
 <div style="flex:1;min-width:0"><div style="font:800 25px 'Barlow Condensed',sans-serif">${esc(profile?.full_name||session.user.email)}</div><div class="muted">${esc(session.user.email)}</div><div class="tag">${profile?.approved?'ODOBREN ČLAN':'NALOG ČEKA ODOBRENJE'}</div></div>
 <button class="btn secondary" style="font-size:20px;padding:9px 12px" aria-label="Podešavanja" title="Podešavanja" onclick="toggleAccountSettings()">⚙️</button>
 </div>
-<div id="accountSettings" class="formbox" style="display:none"><h3>⚙️ Podešavanja</h3>
+<div id="accountSettings" class="formbox" style="display:none"><h3>⚙️ Podešavanja</h3><div class="install-area" style="padding:8px 0 12px"><button class="install-app-btn" type="button" onclick="installClubApp()">⬇ INSTALIRAJ APLIKACIJU</button></div>
 ${profile?.approved?`<div style="margin:12px 0"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><b>🔔 Zvuk obaveštenja</b><button type="button" id="pushSoundToggle" role="switch" aria-checked="true" aria-label="Uključi ili isključi zvuk obaveštenja" onclick="togglePushSoundSwitch()" style="width:50px;height:28px;flex:0 0 50px;border:0;border-radius:20px;padding:3px;background:#2688e8;cursor:pointer;position:relative;transition:background .2s"><span id="pushSoundKnob" style="display:block;width:22px;height:22px;border-radius:50%;background:#fff;transform:translateX(22px);transition:transform .2s"></span></button></div><div id="pushSoundStatus" class="muted">Podešavanje važi za ovaj uređaj.</div></div>`:''}
 <div style="margin-top:14px"><label style="display:block;margin-bottom:8px">Ostala podešavanja</label><div style="display:flex;flex-direction:column;gap:0"><button type="button" onclick="accountMenuChange(&quot;name&quot;)" style="display:block;width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid #ffffff18;color:#3b9cff;padding:12px 4px;font:600 15px inherit;cursor:pointer">Promena Imena i Prezimena</button><button type="button" onclick="accountMenuChange(&quot;phone&quot;)" style="display:block;width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid #ffffff18;color:#3b9cff;padding:12px 4px;font:600 15px inherit;cursor:pointer">Dodaj / Izmeni broj telefona</button>${profile?.approved?'<button type="button" onclick="accountMenuChange(&quot;motorEdit&quot;)" style="display:block;width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid #ffffff18;color:#3b9cff;padding:12px 4px;font:600 15px inherit;cursor:pointer">Izmeni podatke o motoru</button>':''}${isAdmin?'<button type="button" onclick="accountMenuChange(&quot;admin&quot;)" style="display:block;width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid #ffffff18;color:#3b9cff;padding:12px 4px;font:600 15px inherit;cursor:pointer">Administracija kluba</button>':''}</div></div><div style="margin-top:12px"><button class="btn secondary" style="width:100%" onclick="logout()">ODJAVI SE</button></div></div>
 
