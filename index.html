@@ -82,6 +82,7 @@ const SUPABASE_URL='https://gbmbnapxvetedlfpgtit.supabase.co';
 const SUPABASE_KEY='sb_publishable_9GrOIhDzus7HQYGfTXpJqw_3GobgKaI';
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let session=null, profile=null, isAdmin=false, canPublishAnnouncements=false;
+let editPostMode=null;
 const PUSH_VAPID_PUBLIC_KEY='BOlA_LxT67z8xE6S-tKuXswZ50ThqLXj_JYskySJO_hC2u7WbADlOJTxjQR5a54t5gh4gqC1l1TrgS8RRrHK8Oo';
 const $=id=>document.getElementById(id);
 
@@ -144,23 +145,11 @@ async function editAnnouncement(id){
  if(!isAdmin){alert('Samo administrator može menjati obaveštenja.');return;}
  const {data,error}=await db.from('club_announcements').select('*').eq('id',id).maybeSingle();
  if(error||!data){alert('Ne mogu da učitam obaveštenje.');return;}
- const title=prompt('Naziv obaveštenja:',data.title||'');if(title===null)return;
- const description=prompt('Tekst obaveštenja:',data.description||'');if(description===null)return;
- const location=prompt('Mesto / lokacija:',data.location||'');if(location===null)return;
- const currentDate=data.starts_at?new Date(data.starts_at).toISOString().slice(0,16):'';
- const dateTime=prompt('Datum i vreme (YYYY-MM-DDTHH:MM), ostavi prazno ako nema datuma:',currentDate);if(dateTime===null)return;
- let starts_at=null;
- if(dateTime.trim()){
-  const parsed=new Date(dateTime);
-  if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(dateTime)||isNaN(parsed.getTime())){alert('Unesi datum i vreme u formatu YYYY-MM-DDTHH:MM.');return;}
-  starts_at=parsed.toISOString();
- }
- if(!title.trim()||!description.trim()){alert('Naziv i tekst obaveštenja su obavezni.');return;}
- const {data:updated,error:updateError}=await db.from('club_announcements').update({title:title.trim(),description:description.trim(),location:location.trim()||null,starts_at}).eq('id',id).select('id');
- if(updateError){alert('Greška pri izmeni: '+updateError.message);return;}
- if(!updated?.length){alert('Izmena nije sačuvana. Proveri SQL dozvole za uređivanje obaveštenja.');return;}
- alert('Obaveštenje je uspešno izmenjeno.');
- await loadNews();await renderHomeFeed();
+ editPostMode={table:'club_announcements',id,oldPath:data.storage_path||null};
+ $('publisherAnnouncementTitle').value=data.title||'';$('publisherAnnouncementDescription').value=data.description||'';$('publisherAnnouncementLocation').value=data.location||'';
+ $('publisherAnnouncementDate').value=data.starts_at?new Date(data.starts_at).toISOString().slice(0,16):'';$('publisherAnnouncementImage').value='';
+ const form=$('publisherAnnouncementForm');form.style.display='block';form.scrollIntoView({behavior:'smooth',block:'start'});
+ const button=form.querySelector('button[onclick="publishMemberAnnouncement()"]');if(button)button.textContent='SAČUVAJ IZMENE';
 }
 async function deleteContent(table,id){if(!isAdmin){alert('Samo administrator može brisati objave.');return}if(!['club_events','club_announcements'].includes(table)){alert('Nepoznata vrsta objave.');return}if(!confirm('Da li sigurno želiš da obrišeš ovu objavu?'))return;const {data:item,error:findError}=await db.from(table).select('storage_path').eq('id',id).maybeSingle();if(findError){alert('Ne mogu da pronađem fotografiju objave: '+findError.message);return}const {data,error}=await db.from(table).delete().eq('id',id).select('id');if(error){alert('Greška pri brisanju: '+error.message);return}if(!data?.length){alert('Objava nije obrisana. Baza ne dozvoljava administratoru brisanje ove objave. Primeni SQL podešavanje za administratorsko brisanje objava.');return}const cleanupError=await removePostImage(item?.storage_path);alert(cleanupError?'Objava je obrisana, ali fotografija nije uklonjena iz skladišta: '+cleanupError.message:'Objava i njena fotografija su uspešno obrisane.');if(table==='club_events')await loadEvents();else await loadNews();await renderHomeFeed();await loadClubNotifications()}
 let clubNotifications=[];
@@ -389,36 +378,21 @@ async function editRide(id){
  const {data,error}=await db.from('rides').select('*').eq('id',id).maybeSingle();
  if(error||!data){alert('Ne mogu da učitam moto vožnju.');return;}
  if(!isAdmin&&data.user_id!==session?.user?.id){alert('Možeš menjati samo svoju moto vožnju.');return;}
- const title=prompt('Naziv moto vožnje:',data.title||'');if(title===null)return;
- const description=prompt('Opis vožnje:',data.description||'');if(description===null)return;
- const start_location=prompt('Polazna lokacija:',data.start_location||'');if(start_location===null)return;
- const end_location=prompt('Krajnja lokacija:',data.end_location||'');if(end_location===null)return;
- const ride_date=prompt('Datum vožnje (YYYY-MM-DD):',String(data.ride_date||'').slice(0,10));if(ride_date===null)return;
- const departureTimeInput=prompt('Vreme polaska ili tekst:',data.departure_time_text||String(data.departure_time||'').slice(0,5));if(departureTimeInput===null)return;
- const departure_time=departureTimeInput.trim();const route_url=prompt('Google Maps link:',data.route_url||'');if(route_url===null)return;
- if(!title.trim()||!description.trim()||!start_location.trim()||!end_location.trim()||!/^\d{4}-\d{2}-\d{2}$/.test(ride_date)||!departure_time||(route_url&&!/^https?:\/\//i.test(route_url))){alert('Proveri unete podatke. Datum mora biti YYYY-MM-DD, vreme može biti tačan sat ili tekst, a Maps link možeš ostaviti prazan.');return;}
- const exactTime=/^([01]\d|2[0-3]):[0-5]\d$/.test(departure_time);
- const {data:updated,error:updateError}=await db.from('rides').update({title:title.trim(),description:description.trim(),start_location:start_location.trim(),end_location:end_location.trim(),ride_date,departure_time:exactTime?departure_time:'00:00',departure_time_text:exactTime?null:departure_time,route_url:route_url.trim()||null}).eq('id',id).select('id');
- if(updateError){alert('Greška pri izmeni: '+updateError.message);return;}if(!updated?.length){alert('Izmena nije sačuvana. Proveri SQL dozvole za uređivanje.');return;}
- alert('Moto vožnja je izmenjena.');await loadRides();await renderHomeFeed();
+ editPostMode={table:'rides',id,oldPath:data.storage_path||null};
+ $('memberRideTitle').value=data.title||'';$('memberRideDescription').value=data.description||'';$('memberRideStart').value=data.start_location||'';$('memberRideEnd').value=data.end_location||'';$('memberRideDate').value=String(data.ride_date||'').slice(0,10);$('memberRideTime').value=data.departure_time_text||String(data.departure_time||'').slice(0,5);$('memberRideUrl').value=data.route_url||'';$('memberRideImage').value='';
+ const form=$('memberRideForm');form.style.display='block';form.scrollIntoView({behavior:'smooth',block:'start'});
+ const button=form.querySelector('button[onclick="publishMemberRide()"]');if(button)button.textContent='SAČUVAJ IZMENE';
 }
 async function editClubEvent(id){
  const {data,error}=await db.from('club_events').select('*').eq('id',id).maybeSingle();
  if(error||!data){alert('Ne mogu da učitam događaj.');return;}
  if(!isAdmin&&data.created_by!==session?.user?.id){alert('Možeš menjati samo svoj događaj.');return;}
- const title=prompt('Naziv događaja:',data.title||'');if(title===null)return;
- const description=prompt('Opis događaja:',data.description||'');if(description===null)return;
- const location=prompt('Lokacija događaja:',data.location||'');if(location===null)return;
- const currentDate=data.starts_at?new Date(data.starts_at).toISOString().slice(0,10):'';
- const dateValue=prompt('Datum događaja (YYYY-MM-DD):',currentDate);if(dateValue===null)return;
- const currentTime=data.event_time_text||(data.starts_at?new Date(data.starts_at).toISOString().slice(11,16):'');
- const timeValue=prompt('Vreme polaska (HH:MM ili slobodan tekst):',currentTime);if(timeValue===null)return;
- const isExactTime=/^([01]\d|2[0-3]):[0-5]\d$/.test(timeValue.trim());
- const parsed=new Date(dateValue+'T'+(isExactTime?timeValue.trim():'00:00'));
- if(!title.trim()||!description.trim()||!location.trim()||!/^\d{4}-\d{2}-\d{2}$/.test(dateValue)||!timeValue.trim()||isNaN(parsed.getTime())){alert('Proveri naziv, opis, lokaciju, datum i vreme događaja.');return;}
- const {data:updated,error:updateError}=await db.from('club_events').update({title:title.trim(),description:description.trim(),location:location.trim(),starts_at:parsed.toISOString(),event_time_text:isExactTime?null:timeValue.trim()}).eq('id',id).select('id');
- if(updateError){alert('Greška pri izmeni: '+updateError.message);return;}if(!updated?.length){alert('Izmena nije sačuvana. Proveri SQL dozvole za uređivanje.');return;}
- alert('Događaj je izmenjen.');await loadEvents();await renderHomeFeed();
+ editPostMode={table:'club_events',id,oldPath:data.storage_path||null};
+ $('memberEventTitle').value=data.title||'';$('memberEventDescription').value=data.description||'';$('memberEventLocation').value=data.location||'';
+ $('memberEventDate').value=data.starts_at?new Date(data.starts_at).toISOString().slice(0,10):'';
+ $('memberEventTime').value=data.event_time_text||(data.starts_at?new Date(data.starts_at).toISOString().slice(11,16):'');$('memberEventImage').value='';
+ const form=$('memberEventForm');form.style.display='block';form.scrollIntoView({behavior:'smooth',block:'start'});
+ const button=form.querySelector('button[onclick="publishMemberEvent()"]');if(button)button.textContent='SAČUVAJ IZMENE';
 }
 async function loadPendingRides(){const el=$('pendingRidesList');if(!el||!isAdmin)return;const {data,error}=await db.from('rides').select('*').eq('is_approved',false).order('created_at',{ascending:false});if(error){el.innerHTML='<p class="muted">Ne mogu da učitam vožnje na čekanju: '+esc(error.message)+'</p>';return}el.innerHTML=data?.length?data.map(x=>'<div class="card"><b>'+esc(x.title||'Bez naslova')+'</b><p>'+esc(x.description||'')+'</p><p>📍 '+esc(x.start_location||'')+' → '+esc(x.end_location||'')+'</p><p>📅 '+dateOnly(x.ride_date)+' · 🕒 '+esc((x.departure_time_text||String(x.departure_time||'').slice(0,5)))+'</p><button class="btn" onclick="approveRide(\''+esc(x.id)+'\')">ODOBRI VOŽNJU</button><button class="btn danger" style="margin-left:6px" onclick="deleteRide(\''+esc(x.id)+'\')">OBRIŠI</button></div>').join(''):'<p class="muted">Nema moto vožnja koje čekaju odobrenje.</p>'}
 async function approveRide(id){if(!isAdmin){alert('Samo administrator može odobriti moto vožnju.');return}const {error}=await db.from('rides').update({is_approved:true}).eq('id',id);if(error){alert('Vožnja nije odobrena: '+error.message);return}alert('Moto vožnja je odobrena i sada je vidljiva članovima.');await loadPendingRides();await loadRides();await renderHomeFeed();await loadClubNotifications();await sendClubPush('Nova odobrena moto vožnja','Objavljena je nova moto vožnja.','ride')}
@@ -817,6 +791,13 @@ async function publishMemberRide(){
  if(!title||!description||!start_location||!end_location||!ride_date||!departureTimeInput){alert('Popuni sva obavezna polja za moto vožnju. Google Maps link nije obavezan.');return}
  if(route_url&&!/^https?:\/\//i.test(route_url)){alert('Unesi ispravan Google Maps link ili ostavi polje prazno.');return}
  const exactTime=/^([01]\d|2[0-3]):[0-5]\d$/.test(departureTimeInput),departure_time=exactTime?departureTimeInput:'00:00',departure_time_text=exactTime?null:departureTimeInput;
+ if(editPostMode?.table==='rides'){
+  const mode=editPostMode;const {data:updated,error:updateError}=await db.from('rides').update({title,description,start_location,end_location,ride_date,departure_time,departure_time_text,route_url:route_url||null}).eq('id',mode.id).select('id');
+  if(updateError||!updated?.length){alert('Izmena nije sačuvana: '+(updateError?.message||'Proveri dozvole za izmenu.'));return;}
+  const selectedPhoto=$('memberRideImage').files[0];if(selectedPhoto){const uploaded=await uploadPostImage('rides',mode.id,selectedPhoto);if(!uploaded.ok){alert('Podaci su izmenjeni, ali nova fotografija nije dodata: '+uploaded.error);return;}if(mode.oldPath)await removePostImage(mode.oldPath);}
+  editPostMode=null;$('memberRideForm').style.display='none';const saveButton=$('memberRideForm').querySelector('button[onclick="publishMemberRide()"]');if(saveButton)saveButton.textContent='OBJAVI VOŽNJU';
+  alert('Moto vožnja je uspešno izmenjena.');await refresh();return;
+ }
  const {data:ride,error}=await db.from('rides').insert({user_id:session.user.id,title,description,start_location,end_location,ride_date,departure_time,departure_time_text,route_url:route_url||null,is_approved:false}).select('id').single();
  if(error){alert('Moto vožnja nije poslata na odobrenje: '+error.message);return}
  const photo=$('memberRideImage').files[0];const photoResult=await uploadPostImage('rides',ride.id,photo);if(!photoResult.ok){alert('Vožnja je sačuvana, ali fotografija nije dodata: '+photoResult.error);}
@@ -830,6 +811,7 @@ async function publishMemberAnnouncement(){
  if(!session||!canPublishClubEvents()){alert('Objavljivanje obaveštenja je dozvoljeno samo administratoru i Goranu Srećkoviću.');return}
  const title=$('publisherAnnouncementTitle').value.trim(),description=$('publisherAnnouncementDescription').value.trim(),location=$('publisherAnnouncementLocation').value.trim(),starts_at=$('publisherAnnouncementDate').value?new Date($('publisherAnnouncementDate').value).toISOString():null;
  if(!title||!description){alert('Unesi naziv i tekst obaveštenja.');return}
+ if(editPostMode?.table==='club_announcements'){const mode=editPostMode;const {data:updated,error:updateError}=await db.from('club_announcements').update({title,description,location:location||null,starts_at}).eq('id',mode.id).select('id');if(updateError||!updated?.length){alert('Izmena nije sačuvana: '+(updateError?.message||'Proveri dozvole za izmenu.'));return;}const selectedPhoto=$('publisherAnnouncementImage').files[0];if(selectedPhoto){const uploaded=await uploadPostImage('club_announcements',mode.id,selectedPhoto);if(!uploaded.ok){alert('Podaci su izmenjeni, ali nova fotografija nije dodata: '+uploaded.error);return;}if(mode.oldPath)await removePostImage(mode.oldPath);}editPostMode=null;$('publisherAnnouncementForm').style.display='none';const saveButton=$('publisherAnnouncementForm').querySelector('button[onclick="publishMemberAnnouncement()"]');if(saveButton)saveButton.textContent='OBJAVI OBAVEŠTENJE';alert('Obaveštenje je uspešno izmenjeno.');await refresh();return;}
  const {data:announcement,error}=await db.from('club_announcements').insert({title,description,location:location||null,starts_at,created_by:session.user.id}).select('id').single();
  if(error){alert('Objava nije sačuvana: '+error.message);return}
  const photoResult=await uploadPostImage('club_announcements',announcement.id,$('publisherAnnouncementImage').files[0]);if(!photoResult.ok)alert('Obaveštenje je sačuvano, ali fotografija nije dodata: '+photoResult.error);
@@ -838,7 +820,9 @@ async function publishMemberAnnouncement(){
  $('publisherAnnouncementForm').style.display='none';
  await refresh();
 }
-async function publishMemberEvent(){if(!session||!canPublishClubEvents()){alert('Objavljivanje događaja je dozvoljeno samo administratoru i Goranu Srećkoviću.');return}const title=$('memberEventTitle').value.trim(),description=$('memberEventDescription').value.trim(),location=$('memberEventLocation').value.trim(),eventDate=$('memberEventDate').value,eventTime=$('memberEventTime').value.trim();if(!title||!description||!location||!eventDate||!eventTime){alert('Popuni sva polja za događaj. U polje za vreme možeš upisati tačno vreme ili tekst ako još nije poznato.');return}const isExactTime=/^([01]\d|2[0-3]):[0-5]\d$/.test(eventTime);const starts_at=new Date(eventDate+'T'+(isExactTime?eventTime:'00:00')).toISOString();const {data:eventRow,error}=await db.from('club_events').insert({title,description,location,starts_at,event_time_text:isExactTime?null:eventTime,created_by:session.user.id}).select('id').single();if(error){alert('Događaj nije objavljen: '+error.message);return}const photoResult=await uploadPostImage('club_events',eventRow.id,$('memberEventImage').files[0]);if(!photoResult.ok)alert('Događaj je sačuvan, ali fotografija nije dodata: '+photoResult.error);const pushResult=await sendClubPush('Novi klupski događaj',title,'event');if(!pushResult.ok){alert('Događaj je objavljen, ali push nije poslat: '+(pushResult.error||'Nepoznata greška'));}else{alert('Događaj je objavljen. Push poslato: '+(pushResult.sent??0)+', neuspešno: '+(pushResult.failed??0)+'.');}['memberEventTitle','memberEventDescription','memberEventDate','memberEventTime','memberEventLocation','memberEventImage'].forEach(id=>$(id).value='');$('memberEventForm').style.display='none';await refresh()}
+async function publishMemberEvent(){if(!session||!canPublishClubEvents()){alert('Objavljivanje događaja je dozvoljeno samo administratoru i Goranu Srećkoviću.');return}const title=$('memberEventTitle').value.trim(),description=$('memberEventDescription').value.trim(),location=$('memberEventLocation').value.trim(),eventDate=$('memberEventDate').value,eventTime=$('memberEventTime').value.trim();if(!title||!description||!location||!eventDate||!eventTime){alert('Popuni sva polja za događaj. U polje za vreme možeš upisati tačno vreme ili tekst ako još nije poznato.');return}const isExactTime=/^([01]\d|2[0-3]):[0-5]\d$/.test(eventTime);const starts_at=new Date(eventDate+'T'+(isExactTime?eventTime:'00:00')).toISOString();
+if(editPostMode?.table==='club_events'){const mode=editPostMode;const {data:updated,error:updateError}=await db.from('club_events').update({title,description,location,starts_at,event_time_text:isExactTime?null:eventTime}).eq('id',mode.id).select('id');if(updateError||!updated?.length){alert('Izmena nije sačuvana: '+(updateError?.message||'Proveri dozvole za izmenu.'));return;}const selectedPhoto=$('memberEventImage').files[0];if(selectedPhoto){const uploaded=await uploadPostImage('club_events',mode.id,selectedPhoto);if(!uploaded.ok){alert('Podaci su izmenjeni, ali nova fotografija nije dodata: '+uploaded.error);return;}if(mode.oldPath)await removePostImage(mode.oldPath);}editPostMode=null;$('memberEventForm').style.display='none';const saveButton=$('memberEventForm').querySelector('button[onclick="publishMemberEvent()"]');if(saveButton)saveButton.textContent='OBJAVI DOGAĐAJ';alert('Događaj je uspešno izmenjen.');await refresh();return;}
+const {data:eventRow,error}=await db.from('club_events').insert({title,description,location,starts_at,event_time_text:isExactTime?null:eventTime,created_by:session.user.id}).select('id').single();if(error){alert('Događaj nije objavljen: '+error.message);return}const photoResult=await uploadPostImage('club_events',eventRow.id,$('memberEventImage').files[0]);if(!photoResult.ok)alert('Događaj je sačuvan, ali fotografija nije dodata: '+photoResult.error);const pushResult=await sendClubPush('Novi klupski događaj',title,'event');if(!pushResult.ok){alert('Događaj je objavljen, ali push nije poslat: '+(pushResult.error||'Nepoznata greška'));}else{alert('Događaj je objavljen. Push poslato: '+(pushResult.sent??0)+', neuspešno: '+(pushResult.failed??0)+'.');}['memberEventTitle','memberEventDescription','memberEventDate','memberEventTime','memberEventLocation','memberEventImage'].forEach(id=>$(id).value='');$('memberEventForm').style.display='none';await refresh()}
 db.auth.onAuthStateChange((event)=>{if(event==='PASSWORD_RECOVERY'){setTimeout(showNewPasswordForm,0);return;}setTimeout(refresh,0);});
 if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 refresh();
