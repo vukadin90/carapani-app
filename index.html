@@ -122,7 +122,7 @@ function updateMainMenuOptions(){
   options.push({label:'Dodaj Događaj',icon:'📅',action:'event'});
   options.push({label:'Dodaj Obaveštenje',icon:'📢',action:'announcement'});
  }
- panel.innerHTML=options.map(item=>'<button type="button" onclick="openMainMenuAction(\\''+item.action+'\\')">'+item.icon+' <span>'+item.label+'</span><b>›</b></button>').join('');
+ panel.innerHTML=options.map(item=>'<button type="button" onclick="openMainMenuAction(&quot;'+item.action+'&quot;)">'+item.icon+' <span>'+item.label+'</span><b>›</b></button>').join('');
 }
 function toggleMainMenu(){const panel=$('mainMenuPanel'),button=$('mainMenuButton');if(!panel)return;updateMainMenuOptions();const opening=panel.style.display==='none';panel.style.display=opening?'block':'none';if(button)button.setAttribute('aria-expanded',opening?'true':'false');}
 function openMainMenuAction(action){
