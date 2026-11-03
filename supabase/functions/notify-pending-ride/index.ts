@@ -30,8 +30,8 @@ Deno.serve(async (req) => {
     let payload: { ride_id?: string };
     try { payload = await req.json(); } catch { return reply({ error: "Neispravan JSON zahtev." }, 400); }
     const rideId = payload.ride_id || "";
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(rideId)) {
-      return reply({ error: "Neispravan ID moto vožnje." }, 400);
+    if (typeof rideId !== "string" || !rideId.trim() || rideId.length > 128) {
+      return reply({ error: "Nedostaje ili nije ispravan ID moto vožnje." }, 400);
     }
 
     const admin = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
