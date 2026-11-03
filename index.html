@@ -158,12 +158,10 @@ async function editAnnouncement(id){
  const title=prompt('Naziv obaveštenja:',data.title||'');if(title===null)return;
  const description=prompt('Tekst obaveštenja:',data.description||'');if(description===null)return;
  const location=prompt('Mesto / lokacija:',data.location||'');if(location===null)return;
- const dateTime=prompt('Datum i vreme (YYYY-MM-DDTHH:MM), ostavi prazno ako nema datuma:',currentDate);if(dateTime===null)return;
+ const currentDate=data.starts_at?new Date(data.starts_at).toISOString().slice(0,10):'';const currentDateDisplay=currentDate?currentDate.slice(8,10)+'.'+currentDate.slice(5,7)+'.'+currentDate.slice(0,4):'';const dateTime=prompt('Datum i vreme (DD.MM.GGGG HH:MM), ostavi prazno ako nema datuma:',currentDateDisplay+(data.starts_at?' '+new Date(data.starts_at).toISOString().slice(11,16):''));if(dateTime===null)return;
  let starts_at=null;
  if(dateTime.trim()){
-  const parsed=new Date(dateTime);
-  if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(dateTime)||isNaN(parsed.getTime())){alert('Unesi datum i vreme u formatu YYYY-MM-DDTHH:MM.');return;}
-  starts_at=parsed.toISOString();
+  const match=dateTime.trim().match(/^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})$/);if(!match){alert('Unesi datum i vreme u formatu DD.MM.GGGG HH:MM.');return;}const iso=match[3]+'-'+match[2]+'-'+match[1]+'T'+match[4]+':'+match[5];const parsed=new Date(iso);if(isNaN(parsed.getTime())){alert('Unesi ispravan datum i vreme.');return;}starts_at=parsed.toISOString();
  }
  if(!title.trim()||!description.trim()){alert('Naziv i tekst obaveštenja su obavezni.');return;}
  const {data:updated,error:updateError}=await db.from('club_announcements').update({title:title.trim(),description:description.trim(),location:location.trim()||null,starts_at}).eq('id',id).select('id');
@@ -422,7 +420,6 @@ async function editClubEvent(id){
  const title=prompt('Naziv događaja:',data.title||'');if(title===null)return;
  const description=prompt('Opis događaja:',data.description||'');if(description===null)return;
  const location=prompt('Lokacija događaja:',data.location||'');if(location===null)return;
- const currentDate=data.starts_at?new Date(data.starts_at).toISOString().slice(0,10):'';
  const currentDate=data.starts_at?new Date(data.starts_at).toISOString().slice(0,10):'';const currentDateDisplay=currentDate?currentDate.slice(8,10)+'.'+currentDate.slice(5,7)+'.'+currentDate.slice(0,4):'';const dateInput=prompt('Datum događaja (DD.MM.GGGG):',currentDateDisplay);if(dateInput===null)return;const dateMatch=dateInput.trim().match(/^(\d{2})\.(\d{2})\.(\d{4})$/);const dateValue=dateMatch?dateMatch[3]+'-'+dateMatch[2]+'-'+dateMatch[1]:'';
  const currentTime=data.event_time_text||(data.starts_at?new Date(data.starts_at).toISOString().slice(11,16):'');
  const timeValue=prompt('Vreme polaska (HH:MM ili slobodan tekst):',currentTime);if(timeValue===null)return;
