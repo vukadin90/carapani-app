@@ -27,10 +27,11 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await userClient.auth.getUser(token);
     if (authError || !user) return reply({ error: "Unauthorized" }, 401);
 
-    let payload: { ride_id?: string };
+    let payload: { ride_id?: string | number };
     try { payload = await req.json(); } catch { return reply({ error: "Neispravan JSON zahtev." }, 400); }
-    const rideId = payload.ride_id || "";
-    if (typeof rideId !== "string" || !rideId.trim() || rideId.length > 128) {
+    // ID u tabeli rides može biti tekstualni ili numerički.
+    const rideId = String(payload.ride_id ?? "").trim();
+    if (!rideId || rideId.length > 128) {
       return reply({ error: "Nedostaje ili nije ispravan ID moto vožnje." }, 400);
     }
 
