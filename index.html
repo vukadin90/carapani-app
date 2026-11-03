@@ -376,7 +376,7 @@ function postAuthorMarkup(author){
 }
 function homeFeedDeleteButton(post,kind){
  if(!isAdmin)return '';
- return '<button type="button" aria-label="Obriši objavu" title="Obriši objavu" style="flex:0 0 28px;width:28px;height:28px;padding:0;margin-left:auto;border:1px solid #8f252b;border-radius:50%;background:#351216;color:#ff6b70;font-size:19px;line-height:1;display:grid;place-items:center;cursor:pointer" onclick="deleteHomeFeedPost(\\''+kind+'\\',\\''+esc(post.id)+'\\')">×</button>';
+ return '<button type="button" aria-label="Obriši objavu" title="Obriši objavu" style="flex:0 0 28px;width:28px;height:28px;padding:0;margin-left:auto;border:1px solid #8f252b;border-radius:50%;background:#351216;color:#ff6b70;font-size:19px;line-height:1;display:grid;place-items:center;cursor:pointer" onclick="deleteHomeFeedPost(\''+kind+'\',\''+esc(post.id)+'\')">×</button>';
 }
 async function deleteHomeFeedPost(kind,id){
  if(!isAdmin){alert('Samo administrator može brisati objave.');return;}
