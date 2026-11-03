@@ -374,6 +374,56 @@ function postAuthorMarkup(author){
     : '<div class="avatar" style="width:36px;height:36px">'+esc((author.full_name||'?').slice(0,1).toUpperCase())+'</div>';
   return '<div style="display:flex;align-items:center;gap:9px;margin-bottom:12px">'+avatar+'<div><b>'+esc(author.full_name||'Član kluba')+'</b><div class="muted">Objavio</div></div></div>';
 }
+function homeFeedEditButton(post,kind){
+ const allowed=kind==='ride'?(isAdmin||post.user_id===session?.user?.id):kind==='event'?(isAdmin||post.created_by===session?.user?.id):isAdmin;
+ if(!allowed)return '';
+ const label=kind==='ride'?'IZMENI MOTO VOŽNJU':kind==='event'?'IZMENI DOGAĐAJ':'IZMENI OBAVEŠTENJE';
+ return '<div style="margin-top:12px"><button class="btn secondary" type="button" style="font-size:10px;padding:7px 10px;min-height:30px" onclick="openFeedPostEditor(\''+kind+'\',\''+esc(post.id)+'\')">'+label+'</button></div>';
+}
+function setCurrentEditImagePreview(formId,imageUrl){
+ const form=$(formId);if(!form)return;
+ form.querySelectorAll('.edit-current-image').forEach(node=>node.remove());
+ const input=form.querySelector('input[type="file"]');
+ if(imageUrl&&input)input.insertAdjacentHTML('beforebegin','<div class="edit-current-image" style="margin:8px 0 12px"><div class="muted" style="margin-bottom:5px">Trenutna fotografija</div><img src="'+esc(imageUrl)+'" alt="Trenutna fotografija objave" style="display:block;max-width:180px;max-height:120px;object-fit:contain;border-radius:8px"><div class="muted" style="margin-top:5px">Izaberi novu fotografiju samo ako želiš da je zameniš.</div></div>');
+}
+function localDateTimeValue(value){
+ if(!value)return '';
+ const d=new Date(value);if(isNaN(d.getTime()))return '';
+ const pad=n=>String(n).padStart(2,'0');
+ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
+}
+async function openFeedPostEditor(kind,id){
+ if(!session||!profile?.approved){alert('Prijavi se kao odobren član kluba.');return;}
+ const config={ride:{table:'rides',page:'rides',form:'memberRideForm',button:'publishMemberRide',heading:'Izmena moto vožnje'},event:{table:'club_events',page:'events',form:'memberEventForm',button:'publishMemberEvent',heading:'Izmena događaja'},news:{table:'club_announcements',page:'news',form:'publisherAnnouncementForm',button:'publishMemberAnnouncement',heading:'Izmena obaveštenja'}}[kind];
+ if(!config){alert('Nepoznata vrsta objave.');return;}
+ const {data,error}=await db.from(config.table).select('*').eq('id',id).maybeSingle();
+ if(error||!data){alert('Ne mogu da učitam objavu: '+(error?.message||''));return;}
+ const allowed=kind==='ride'?(isAdmin||data.user_id===session.user.id):kind==='event'?(isAdmin||data.created_by===session.user.id):isAdmin;
+ if(!allowed){alert('Nemaš dozvolu da menjaš ovu objavu.');return;}
+ editPostMode={table:config.table,id,oldPath:data.storage_path||null};
+ if(kind==='ride'){
+  $('memberRideTitle').value=data.title||'';$('memberRideDescription').value=data.description||'';
+  $('memberRideStart').value=data.start_location||'';$('memberRideEnd').value=data.end_location||'';
+  $('memberRideDate').value=String(data.ride_date||'').slice(0,10);
+  $('memberRideTime').value=data.departure_time_text||String(data.departure_time||'').slice(0,5);
+  $('memberRideUrl').value=data.route_url||'';$('memberRideImage').value='';
+ }else if(kind==='event'){
+  $('memberEventTitle').value=data.title||'';$('memberEventDescription').value=data.description||'';
+  $('memberEventLocation').value=data.location||'';$('memberEventDate').value=data.starts_at?localDateTimeValue(data.starts_at).slice(0,10):'';
+  $('memberEventTime').value=data.event_time_text||(data.starts_at?localDateTimeValue(data.starts_at).slice(11,16):'');
+  $('memberEventImage').value='';
+ }else{
+  $('publisherAnnouncementTitle').value=data.title||'';$('publisherAnnouncementDescription').value=data.description||'';
+  $('publisherAnnouncementLocation').value=data.location||'';$('publisherAnnouncementDate').value=localDateTimeValue(data.starts_at);
+  $('publisherAnnouncementImage').value='';
+ }
+ showPage(config.page);
+ const form=$(config.form);form.style.display='block';
+ const heading=form.querySelector('h3');if(heading)heading.textContent=config.heading;
+ const button=form.querySelector('button[onclick="'+config.button+'()"]');if(button)button.textContent='SAČUVAJ IZMENE';
+ setCurrentEditImagePreview(config.form,data.image_url);
+ setTimeout(()=>form.scrollIntoView({behavior:'smooth',block:'start'}),80);
+}
 let homeFeedRenderToken=0;
 async function renderHomeFeed(){
  const el=$('homeNews');if(!el)return;
@@ -394,9 +444,9 @@ async function renderHomeFeed(){
  const renderPosts=(rv,ev,authors)=>{
   if(renderToken!==homeFeedRenderToken)return;
   el.innerHTML=posts.map(x=>{
-    if(x._kind==='ride')return '<article class="feed-post"><div class="feed-post-head"><span class="tag">🏍️ MOTO VOŽNJA</span><span class="feed-open-label">Objava · '+date(x.created_at)+'</span></div>'+postAuthorMarkup(authors[x.user_id])+postImageMarkup(x,true)+'<h4 class="feed-title">'+esc(x.title||'Bez naslova')+'</h4>'+(x.description?'<div class="feed-content">'+esc(x.description)+'</div>':'')+(x.start_location?'<p>📍 Polazna lokacija: '+esc(x.start_location)+'</p>':'')+(x.end_location?'<p>🏁 Krajnja lokacija: '+esc(x.end_location)+'</p>':'')+(x.ride_date?'<p>📅 Datum vožnje: '+dateOnly(x.ride_date)+'</p>':'')+((x.departure_time_text||x.departure_time)?'<p>🕒 Vreme polaska: '+esc(x.departure_time_text||String(x.departure_time).slice(0,5))+'</p>':'')+(x.route_url?'<a class="btn" style="display:inline-block;margin-top:7px" href="'+esc(x.route_url)+'" target="_blank" rel="noopener">OTVORI RUTU U GOOGLE MAPS</a>':'')+votePanel('ride',x.id,rv.rows,rv.members)+'</article>';
-    if(x._kind==='event')return '<article class="feed-post"><div class="feed-post-head"><span class="tag">📅 DOGAĐAJ</span><span class="feed-open-label">Objava · '+date(x.created_at)+'</span></div>'+postImageMarkup(x,true)+'<h4 class="event-title">'+esc(x.title||'Bez naslova')+'</h4>'+(x.starts_at?'<p>📅 Datum: '+new Date(x.starts_at).toLocaleDateString('sr-RS',{day:'2-digit',month:'2-digit',year:'numeric'})+'</p><p>🕒 Vreme: '+esc(x.event_time_text||new Date(x.starts_at).toLocaleTimeString('sr-RS',{hour:'2-digit',minute:'2-digit'}))+'</p>':'')+(x.location?'<p>📍 '+esc(x.location)+'</p>':'')+'<div class="feed-content">'+esc(x.description||'')+'</div>'+votePanel('event',x.id,ev.rows,ev.members)+'</article>';
-    return '<article class="feed-post"><div class="feed-post-head"><span class="tag">📢 OBAVEŠTENJE</span><span class="feed-open-label">Objava · '+date(x.created_at)+'</span></div>'+postImageMarkup(x,true)+'<h4 class="feed-title">'+esc(x.title||'Bez naslova')+'</h4>'+(x.starts_at?'<p>📅 Datum: '+new Date(x.starts_at).toLocaleDateString('sr-RS',{day:'2-digit',month:'2-digit',year:'numeric'})+'</p>':'')+(x.location?'<p>📍 '+esc(x.location)+'</p>':'')+'<div class="feed-content">'+esc(x.description||'')+'</div></article>';
+    if(x._kind==='ride')return '<article class="feed-post"><div class="feed-post-head"><span class="tag">🏍️ MOTO VOŽNJA</span><span class="feed-open-label">Objava · '+date(x.created_at)+'</span></div>'+postAuthorMarkup(authors[x.user_id])+postImageMarkup(x,true)+'<h4 class="feed-title">'+esc(x.title||'Bez naslova')+'</h4>'+(x.description?'<div class="feed-content">'+esc(x.description)+'</div>':'')+(x.start_location?'<p>📍 Polazna lokacija: '+esc(x.start_location)+'</p>':'')+(x.end_location?'<p>🏁 Krajnja lokacija: '+esc(x.end_location)+'</p>':'')+(x.ride_date?'<p>📅 Datum vožnje: '+dateOnly(x.ride_date)+'</p>':'')+((x.departure_time_text||x.departure_time)?'<p>🕒 Vreme polaska: '+esc(x.departure_time_text||String(x.departure_time).slice(0,5))+'</p>':'')+(x.route_url?'<a class="btn" style="display:inline-block;margin-top:7px" href="'+esc(x.route_url)+'" target="_blank" rel="noopener">OTVORI RUTU U GOOGLE MAPS</a>':'')+votePanel('ride',x.id,rv.rows,rv.members)+homeFeedEditButton(x,'ride')+'</article>';
+    if(x._kind==='event')return '<article class="feed-post"><div class="feed-post-head"><span class="tag">📅 DOGAĐAJ</span><span class="feed-open-label">Objava · '+date(x.created_at)+'</span></div>'+postImageMarkup(x,true)+'<h4 class="event-title">'+esc(x.title||'Bez naslova')+'</h4>'+(x.starts_at?'<p>📅 Datum: '+new Date(x.starts_at).toLocaleDateString('sr-RS',{day:'2-digit',month:'2-digit',year:'numeric'})+'</p><p>🕒 Vreme: '+esc(x.event_time_text||new Date(x.starts_at).toLocaleTimeString('sr-RS',{hour:'2-digit',minute:'2-digit'}))+'</p>':'')+(x.location?'<p>📍 '+esc(x.location)+'</p>':'')+'<div class="feed-content">'+esc(x.description||'')+'</div>'+votePanel('event',x.id,ev.rows,ev.members)+homeFeedEditButton(x,'event')+'</article>';
+    return '<article class="feed-post"><div class="feed-post-head"><span class="tag">📢 OBAVEŠTENJE</span><span class="feed-open-label">Objava · '+date(x.created_at)+'</span></div>'+postImageMarkup(x,true)+'<h4 class="feed-title">'+esc(x.title||'Bez naslova')+'</h4>'+(x.starts_at?'<p>📅 Datum: '+new Date(x.starts_at).toLocaleDateString('sr-RS',{day:'2-digit',month:'2-digit',year:'numeric'})+'</p>':'')+(x.location?'<p>📍 '+esc(x.location)+'</p>':'')+'<div class="feed-content">'+esc(x.description||'')+'</div>'+homeFeedEditButton(x,'news')+'</article>';
 }).join('');
  };
  const empty={rows:[],members:{}};
