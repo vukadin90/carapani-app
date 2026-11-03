@@ -86,18 +86,21 @@ let editPostMode=null;
 const PUSH_VAPID_PUBLIC_KEY='BOlA_LxT67z8xE6S-tKuXswZ50ThqLXj_JYskySJO_hC2u7WbADlOJTxjQR5a54t5gh4gqC1l1TrgS8RRrHK8Oo';
 const $=id=>document.getElementById(id);
 
-document.addEventListener('click',function(event){
- const button=event.target.closest('button[onclick^="editRide("],button[onclick^="editClubEvent("],button[onclick^="editAnnouncement("]');
+window.addEventListener('click',function(event){
+ const target=event.target&&event.target.nodeType===3?event.target.parentElement:event.target;
+ const button=target&&target.closest?target.closest('button[onclick*="editRide("],button[onclick*="editClubEvent("],button[onclick*="editAnnouncement("]'):null;
  if(!button)return;
  event.preventDefault();
- event.stopImmediatePropagation();
+ event.stopPropagation();
  const code=button.getAttribute('onclick')||'';
- const match=code.match(/^(editRide|editClubEvent|editAnnouncement)\(['"]([^'"]+)['"]\)/);
- if(!match){alert('Nije moguće prepoznati koju objavu menjaš.');return;}
- const actions={editRide,editClubEvent,editAnnouncement};
- Promise.resolve(actions[match[1]](match[2])).catch(error=>alert('Greška pri otvaranju izmene: '+(error?.message||error)));
+ const match=code.match(/(editRide|editClubEvent|editAnnouncement)\s*\(\s*['"]([^'"]+)['"]\s*\)/);
+ if(!match){alert('Nije moguće prepoznati objavu za izmenu.');return;}
+ const actions={editRide:editRide,editClubEvent:editClubEvent,editAnnouncement:editAnnouncement};
+ try{
+  const result=actions[match[1]](match[2]);
+  if(result&&typeof result.catch==='function')result.catch(error=>alert('Greška pri otvaranju izmene: '+(error&&error.message?error.message:error)));
+ }catch(error){alert('Greška pri otvaranju izmene: '+(error&&error.message?error.message:error));}
 },true);
-
 
 let deferredInstallPrompt=null;
 window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredInstallPrompt=event;});
