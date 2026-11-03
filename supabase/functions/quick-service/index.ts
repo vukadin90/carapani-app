@@ -9,7 +9,7 @@ Deno.serve(async(req)=>{
   const url=Deno.env.get("SUPABASE_URL"),anon=Deno.env.get("SUPABASE_ANON_KEY"),serviceKey=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||Deno.env.get("MY_SERVICE_ROLE_KEY"),publicKey=Deno.env.get("VAPID_PUBLIC_KEY"),privateKey=Deno.env.get("VAPID_PRIVATE_KEY");
   const missing=[["SUPABASE_URL",url],["SUPABASE_ANON_KEY",anon],["SUPABASE_SERVICE_ROLE_KEY / MY_SERVICE_ROLE_KEY",serviceKey],["VAPID_PUBLIC_KEY",publicKey],["VAPID_PRIVATE_KEY",privateKey]].filter((x)=>!x[1]).map((x)=>x[0]);
   if(missing.length){console.error("Missing push secrets:",missing);return response({error:"Nedostaju podešavanja za push: "+missing.join(", ")},500);}
-  const token=(req.headers.get("Authorization")||"").replace(/^Bearer\\s+/i,"");if(!token)return response({error:"Unauthorized"},401);
+  const token=(req.headers.get("Authorization")||"").replace(/^Bearer\s+/i,"");if(!token)return response({error:"Unauthorized"},401);
   const userClient=createClient(url,anon,{global:{headers:{Authorization:`Bearer ${token}`}}});
   const {data:{user},error:userError}=await userClient.auth.getUser(token);if(userError||!user)return response({error:"Unauthorized"},401);
   const admin=createClient(url,serviceKey);
