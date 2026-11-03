@@ -284,10 +284,25 @@ window.castVote = async function(type,id,choice,button){
   try{
     if(!session||!profile?.approved){alert('Glasanje je dostupno samo prijavljenim i odobrenim članovima.');return;}
     if(!['ride','event'].includes(type)||!['yes','no'].includes(choice)){alert('Neispravan izbor glasanja.');return;}
-    const {error}=await db.from('post_votes').upsert(
-      {post_type:type,post_id:String(id),user_id:session.user.id,choice,created_at:new Date().toISOString()},
-      {onConflict:'post_type,post_id,user_id'}
-    );
+    const {data:existingVote,error:lookupError}=await db.from('post_votes')
+      .select('choice')
+      .eq('post_type',type)
+      .eq('post_id',String(id))
+      .eq('user_id',session.user.id)
+      .maybeSingle();
+    if(lookupError){console.error('Vote lookup error:',lookupError);alert('Ne mogu da proverim postojeći glas: '+lookupError.message);return;}
+    let error;
+    if(existingVote?.choice===choice){
+      ({error}=await db.from('post_votes').delete()
+        .eq('post_type',type)
+        .eq('post_id',String(id))
+        .eq('user_id',session.user.id));
+    }else{
+      ({error}=await db.from('post_votes').upsert(
+        {post_type:type,post_id:String(id),user_id:session.user.id,choice,created_at:new Date().toISOString()},
+        {onConflict:'post_type,post_id,user_id'}
+      ));
+    }
     if(error){console.error('Vote error:',error);alert('Greška pri glasanju: '+error.message);return;}
     if(type==='ride')await loadRides();else await loadEvents();await renderHomeFeed();await loadClubNotifications();
   }catch(e){
