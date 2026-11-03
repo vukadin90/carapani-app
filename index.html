@@ -114,8 +114,30 @@ function installClubApp(){
 }
 
 function applyMemberAccessGate(){const allowed=!!(session&&profile?.approved);document.querySelectorAll('.tabs').forEach(el=>el.style.display=allowed?'':'none');document.querySelectorAll('main>.page').forEach(el=>{if(!allowed){el.classList.toggle('active',el.id==='account');el.style.display=el.id==='account'?'block':'none';}else{el.style.display='';}});const bell=$('notificationBell'),menu=$('mainMenuButton');if(bell)bell.style.display=allowed?'':'none';if(menu)menu.style.display=allowed?'':'none';return allowed;}
-function toggleMainMenu(){const panel=$('mainMenuPanel'),button=$('mainMenuButton');if(!panel)return;const opening=panel.style.display==='none';panel.style.display=opening?'block':'none';if(button)button.setAttribute('aria-expanded',opening?'true':'false');}
-function openMainMenuPage(name){const panel=$('mainMenuPanel');if(panel)panel.style.display='none';const button=$('mainMenuButton');if(button)button.setAttribute('aria-expanded','false');showPage(name);}
+function updateMainMenuOptions(){
+ const panel=$('mainMenuPanel');if(!panel)return;
+ if(!session||!profile?.approved){panel.innerHTML='';return;}
+ const options=[{label:'Dodaj Moto vožnju',icon:'🏍️',action:'ride'}];
+ if(isAdmin){
+  options.push({label:'Dodaj Događaj',icon:'📅',action:'event'});
+  options.push({label:'Dodaj Obaveštenje',icon:'📢',action:'announcement'});
+ }
+ panel.innerHTML=options.map(item=>'<button type="button" onclick="openMainMenuAction(\\''+item.action+'\\')">'+item.icon+' <span>'+item.label+'</span><b>›</b></button>').join('');
+}
+function toggleMainMenu(){const panel=$('mainMenuPanel'),button=$('mainMenuButton');if(!panel)return;updateMainMenuOptions();const opening=panel.style.display==='none';panel.style.display=opening?'block':'none';if(button)button.setAttribute('aria-expanded',opening?'true':'false');}
+function openMainMenuAction(action){
+ const panel=$('mainMenuPanel');if(panel)panel.style.display='none';
+ const button=$('mainMenuButton');if(button)button.setAttribute('aria-expanded','false');
+ if(!session||!profile?.approved){alert('Prijavi se kao odobren član kluba.');return;}
+ if(action==='event'&&!isAdmin){alert('Samo administrator može dodavati događaje iz ovog menija.');return;}
+ if(action==='announcement'&&!isAdmin){alert('Samo administrator može dodavati obaveštenja iz ovog menija.');return;}
+ const page=action==='ride'?'rides':action==='event'?'events':'news';
+ showPage(page);
+ if(action==='ride')toggleMemberRideForm();
+ else if(action==='event')toggleMemberEventForm();
+ else toggleAnnouncementForm();
+ setTimeout(()=>{const id=action==='ride'?'memberRideForm':action==='event'?'memberEventForm':'publisherAnnouncementForm';$(id)?.scrollIntoView({behavior:'smooth',block:'start'});},50);
+}
 document.addEventListener('click',event=>{const panel=$('mainMenuPanel'),button=$('mainMenuButton');if(panel&&panel.style.display!=='none'&&!panel.contains(event.target)&&!button?.contains(event.target)){panel.style.display='none';button?.setAttribute('aria-expanded','false');}});
 function showPage(name){const allowed=applyMemberAccessGate();if(!allowed&&name!=='account'){name='account';}document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===name));document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.page===name));if(name==='account')renderAccount();if(name==='admin')renderAdmin();if(name==='members'&&allowed)loadMembers();if(name==='chat'&&allowed)loadChatMessages();window.scrollTo(0,0)}
 function modal(html){const back=$('modalBack');$('modalContent').innerHTML=html;if(!back.dataset.closeHandler){back.addEventListener('click',event=>{if(event.target===back||event.target.closest('[data-modal-close="true"]')){event.preventDefault();back.classList.remove('show');}});back.dataset.closeHandler='1';}back.querySelectorAll('[data-modal-close="true"]').forEach(button=>{button.type='button';});back.classList.add('show')}
@@ -265,7 +287,7 @@ async function sendChatMessage(){
  input.value='';await loadChatMessages();
 }
 async function refresh(){const {data:{session:s}}=await db.auth.getSession();session=s;profile=null;isAdmin=false;canPublishAnnouncements=false;if(session){const {data}=await db.from('profiles').select('*').eq('id',session.user.id).maybeSingle();profile=data;isAdmin=!!data?.is_admin;canPublishAnnouncements=canPublishClubEvents();}
-$('authStatus').textContent=session?(profile?.approved?'ČLAN':'NA ČEKANJU'):'GOST';const eventPublishButton=$('memberEventPublishButton');if(eventPublishButton)eventPublishButton.style.display=canPublishClubEvents()?'':'none';renderAccount();const allowed=applyMemberAccessGate();if(!allowed){showPage('account');return;}const feedPromise=renderHomeFeed();await Promise.all([isAdmin?loadPendingRides():Promise.resolve(),feedPromise]);if($('announcementPublishControls'))$('announcementPublishControls').style.display=canPublishAnnouncements?'block':'none';if($('publisherAnnouncementForm'))$('publisherAnnouncementForm').style.display='none';await loadClubNotifications();if(session&&profile?.approved)loadMembers();if(isAdmin)renderAdmin();if($('gallery')?.classList.contains('active'))loadGallery();if(isAdmin&&new URLSearchParams(location.search).get('open')==='admin')showPage('admin')}
+$('authStatus').textContent=session?(profile?.approved?'ČLAN':'NA ČEKANJU'):'GOST';updateMainMenuOptions();const eventPublishButton=$('memberEventPublishButton');if(eventPublishButton)eventPublishButton.style.display=canPublishClubEvents()?'':'none';renderAccount();const allowed=applyMemberAccessGate();if(!allowed){showPage('account');return;}const feedPromise=renderHomeFeed();await Promise.all([isAdmin?loadPendingRides():Promise.resolve(),feedPromise]);if($('announcementPublishControls'))$('announcementPublishControls').style.display=canPublishAnnouncements?'block':'none';if($('publisherAnnouncementForm'))$('publisherAnnouncementForm').style.display='none';await loadClubNotifications();if(session&&profile?.approved)loadMembers();if(isAdmin)renderAdmin();if($('gallery')?.classList.contains('active'))loadGallery();if(isAdmin&&new URLSearchParams(location.search).get('open')==='admin')showPage('admin')}
 
 async function getPostVotes(type){
   if(!session||!profile?.approved)return {rows:[],members:{},error:null};
