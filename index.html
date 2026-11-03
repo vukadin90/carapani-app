@@ -132,7 +132,7 @@ async function editAnnouncement(id){
  let starts_at=null;
  if(dateTime.trim()){
   const parsed=new Date(dateTime);
-  if(!/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}$/.test(dateTime)||isNaN(parsed.getTime())){alert('Unesi datum i vreme u formatu YYYY-MM-DDTHH:MM.');return;}
+  if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(dateTime)||isNaN(parsed.getTime())){alert('Unesi datum i vreme u formatu YYYY-MM-DDTHH:MM.');return;}
   starts_at=parsed.toISOString();
  }
  if(!title.trim()||!description.trim()){alert('Naziv i tekst obaveštenja su obavezni.');return;}
@@ -374,8 +374,8 @@ async function editRide(id){
  const ride_date=prompt('Datum vožnje (YYYY-MM-DD):',String(data.ride_date||'').slice(0,10));if(ride_date===null)return;
  const departureTimeInput=prompt('Vreme polaska ili tekst:',data.departure_time_text||String(data.departure_time||'').slice(0,5));if(departureTimeInput===null)return;
  const departure_time=departureTimeInput.trim();const route_url=prompt('Google Maps link:',data.route_url||'');if(route_url===null)return;
- if(!title.trim()||!description.trim()||!start_location.trim()||!end_location.trim()||!/^\\d{4}-\\d{2}-\\d{2}$/.test(ride_date)||!departure_time||(route_url&&!/^https?:\\/\\//i.test(route_url))){alert('Proveri unete podatke. Datum mora biti YYYY-MM-DD, vreme može biti tačan sat ili tekst, a Maps link možeš ostaviti prazan.');return;}
- const exactTime=/^([01]\\d|2[0-3]):[0-5]\\d$/.test(departure_time);
+ if(!title.trim()||!description.trim()||!start_location.trim()||!end_location.trim()||!/^\d{4}-\d{2}-\d{2}$/.test(ride_date)||!departure_time||(route_url&&!/^https?:\/\//i.test(route_url))){alert('Proveri unete podatke. Datum mora biti YYYY-MM-DD, vreme može biti tačan sat ili tekst, a Maps link možeš ostaviti prazan.');return;}
+ const exactTime=/^([01]\d|2[0-3]):[0-5]\d$/.test(departure_time);
  const {data:updated,error:updateError}=await db.from('rides').update({title:title.trim(),description:description.trim(),start_location:start_location.trim(),end_location:end_location.trim(),ride_date,departure_time:exactTime?departure_time:'00:00',departure_time_text:exactTime?null:departure_time,route_url:route_url.trim()||null}).eq('id',id).select('id');
  if(updateError){alert('Greška pri izmeni: '+updateError.message);return;}if(!updated?.length){alert('Izmena nije sačuvana. Proveri SQL dozvole za uređivanje.');return;}
  alert('Moto vožnja je izmenjena.');await loadRides();await renderHomeFeed();
@@ -793,8 +793,8 @@ async function publishMemberRide(){
  if(!session||!profile||!profile.approved){alert('Samo odobreni članovi mogu objavljivati moto vožnje.');return}
  const title=$('memberRideTitle').value.trim(),description=$('memberRideDescription').value.trim(),start_location=$('memberRideStart').value.trim(),end_location=$('memberRideEnd').value.trim(),ride_date=$('memberRideDate').value,departureTimeInput=$('memberRideTime').value.trim(),route_url=$('memberRideUrl').value.trim();
  if(!title||!description||!start_location||!end_location||!ride_date||!departureTimeInput){alert('Popuni sva obavezna polja za moto vožnju. Google Maps link nije obavezan.');return}
- if(route_url&&!/^https?:\\/\\//i.test(route_url)){alert('Unesi ispravan Google Maps link ili ostavi polje prazno.');return}
- const exactTime=/^([01]\\d|2[0-3]):[0-5]\\d$/.test(departureTimeInput),departure_time=exactTime?departureTimeInput:'00:00',departure_time_text=exactTime?null:departureTimeInput;
+ if(route_url&&!/^https?:\/\//i.test(route_url)){alert('Unesi ispravan Google Maps link ili ostavi polje prazno.');return}
+ const exactTime=/^([01]\d|2[0-3]):[0-5]\d$/.test(departureTimeInput),departure_time=exactTime?departureTimeInput:'00:00',departure_time_text=exactTime?null:departureTimeInput;
  const {error}=await db.from('rides').insert({user_id:session.user.id,title,description,start_location,end_location,ride_date,departure_time,departure_time_text,route_url:route_url||null,is_approved:false});
  if(error){alert('Moto vožnja nije poslata na odobrenje: '+error.message);return}
  alert('Moto vožnja je poslata administratoru na odobrenje. Biće vidljiva članovima nakon odobravanja.');
