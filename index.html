@@ -402,10 +402,10 @@ async function editRide(id){
  const description=prompt('Opis vožnje:',data.description||'');if(description===null)return;
  const start_location=prompt('Polazna lokacija:',data.start_location||'');if(start_location===null)return;
  const end_location=prompt('Krajnja lokacija:',data.end_location||'');if(end_location===null)return;
- const ride_date=prompt('Datum vožnje (YYYY-MM-DD):',String(data.ride_date||'').slice(0,10));if(ride_date===null)return;
+ const storedRideDate=String(data.ride_date||'').slice(0,10);const rideDateDefault=/^\d{4}-\d{2}-\d{2}$/.test(storedRideDate)?storedRideDate.slice(8,10)+'.'+storedRideDate.slice(5,7)+'.'+storedRideDate.slice(0,4):'';const rideDateInput=prompt('Datum vožnje (DD.MM.GGGG):',rideDateDefault);if(rideDateInput===null)return;const rideDateMatch=rideDateInput.trim().match(/^(\d{2})\.(\d{2})\.(\d{4})$/);const ride_date=rideDateMatch?rideDateMatch[3]+'-'+rideDateMatch[2]+'-'+rideDateMatch[1]:'';
  const departureTimeInput=prompt('Vreme polaska ili tekst:',data.departure_time_text||String(data.departure_time||'').slice(0,5));if(departureTimeInput===null)return;
  const departure_time=departureTimeInput.trim();const route_url=prompt('Google Maps link:',data.route_url||'');if(route_url===null)return;
- if(!title.trim()||!description.trim()||!start_location.trim()||!end_location.trim()||!/^\d{4}-\d{2}-\d{2}$/.test(ride_date)||!departure_time||(route_url&&!/^https?:\/\//i.test(route_url))){alert('Proveri unete podatke. Datum mora biti YYYY-MM-DD, vreme može biti tačan sat ili tekst, a Maps link možeš ostaviti prazan.');return;}
+ if(!title.trim()||!description.trim()||!start_location.trim()||!end_location.trim()||!/^\d{4}-\d{2}-\d{2}$/.test(ride_date)||!departure_time||(route_url&&!/^https?:\/\//i.test(route_url))){alert('Proveri unete podatke. Datum mora biti DD.MM.GGGG, vreme može biti tačan sat ili tekst, a Maps link možeš ostaviti prazan.');return;}
  const exactTime=/^([01]\d|2[0-3]):[0-5]\d$/.test(departure_time);
  const {data:updated,error:updateError}=await db.from('rides').update({title:title.trim(),description:description.trim(),start_location:start_location.trim(),end_location:end_location.trim(),ride_date,departure_time:exactTime?departure_time:'00:00',departure_time_text:exactTime?null:departure_time,route_url:route_url.trim()||null}).eq('id',id).select('id');
  if(updateError){alert('Greška pri izmeni: '+updateError.message);return;}if(!updated?.length){alert('Izmena nije sačuvana. Proveri SQL dozvole za uređivanje.');return;}
@@ -419,7 +419,7 @@ async function editClubEvent(id){
  const description=prompt('Opis događaja:',data.description||'');if(description===null)return;
  const location=prompt('Lokacija događaja:',data.location||'');if(location===null)return;
  const currentDate=data.starts_at?new Date(data.starts_at).toISOString().slice(0,10):'';
- const dateValue=prompt('Datum događaja (YYYY-MM-DD):',currentDate);if(dateValue===null)return;
+ const currentDate=data.starts_at?new Date(data.starts_at).toISOString().slice(0,10):'';const currentDateDisplay=currentDate?currentDate.slice(8,10)+'.'+currentDate.slice(5,7)+'.'+currentDate.slice(0,4):'';const dateInput=prompt('Datum događaja (DD.MM.GGGG):',currentDateDisplay);if(dateInput===null)return;const dateMatch=dateInput.trim().match(/^(\d{2})\.(\d{2})\.(\d{4})$/);const dateValue=dateMatch?dateMatch[3]+'-'+dateMatch[2]+'-'+dateMatch[1]:'';
  const currentTime=data.event_time_text||(data.starts_at?new Date(data.starts_at).toISOString().slice(11,16):'');
  const timeValue=prompt('Vreme polaska (HH:MM ili slobodan tekst):',currentTime);if(timeValue===null)return;
  const isExactTime=/^([01]\d|2[0-3]):[0-5]\d$/.test(timeValue.trim());
