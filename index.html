@@ -957,6 +957,7 @@ db.auth.onAuthStateChange((event)=>{if(event==='PASSWORD_RECOVERY'){setTimeout(s
 if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 refresh();
 setInterval(()=>{if(document.visibilityState==='visible'&&session&&profile?.approved&&isAdmin)loadClubNotifications();},10000);
+setInterval(()=>{if(document.visibilityState==='visible'&&session&&profile?.approved&&!isAdmin)loadClubNotifications();},60000);
 async function loadGallery(){
   const list=$('galleryList');
   const uploadBox=$('galleryUpload');
