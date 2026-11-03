@@ -71,8 +71,6 @@
 </div>
 <nav class="tabs">
 <button class="active" data-page="home" onclick="showPage('home')"><b>⌂</b>Početna</button>
-<button data-page="rides" onclick="showPage('rides')"><b>🏍</b>Vožnje</button>
-<button data-page="events" onclick="showPage('events')"><b>📅</b>Događaji</button>
 <button data-page="chat" onclick="showPage('chat')"><b>💬</b>Chat</button>
 <button data-page="account" onclick="showPage('account')"><b>♟</b>Nalog</button>
 </nav>
@@ -142,9 +140,9 @@ async function editAnnouncement(id){
  if(updateError){alert('Greška pri izmeni: '+updateError.message);return;}
  if(!updated?.length){alert('Izmena nije sačuvana. Proveri SQL dozvole za uređivanje obaveštenja.');return;}
  alert('Obaveštenje je uspešno izmenjeno.');
- await loadNews();
+ await loadNews();await renderHomeFeed();
 }
-async function deleteContent(table,id){if(!isAdmin){alert('Samo administrator može brisati objave.');return}if(!['club_events','club_announcements'].includes(table)){alert('Nepoznata vrsta objave.');return}if(!confirm('Da li sigurno želiš da obrišeš ovu objavu?'))return;const {data,error}=await db.from(table).delete().eq('id',id).select('id');if(error){alert('Greška pri brisanju: '+error.message);return}if(!data?.length){alert('Objava nije obrisana. Baza ne dozvoljava administratoru brisanje ove objave. Primeni SQL podešavanje za administratorsko brisanje objava.');return}alert('Objava je uspešno obrisana.');if(table==='club_events')await loadEvents();else await loadNews();await loadClubNotifications()}
+async function deleteContent(table,id){if(!isAdmin){alert('Samo administrator može brisati objave.');return}if(!['club_events','club_announcements'].includes(table)){alert('Nepoznata vrsta objave.');return}if(!confirm('Da li sigurno želiš da obrišeš ovu objavu?'))return;const {data,error}=await db.from(table).delete().eq('id',id).select('id');if(error){alert('Greška pri brisanju: '+error.message);return}if(!data?.length){alert('Objava nije obrisana. Baza ne dozvoljava administratoru brisanje ove objave. Primeni SQL podešavanje za administratorsko brisanje objava.');return}alert('Objava je uspešno obrisana.');if(table==='club_events')await loadEvents();else await loadNews();await renderHomeFeed();await loadClubNotifications()}
 let clubNotifications=[];
 let notificationPanelOpen=false;
 function notificationSeenKey(){return 'carapani_notifications_seen_'+(session?.user?.id||'guest');}
@@ -364,7 +362,7 @@ async function editRide(id){
  if(!title.trim()||!description.trim()||!start_location.trim()||!end_location.trim()||!/^\d{4}-\d{2}-\d{2}$/.test(ride_date)||!/^\d{2}:\d{2}$/.test(departure_time)||(route_url&&!/^https?:\/\//i.test(route_url))){alert('Proveri unete podatke. Datum mora biti YYYY-MM-DD, vreme HH:MM, a Maps link možeš ostaviti prazan.');return;}
  const {data:updated,error:updateError}=await db.from('rides').update({title:title.trim(),description:description.trim(),start_location:start_location.trim(),end_location:end_location.trim(),ride_date,departure_time,route_url:route_url.trim()||null}).eq('id',id).select('id');
  if(updateError){alert('Greška pri izmeni: '+updateError.message);return;}if(!updated?.length){alert('Izmena nije sačuvana. Proveri SQL dozvole za uređivanje.');return;}
- alert('Moto vožnja je izmenjena.');await loadRides();
+ alert('Moto vožnja je izmenjena.');await loadRides();await renderHomeFeed();
 }
 async function editClubEvent(id){
  const {data,error}=await db.from('club_events').select('*').eq('id',id).maybeSingle();
@@ -382,11 +380,11 @@ async function editClubEvent(id){
  if(!title.trim()||!description.trim()||!location.trim()||!/^\d{4}-\d{2}-\d{2}$/.test(dateValue)||!timeValue.trim()||isNaN(parsed.getTime())){alert('Proveri naziv, opis, lokaciju, datum i vreme događaja.');return;}
  const {data:updated,error:updateError}=await db.from('club_events').update({title:title.trim(),description:description.trim(),location:location.trim(),starts_at:parsed.toISOString(),event_time_text:isExactTime?null:timeValue.trim()}).eq('id',id).select('id');
  if(updateError){alert('Greška pri izmeni: '+updateError.message);return;}if(!updated?.length){alert('Izmena nije sačuvana. Proveri SQL dozvole za uređivanje.');return;}
- alert('Događaj je izmenjen.');await loadEvents();
+ alert('Događaj je izmenjen.');await loadEvents();await renderHomeFeed();
 }
 async function loadPendingRides(){const el=$('pendingRidesList');if(!el||!isAdmin)return;const {data,error}=await db.from('rides').select('*').eq('is_approved',false).order('created_at',{ascending:false});if(error){el.innerHTML='<p class="muted">Ne mogu da učitam vožnje na čekanju: '+esc(error.message)+'</p>';return}el.innerHTML=data?.length?data.map(x=>'<div class="card"><b>'+esc(x.title||'Bez naslova')+'</b><p>'+esc(x.description||'')+'</p><p>📍 '+esc(x.start_location||'')+' → '+esc(x.end_location||'')+'</p><p>📅 '+dateOnly(x.ride_date)+' · 🕒 '+esc(String(x.departure_time||'').slice(0,5))+'</p><button class="btn" onclick="approveRide(\''+esc(x.id)+'\')">ODOBRI VOŽNJU</button><button class="btn danger" style="margin-left:6px" onclick="deleteRide(\''+esc(x.id)+'\')">OBRIŠI</button></div>').join(''):'<p class="muted">Nema moto vožnja koje čekaju odobrenje.</p>'}
-async function approveRide(id){if(!isAdmin){alert('Samo administrator može odobriti moto vožnju.');return}const {error}=await db.from('rides').update({is_approved:true}).eq('id',id);if(error){alert('Vožnja nije odobrena: '+error.message);return}alert('Moto vožnja je odobrena i sada je vidljiva članovima.');await loadPendingRides();await loadRides();await loadClubNotifications();await sendClubPush('Nova odobrena moto vožnja','Objavljena je nova moto vožnja.','ride')}
-async function deleteRide(id){if(!isAdmin){alert('Samo administrator može brisati moto vožnje.');return}if(!confirm('Da li sigurno želiš da obrišeš ovu moto vožnju?'))return;const {data,error}=await db.from('rides').delete().eq('id',id).select('id');if(error){alert('Greška pri brisanju: '+error.message);return}if(!data||data.length===0){alert('Vožnja nije obrisana. Baza ne dozvoljava administratoru da obriše tuđu vožnju. Potrebno je primeniti SQL podešavanje za administratorsko brisanje.');return}alert('Moto vožnja je uspešno obrisana.');await loadRides();await loadClubNotifications()}
+async function approveRide(id){if(!isAdmin){alert('Samo administrator može odobriti moto vožnju.');return}const {error}=await db.from('rides').update({is_approved:true}).eq('id',id);if(error){alert('Vožnja nije odobrena: '+error.message);return}alert('Moto vožnja je odobrena i sada je vidljiva članovima.');await loadPendingRides();await loadRides();await renderHomeFeed();await loadClubNotifications();await sendClubPush('Nova odobrena moto vožnja','Objavljena je nova moto vožnja.','ride')}
+async function deleteRide(id){if(!isAdmin){alert('Samo administrator može brisati moto vožnje.');return}if(!confirm('Da li sigurno želiš da obrišeš ovu moto vožnju?'))return;const {data,error}=await db.from('rides').delete().eq('id',id).select('id');if(error){alert('Greška pri brisanju: '+error.message);return}if(!data||data.length===0){alert('Vožnja nije obrisana. Baza ne dozvoljava administratoru da obriše tuđu vožnju. Potrebno je primeniti SQL podešavanje za administratorsko brisanje.');return}alert('Moto vožnja je uspešno obrisana.');await loadRides();await renderHomeFeed();await loadClubNotifications()}
 async function loadEvents(){
   const el=$('eventsList');if(!session||!profile?.approved){if(el)el.innerHTML='<div class="notice">Događaje mogu da vide samo prijavljeni i odobreni članovi kluba.</div>';return;}
   const {data,error}=await db.from('club_events').select('*').order('created_at',{ascending:false});
