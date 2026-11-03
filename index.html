@@ -126,7 +126,7 @@ async function uploadPostImage(table,id,file){
  if(!['image/jpeg','image/png','image/webp'].includes(file.type)){return {ok:false,error:'Dozvoljeni su JPEG, PNG i WEBP formati.'};}
  if(file.size>8*1024*1024)return {ok:false,error:'Fotografija ne sme biti veća od 8 MB.'};
  const extension=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';
- const path='posts/'+table+'/'+id+'/'+Date.now()+'.'+extension;
+ const path=session.user.id+'/posts/'+table+'/'+id+'/'+Date.now()+'.'+extension;
  const {error:uploadError}=await db.storage.from('club-gallery').upload(path,file,{contentType:file.type,upsert:false});
  if(uploadError)return {ok:false,error:uploadError.message};
  const {data:urlData}=db.storage.from('club-gallery').getPublicUrl(path);
