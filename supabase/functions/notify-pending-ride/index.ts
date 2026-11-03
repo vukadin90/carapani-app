@@ -74,7 +74,34 @@ Deno.serve(async (req) => {
     }
     return reply({ sent, failed, subscriptions: subscriptions.length });
   } catch (error) {
-    console.error("notify-pending-ride error:", error);
-    return reply({ error: error instanceof Error ? error.message : "Internal error" }, 500);
+    let details: unknown;
+
+    if (error instanceof Error) {
+      details = {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      };
+    } else if (error && typeof error === "object") {
+      const e = error as Record<string, unknown>;
+      details = {
+        message: e.message,
+        code: e.code,
+        details: e.details,
+        hint: e.hint,
+        status: e.status,
+        statusCode: e.statusCode,
+        raw: JSON.stringify(error),
+      };
+    } else {
+      details = String(error);
+    }
+
+    console.error("notify-pending-ride error details:", details);
+
+    return reply({
+      error: error instanceof Error ? error.message : "Greška u Edge Function.",
+      details,
+    }, 500);
   }
 });
