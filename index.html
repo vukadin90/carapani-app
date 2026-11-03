@@ -51,11 +51,7 @@
 </header>
 
 <div id="notificationPanel" class="notification-panel" style="display:none"><div class="notification-panel-head"><b>OBAVEŠTENJA</b><button onclick="toggleNotificationPanel()">✕</button></div><div id="notificationItems" class="notification-items"><div class="muted">Učitavanje…</div></div></div>
-<div id="mainMenuPanel" class="main-menu-panel" style="display:none">
-<button onclick="openMainMenuPage('rides')">🏍️ <span>Moto Vožnje</span><b>›</b></button>
-<button onclick="openMainMenuPage('events')">📅 <span>Događaji</span><b>›</b></button>
-<button onclick="openMainMenuPage('news')">📢 <span>Klubska Obaveštenja</span><b>›</b></button>
-</div>
+<div id="mainMenuPanel" class="main-menu-panel" style="display:none"></div>
 <main>
 <section id="home" class="page active">
 <div class="section home-feed-section">
@@ -269,7 +265,7 @@ async function sendChatMessage(){
  input.value='';await loadChatMessages();
 }
 async function refresh(){const {data:{session:s}}=await db.auth.getSession();session=s;profile=null;isAdmin=false;canPublishAnnouncements=false;if(session){const {data}=await db.from('profiles').select('*').eq('id',session.user.id).maybeSingle();profile=data;isAdmin=!!data?.is_admin;canPublishAnnouncements=canPublishClubEvents();}
-$('authStatus').textContent=session?(profile?.approved?'ČLAN':'NA ČEKANJU'):'GOST';const eventPublishButton=$('memberEventPublishButton');if(eventPublishButton)eventPublishButton.style.display=canPublishClubEvents()?'':'none';renderAccount();const allowed=applyMemberAccessGate();if(!allowed){showPage('account');return;}const feedPromise=renderHomeFeed();await Promise.all([loadRides(),loadEvents(),loadNews(),isAdmin?loadPendingRides():Promise.resolve(),feedPromise]);if($('announcementPublishControls'))$('announcementPublishControls').style.display=canPublishAnnouncements?'block':'none';if($('publisherAnnouncementForm'))$('publisherAnnouncementForm').style.display='none';await loadClubNotifications();if(session&&profile?.approved)loadMembers();if(isAdmin)renderAdmin();if($('gallery')?.classList.contains('active'))loadGallery();if(isAdmin&&new URLSearchParams(location.search).get('open')==='admin')showPage('admin')}
+$('authStatus').textContent=session?(profile?.approved?'ČLAN':'NA ČEKANJU'):'GOST';const eventPublishButton=$('memberEventPublishButton');if(eventPublishButton)eventPublishButton.style.display=canPublishClubEvents()?'':'none';renderAccount();const allowed=applyMemberAccessGate();if(!allowed){showPage('account');return;}const feedPromise=renderHomeFeed();await Promise.all([isAdmin?loadPendingRides():Promise.resolve(),feedPromise]);if($('announcementPublishControls'))$('announcementPublishControls').style.display=canPublishAnnouncements?'block':'none';if($('publisherAnnouncementForm'))$('publisherAnnouncementForm').style.display='none';await loadClubNotifications();if(session&&profile?.approved)loadMembers();if(isAdmin)renderAdmin();if($('gallery')?.classList.contains('active'))loadGallery();if(isAdmin&&new URLSearchParams(location.search).get('open')==='admin')showPage('admin')}
 
 async function getPostVotes(type){
   if(!session||!profile?.approved)return {rows:[],members:{},error:null};
