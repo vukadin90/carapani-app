@@ -378,7 +378,7 @@ function homeFeedEditButton(post,kind){
  const allowed=kind==='ride'?(isAdmin||post.user_id===session?.user?.id):kind==='event'?(isAdmin||post.created_by===session?.user?.id):isAdmin;
  if(!allowed)return '';
  const label=kind==='ride'?'IZMENI MOTO VOŽNJU':kind==='event'?'IZMENI DOGAĐAJ':'IZMENI OBAVEŠTENJE';
- return '<div style="margin-top:12px"><button class="btn secondary" type="button" style="font-size:10px;padding:7px 10px;min-height:30px" onclick="openFeedPostEditor(\''+kind+'\',\''+esc(post.id)+'\')">'+label+'</button></div>';
+ return '<div style="margin-top:10px"><button type="button" style="display:inline;background:none;border:0;box-shadow:none;padding:0;color:#aeb7c2;font-size:11px;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer" onclick="openFeedPostEditor(\\''+kind+'\\',\\''+esc(post.id)+'\\')">'+label+'</button></div>';
 }
 function setCurrentEditImagePreview(formId,imageUrl){
  const form=$(formId);if(!form)return;
