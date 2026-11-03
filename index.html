@@ -930,6 +930,7 @@ async function publishMemberRide(){
  const {data:ride,error}=await db.from('rides').insert({user_id:session.user.id,title,description,start_location,end_location,ride_date,departure_time,departure_time_text,route_url:route_url||null,is_approved:false}).select('id').single();
  if(error){alert('Moto vožnja nije poslata na odobrenje: '+error.message);return}
  const photo=$('memberRideImage').files[0];const photoResult=await uploadPostImage('rides',ride.id,photo);if(!photoResult.ok){alert('Vožnja je sačuvana, ali fotografija nije dodata: '+photoResult.error);}
+ try{const {data:pushData,error:pushError}=await db.functions.invoke('notify-pending-ride',{body:{ride_id:ride.id}});if(pushError)console.warn('Push za moto vožnju na čekanju nije poslat:',pushError);else console.log('Push za moto vožnju na čekanju:',pushData);}catch(pushException){console.warn('Push za moto vožnju na čekanju nije poslat:',pushException);}
  alert('Moto vožnja je poslata administratoru na odobrenje. Biće vidljiva članovima nakon odobravanja.');
  ['memberRideTitle','memberRideDescription','memberRideStart','memberRideEnd','memberRideDate','memberRideTime','memberRideUrl','memberRideImage'].forEach(id=>$(id).value='');
  $('memberRideForm').style.display='none';await refresh()
@@ -955,7 +956,7 @@ const {data:eventRow,error}=await db.from('club_events').insert({title,descripti
 db.auth.onAuthStateChange((event)=>{if(event==='PASSWORD_RECOVERY'){setTimeout(showNewPasswordForm,0);return;}setTimeout(refresh,0);});
 if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 refresh();
-setInterval(()=>{if(document.visibilityState==='visible')loadClubNotifications();},60000);
+setInterval(()=>{if(document.visibilityState==='visible'&&session&&profile?.approved&&isAdmin)loadClubNotifications();},10000);
 async function loadGallery(){
   const list=$('galleryList');
   const uploadBox=$('galleryUpload');
