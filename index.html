@@ -917,6 +917,11 @@ function openGalleryImage(src){
   viewer.onclick=function(){viewer.remove();};
   document.body.appendChild(viewer);
 }
+// Eksplicitno izloži funkcije za dugmad koja koriste inline onclick.
+window.editRide=(id)=>editRide(id).catch(error=>alert('Greška pri otvaranju izmene vožnje: '+(error?.message||error)));
+window.editClubEvent=(id)=>editClubEvent(id).catch(error=>alert('Greška pri otvaranju izmene događaja: '+(error?.message||error)));
+window.editAnnouncement=(id)=>editAnnouncement(id).catch(error=>alert('Greška pri otvaranju izmene obaveštenja: '+(error?.message||error)));
+
   loadGallery();
 db.auth.onAuthStateChange(()=>setTimeout(()=>{loadGallery();if(isAdmin)loadAdminGallery()},500));
 </script>
