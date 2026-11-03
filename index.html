@@ -375,11 +375,11 @@ function postAuthorMarkup(author){
   return '<div style="display:flex;align-items:center;gap:9px;margin-bottom:12px">'+avatar+'<div><b>'+esc(author.full_name||'Član kluba')+'</b><div class="muted">Objavio</div></div></div>';
 }
 function homeFeedDeleteButton(post,kind){
- if(!isAdmin)return '';
+ if(kind==='ride'?(isAdmin||post.user_id===session?.user?.id):isAdmin){}else return '';
  return '<button type="button" aria-label="Obriši objavu" title="Obriši objavu" style="flex:0 0 28px;width:28px;height:28px;padding:0;margin-left:auto;border:1px solid #8f252b;border-radius:50%;background:#351216;color:#ff6b70;font-size:19px;line-height:1;display:grid;place-items:center;cursor:pointer" onclick="deleteHomeFeedPost(\''+kind+'\',\''+esc(post.id)+'\')">×</button>';
 }
 async function deleteHomeFeedPost(kind,id){
- if(!isAdmin){alert('Samo administrator može brisati objave.');return;}
+ if(kind!=='ride'&&!isAdmin){alert('Samo administrator može brisati događaje i obaveštenja.');return;}
  if(kind==='ride'){await deleteRide(id);return;}
  if(kind==='event'){await deleteContent('club_events',id);return;}
  if(kind==='news'){await deleteContent('club_announcements',id);return;}
@@ -511,7 +511,20 @@ async function editClubEvent(id){
 }
 async function loadPendingRides(){const el=$('pendingRidesList');if(!el||!isAdmin)return;const {data,error}=await db.from('rides').select('*').eq('is_approved',false).order('created_at',{ascending:false});if(error){el.innerHTML='<p class="muted">Ne mogu da učitam vožnje na čekanju: '+esc(error.message)+'</p>';return}el.innerHTML=data?.length?data.map(x=>'<div class="card"><b>'+esc(x.title||'Bez naslova')+'</b><p>'+esc(x.description||'')+'</p><p>📍 '+esc(x.start_location||'')+' → '+esc(x.end_location||'')+'</p><p>📅 '+dateOnly(x.ride_date)+' · 🕒 '+esc((x.departure_time_text||String(x.departure_time||'').slice(0,5)))+'</p><button class="btn" onclick="approveRide(\''+esc(x.id)+'\')">ODOBRI VOŽNJU</button><button class="btn danger" style="margin-left:6px" onclick="deleteRide(\''+esc(x.id)+'\')">OBRIŠI</button></div>').join(''):'<p class="muted">Nema moto vožnja koje čekaju odobrenje.</p>'}
 async function approveRide(id){if(!isAdmin){alert('Samo administrator može odobriti moto vožnju.');return}const {error}=await db.from('rides').update({is_approved:true}).eq('id',id);if(error){alert('Vožnja nije odobrena: '+error.message);return}alert('Moto vožnja je odobrena i sada je vidljiva članovima.');await loadPendingRides();await loadRides();await renderHomeFeed();await loadClubNotifications();await sendClubPush('Nova odobrena moto vožnja','Objavljena je nova moto vožnja.','ride')}
-async function deleteRide(id){if(!isAdmin){alert('Samo administrator može brisati moto vožnje.');return}if(!confirm('Da li sigurno želiš da obrišeš ovu moto vožnju?'))return;const {data:item,error:findError}=await db.from('rides').select('storage_path').eq('id',id).maybeSingle();if(findError){alert('Ne mogu da pronađem fotografiju vožnje: '+findError.message);return}const {data,error}=await db.from('rides').delete().eq('id',id).select('id');if(error){alert('Greška pri brisanju: '+error.message);return}if(!data||data.length===0){alert('Vožnja nije obrisana. Baza ne dozvoljava administratoru da obriše tuđu vožnju. Potrebno je primeniti SQL podešavanje za administratorsko brisanje.');return}const cleanupError=await removePostImage(item?.storage_path);alert(cleanupError?'Moto vožnja je obrisana, ali fotografija nije uklonjena iz skladišta: '+cleanupError.message:'Moto vožnja i njena fotografija su uspešno obrisane.');await loadRides();await renderHomeFeed();await loadClubNotifications()}
+async function deleteRide(id){
+ if(!session||!profile?.approved){alert('Prijavi se kao odobren član kluba.');return;}
+ const {data:item,error:findError}=await db.from('rides').select('user_id,storage_path,title').eq('id',id).maybeSingle();
+ if(findError||!item){alert('Ne mogu da pronađem moto vožnju: '+(findError?.message||''));return;}
+ const isOwner=item.user_id===session.user.id;
+ if(!isAdmin&&!isOwner){alert('Možeš obrisati samo svoju moto vožnju.');return;}
+ if(!confirm('Da li sigurno želiš da obrišeš moto vožnju „'+(item.title||'')+'“?'))return;
+ const {data,error}=await db.from('rides').delete().eq('id',id).select('id');
+ if(error){alert('Greška pri brisanju: '+error.message);return;}
+ if(!data||data.length===0){alert('Vožnja nije obrisana. Proveri dozvole za brisanje moto vožnje u Supabase bazi.');return;}
+ const cleanupError=await removePostImage(item.storage_path);
+ alert(cleanupError?'Moto vožnja je obrisana, ali fotografija nije uklonjena iz skladišta: '+cleanupError.message:'Moto vožnja i njena fotografija su uspešno obrisane.');
+ await loadRides();await renderHomeFeed();await loadClubNotifications();
+}
 async function loadEvents(){
   const el=$('eventsList');if(!session||!profile?.approved){if(el)el.innerHTML='<div class="notice">Događaje mogu da vide samo prijavljeni i odobreni članovi kluba.</div>';return;}
   const {data,error}=await db.from('club_events').select('*').order('created_at',{ascending:false});
