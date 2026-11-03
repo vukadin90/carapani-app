@@ -241,7 +241,7 @@ async function sendChatMessage(){
  input.value='';await loadChatMessages();
 }
 async function refresh(){const {data:{session:s}}=await db.auth.getSession();session=s;profile=null;isAdmin=false;canPublishAnnouncements=false;if(session){const {data}=await db.from('profiles').select('*').eq('id',session.user.id).maybeSingle();profile=data;isAdmin=!!data?.is_admin;canPublishAnnouncements=canPublishClubEvents();}
-$('authStatus').textContent=session?(profile?.approved?'ČLAN':'NA ČEKANJU'):'GOST';const eventPublishButton=$('memberEventPublishButton');if(eventPublishButton)eventPublishButton.style.display=canPublishClubEvents()?'':'none';renderAccount();const allowed=applyMemberAccessGate();if(!allowed){showPage('account');return;}await Promise.all([loadRides(),loadEvents(),loadNews(),isAdmin?loadPendingRides():Promise.resolve()]);await renderHomeFeed();if($('announcementPublishControls'))$('announcementPublishControls').style.display=canPublishAnnouncements?'block':'none';if($('publisherAnnouncementForm'))$('publisherAnnouncementForm').style.display='none';await loadClubNotifications();if(session&&profile?.approved)loadMembers();if(isAdmin)renderAdmin();if($('gallery')?.classList.contains('active'))loadGallery();if(isAdmin&&new URLSearchParams(location.search).get('open')==='admin')showPage('admin')}
+$('authStatus').textContent=session?(profile?.approved?'ČLAN':'NA ČEKANJU'):'GOST';const eventPublishButton=$('memberEventPublishButton');if(eventPublishButton)eventPublishButton.style.display=canPublishClubEvents()?'':'none';renderAccount();const allowed=applyMemberAccessGate();if(!allowed){showPage('account');return;}const feedPromise=renderHomeFeed();await Promise.all([loadRides(),loadEvents(),loadNews(),isAdmin?loadPendingRides():Promise.resolve(),feedPromise]);if($('announcementPublishControls'))$('announcementPublishControls').style.display=canPublishAnnouncements?'block':'none';if($('publisherAnnouncementForm'))$('publisherAnnouncementForm').style.display='none';await loadClubNotifications();if(session&&profile?.approved)loadMembers();if(isAdmin)renderAdmin();if($('gallery')?.classList.contains('active'))loadGallery();if(isAdmin&&new URLSearchParams(location.search).get('open')==='admin')showPage('admin')}
 
 async function getPostVotes(type){
   if(!session||!profile?.approved)return {rows:[],members:{},error:null};
@@ -328,33 +328,35 @@ function postAuthorMarkup(author){
     : '<div class="avatar" style="width:36px;height:36px">'+esc((author.full_name||'?').slice(0,1).toUpperCase())+'</div>';
   return '<div style="display:flex;align-items:center;gap:9px;margin-bottom:12px">'+avatar+'<div><b>'+esc(author.full_name||'Član kluba')+'</b><div class="muted">Objavio</div></div></div>';
 }
+let homeFeedRenderToken=0;
 async function renderHomeFeed(){
  const el=$('homeNews');if(!el)return;
  if(!session||!profile?.approved){el.innerHTML='<div class="notice">Klupske objave su dostupne samo prijavljenim i odobrenim članovima kluba.</div>';return;}
+ const renderToken=++homeFeedRenderToken;
  el.innerHTML='<div class="empty">Učitavanje objava…</div>';
  const [ridesResult,eventsResult,newsResult]=await Promise.all([
   db.from('rides').select('*').eq('is_approved',true).order('created_at',{ascending:false}).limit(30),
   db.from('club_events').select('*').order('created_at',{ascending:false}).limit(30),
   db.from('club_announcements').select('*').order('created_at',{ascending:false}).limit(30)
  ]);
+ if(renderToken!==homeFeedRenderToken)return;
  const errors=[ridesResult.error,eventsResult.error,newsResult.error].filter(Boolean);
  if(errors.length&&!ridesResult.data&&!eventsResult.data&&!newsResult.data){el.innerHTML='<div class="empty">Nije moguće učitati klupske objave. Pokušaj ponovo.</div>';return;}
  const rides=ridesResult.data||[],events=eventsResult.data||[],news=newsResult.data||[];
- const [rideVotes,eventVotes,authors]=await Promise.all([
-  getPostVotes('ride'),getPostVotes('event'),
-  getPostAuthors(rides.map(x=>x.user_id))
- ]);
- const posts=[
-  ...rides.map(x=>({...x,_kind:'ride',_created:x.created_at||x.ride_date||''})),
-  ...events.map(x=>({...x,_kind:'event',_created:x.created_at||x.starts_at||''})),
-  ...news.map(x=>({...x,_kind:'news',_created:x.created_at||x.starts_at||''}))
- ].sort((a,b)=>new Date(b._created||0)-new Date(a._created||0));
+ const posts=[...rides.map(x=>({...x,_kind:'ride',_created:x.created_at||x.ride_date||''})),...events.map(x=>({...x,_kind:'event',_created:x.created_at||x.starts_at||''})),...news.map(x=>({...x,_kind:'news',_created:x.created_at||x.starts_at||''}))].sort((a,b)=>new Date(b._created||0)-new Date(a._created||0));
  if(!posts.length){el.innerHTML='<div class="empty">Još nema objava u klubu. Čim neko objavi vožnju, događaj ili obaveštenje, pojaviće se ovde.</div>';return;}
- el.innerHTML=posts.map(x=>{
-  if(x._kind==='ride')return '<article class="feed-post"><div class="feed-post-head"><span class="tag">🏍️ MOTO VOŽNJA</span><span class="feed-open-label">Objava · '+date(x.created_at)+'</span></div>'+postAuthorMarkup(authors[x.user_id])+'<h4 class="feed-title">'+esc(x.title||'Bez naslova')+'</h4>'+(x.description?'<div class="feed-content">'+esc(x.description)+'</div>':'')+(x.start_location?'<p>📍 Polazna lokacija: '+esc(x.start_location)+'</p>':'')+(x.end_location?'<p>🏁 Krajnja lokacija: '+esc(x.end_location)+'</p>':'')+(x.ride_date?'<p>📅 Datum vožnje: '+dateOnly(x.ride_date)+'</p>':'')+((x.departure_time_text||x.departure_time)?'<p>🕒 Vreme polaska: '+esc(x.departure_time_text||String(x.departure_time).slice(0,5))+'</p>':'')+(x.route_url?'<a class="btn" style="display:inline-block;margin-top:7px" href="'+esc(x.route_url)+'" target="_blank" rel="noopener">OTVORI RUTU U GOOGLE MAPS</a>':'')+votePanel('ride',x.id,rideVotes.rows,rideVotes.members)+(isAdmin||x.user_id===session?.user?.id?'<div class="actions"><button class="btn secondary" onclick="editRide(\''+esc(x.id)+'\')">IZMENI VOŽNJU</button>'+(isAdmin?'<button class="btn secondary" onclick="deleteRide(\''+esc(x.id)+'\')">OBRIŠI</button>':'')+'</div>':'')+'</article>';
-  if(x._kind==='event')return '<article class="feed-post"><div class="feed-post-head"><span class="tag">📅 DOGAĐAJ</span><span class="feed-open-label">Objava · '+date(x.created_at)+'</span></div><h4 class="feed-title">'+esc(x.title||'Bez naslova')+'</h4>'+(x.starts_at?'<p>📅 Datum: '+new Date(x.starts_at).toLocaleDateString('sr-RS',{day:'2-digit',month:'2-digit',year:'numeric'})+'</p><p>🕒 Vreme: '+esc(x.event_time_text||new Date(x.starts_at).toLocaleTimeString('sr-RS',{hour:'2-digit',minute:'2-digit'}))+'</p>':'')+(x.location?'<p>📍 '+esc(x.location)+'</p>':'')+'<div class="feed-content">'+esc(x.description||'')+'</div>'+votePanel('event',x.id,eventVotes.rows,eventVotes.members)+((isAdmin||x.created_by===session?.user?.id)?'<div class="actions"><button class="btn secondary" onclick="editClubEvent(\''+esc(x.id)+'\')">IZMENI DOGAĐAJ</button>'+(isAdmin?'<button class="btn secondary" onclick="deleteContent(\'club_events\',\''+esc(x.id)+'\')">OBRIŠI OBJAVU</button>':'')+'</div>':'')+'</article>';
-  return '<article class="feed-post"><div class="feed-post-head"><span class="tag">📢 KLUBSKA OBAVEŠTENJA</span><span class="feed-open-label">Objava · '+date(x.created_at)+'</span></div><h4 class="feed-title">'+esc(x.title||'Bez naslova')+'</h4>'+(x.starts_at?'<p>📅 '+date(x.starts_at)+'</p>':'')+(x.location?'<p>📍 '+esc(x.location)+'</p>':'')+'<div class="feed-content">'+esc(x.description||'')+'</div>'+(isAdmin?'<div class="actions"><button class="btn secondary" onclick="editAnnouncement(\''+esc(x.id)+'\')">IZMENI OBAVEŠTENJE</button><button class="btn secondary" onclick="deleteContent(\'club_announcements\',\''+esc(x.id)+'\')">OBRIŠI OBJAVU</button></div>':'')+'</article>';
- }).join('');
+ const renderPosts=(rv,ev,authors)=>{
+  if(renderToken!==homeFeedRenderToken)return;
+  el.innerHTML=posts.map(x=>{
+   if(x._kind==='ride')return '<article class="feed-post"><div class="feed-post-head"><span class="tag">🏍️ MOTO VOŽNJA</span><span class="feed-open-label">Objava · '+date(x.created_at)+'</span></div>'+postAuthorMarkup(authors[x.user_id])+'<h4 class="feed-title">'+esc(x.title||'Bez naslova')+'</h4>'+(x.description?'<div class="feed-content">'+esc(x.description)+'</div>':'')+(x.start_location?'<p>📍 Polazna lokacija: '+esc(x.start_location)+'</p>':'')+(x.end_location?'<p>🏁 Krajnja lokacija: '+esc(x.end_location)+'</p>':'')+(x.ride_date?'<p>📅 Datum vožnje: '+dateOnly(x.ride_date)+'</p>':'')+((x.departure_time_text||x.departure_time)?'<p>🕒 Vreme polaska: '+esc(x.departure_time_text||String(x.departure_time).slice(0,5))+'</p>':'')+(x.route_url?'<a class="btn" style="display:inline-block;margin-top:7px" href="'+esc(x.route_url)+'" target="_blank" rel="noopener">OTVORI RUTU U GOOGLE MAPS</a>':'')+votePanel('ride',x.id,rv.rows,rv.members)+(isAdmin||x.user_id===session?.user?.id?'<div class="actions"><button class="btn secondary" onclick="editRide(\''+esc(x.id)+'\')">IZMENI VOŽNJU</button>'+(isAdmin?'<button class="btn secondary" onclick="deleteRide(\''+esc(x.id)+'\')">OBRIŠI</button>':'')+'</div>':'')+'</article>';
+   if(x._kind==='event')return '<article class="feed-post"><div class="feed-post-head"><span class="tag">📅 DOGAĐAJ</span><span class="feed-open-label">Objava · '+date(x.created_at)+'</span></div><h4 class="feed-title">'+esc(x.title||'Bez naslova')+'</h4>'+(x.starts_at?'<p>📅 Datum: '+new Date(x.starts_at).toLocaleDateString('sr-RS',{day:'2-digit',month:'2-digit',year:'numeric'})+'</p><p>🕒 Vreme: '+esc(x.event_time_text||new Date(x.starts_at).toLocaleTimeString('sr-RS',{hour:'2-digit',minute:'2-digit'}))+'</p>':'')+(x.location?'<p>📍 '+esc(x.location)+'</p>':'')+'<div class="feed-content">'+esc(x.description||'')+'</div>'+votePanel('event',x.id,ev.rows,ev.members)+((isAdmin||x.created_by===session?.user?.id)?'<div class="actions"><button class="btn secondary" onclick="editClubEvent(\''+esc(x.id)+'\')">IZMENI DOGAĐAJ</button>'+(isAdmin?'<button class="btn secondary" onclick="deleteContent(\'club_events\',\''+esc(x.id)+'\')">OBRIŠI OBJAVU</button>':'')+'</div>':'')+'</article>';
+   return '<article class="feed-post"><div class="feed-post-head"><span class="tag">📢 KLUBSKA OBAVEŠTENJA</span><span class="feed-open-label">Objava · '+date(x.created_at)+'</span></div><h4 class="feed-title">'+esc(x.title||'Bez naslova')+'</h4>'+(x.starts_at?'<p>📅 '+date(x.starts_at)+'</p>':'')+(x.location?'<p>📍 '+esc(x.location)+'</p>':'')+'<div class="feed-content">'+esc(x.description||'')+'</div>'+(isAdmin?'<div class="actions"><button class="btn secondary" onclick="editAnnouncement(\''+esc(x.id)+'\')">IZMENI OBAVEŠTENJE</button><button class="btn secondary" onclick="deleteContent(\'club_announcements\',\''+esc(x.id)+'\')">OBRIŠI OBJAVU</button></div>':'')+'</article>';
+  }).join('');
+ };
+ const empty={rows:[],members:{}};
+ renderPosts(empty,empty,{});
+ const [rv,ev,authors]=await Promise.all([getPostVotes('ride'),getPostVotes('event'),getPostAuthors(rides.map(x=>x.user_id))]);
+ renderPosts(rv,ev,authors);
 }
 async function loadRides(){
   const el=$('ridesList');
