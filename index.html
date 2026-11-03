@@ -924,6 +924,10 @@ function openGalleryImage(src){
   document.body.appendChild(viewer);
 }
 
+window.openRideEdit=function(id){return handleRideEdit(id).catch(function(e){alert('Greška pri izmeni moto vožnje: '+(e&&e.message||e));});};
+window.openClubEventEdit=function(id){return handleClubEventEdit(id).catch(function(e){alert('Greška pri izmeni događaja: '+(e&&e.message||e));});};
+window.openAnnouncementEdit=function(id){return handleAnnouncementEdit(id).catch(function(e){alert('Greška pri izmeni obaveštenja: '+(e&&e.message||e));});};
+
   loadGallery();
 db.auth.onAuthStateChange(()=>setTimeout(()=>{loadGallery();if(isAdmin)loadAdminGallery()},500));
 </script>
