@@ -375,7 +375,8 @@ function postAuthorMarkup(author){
   return '<div style="display:flex;align-items:center;gap:9px;margin-bottom:12px">'+avatar+'<div><b>'+esc(author.full_name||'Član kluba')+'</b><div class="muted">Objavio</div></div></div>';
 }
 function homeFeedDeleteButton(post,kind){
- if(kind==='ride'?(isAdmin||post.user_id===session?.user?.id):isAdmin){}else return '';
+ const allowed=kind==='ride'?(isAdmin||post.user_id===session?.user?.id):isAdmin;
+ if(!allowed)return '';
  return '<button type="button" aria-label="Obriši objavu" title="Obriši objavu" style="flex:0 0 28px;width:28px;height:28px;padding:0;margin-left:auto;border:1px solid #8f252b;border-radius:50%;background:#351216;color:#ff6b70;font-size:19px;line-height:1;display:grid;place-items:center;cursor:pointer" onclick="deleteHomeFeedPost(\''+kind+'\',\''+esc(post.id)+'\')">×</button>';
 }
 async function deleteHomeFeedPost(kind,id){
