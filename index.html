@@ -441,7 +441,7 @@ async function renderHomeFeed(){
  const el=$('homeNews');if(!el)return;
  if(!session||!profile?.approved){el.innerHTML='<div class="notice">Klupske objave su dostupne samo prijavljenim i odobrenim članovima kluba.</div>';return;}
  const renderToken=++homeFeedRenderToken;
- el.innerHTML='<div class="empty">Učitavanje objava…</div>';
+ if(!el.children.length)el.innerHTML='<div class="empty">Učitavanje objava…</div>';
  const [ridesResult,eventsResult,newsResult]=await Promise.all([
   db.from('rides').select('*').eq('is_approved',true).order('created_at',{ascending:false}).limit(30),
   db.from('club_events').select('*').order('created_at',{ascending:false}).limit(30),
@@ -461,8 +461,6 @@ async function renderHomeFeed(){
     return '<article class="feed-post"><div class="feed-post-head"><span class="tag">📢 OBAVEŠTENJE</span><span class="feed-open-label">Objava · '+date(x.created_at)+'</span>'+homeFeedDeleteButton(x,'news')+'</div>'+postImageMarkup(x,true)+'<h4 class="feed-title">'+esc(x.title||'Bez naslova')+'</h4>'+(x.starts_at?'<p>📅 Datum: '+new Date(x.starts_at).toLocaleDateString('sr-RS',{day:'2-digit',month:'2-digit',year:'numeric'})+'</p>':'')+(x.location?'<p>📍 '+esc(x.location)+'</p>':'')+'<div class="feed-content">'+esc(x.description||'')+'</div>'+homeFeedEditButton(x,'news')+'</article>';
 }).join('');
  };
- const empty={rows:[],members:{}};
- renderPosts(empty,empty,{});
  const [rv,ev,authors]=await Promise.all([getPostVotes('ride'),getPostVotes('event'),getPostAuthors(rides.map(x=>x.user_id))]);
  renderPosts(rv,ev,authors);
 }
