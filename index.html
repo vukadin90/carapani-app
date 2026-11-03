@@ -148,6 +148,7 @@ async function removePostImage(path){
  return error||null;
 }
 function card(x,kind,table){return `<article class="card"><span class="tag">${esc(kind)}</span>${postImageMarkup(x)}<h4>${esc(x.title||'Bez naslova')}</h4>${x.starts_at?`<p>📅 Datum: ${new Date(x.starts_at).toLocaleDateString('sr-RS',{day:'2-digit',month:'2-digit',year:'numeric'})}</p><p>🕒 Vreme: ${eventTime(x.starts_at)}</p>`:''}${x.location?`<p>📍 ${esc(x.location)}</p>`:''}<p>${esc(x.description||'')}</p>${isAdmin?`<div class="actions"><button class="btn secondary" style="font-size:9px;padding:3px 6px;min-height:22px;background:transparent;border:0;color:#a4a8ad;font-weight:600" type="button" onclick="editAnnouncement('${esc(x.id)}')">izmeni obaveštenje</button><button class="btn secondary" style="font-size:10px;padding:5px 8px;min-height:28px;opacity:.78" onclick="deleteContent('${table}','${esc(x.id)}')">OBRIŠI OBJAVU</button></div>`:''}</article>`}
+async function chooseReplacementPostImage(table,id,currentPath){if(!confirm('Da li želiš da dodaš novu fotografiju ili zameniš postojeću?'))return;const picker=document.createElement('input');picker.type='file';picker.accept='image/jpeg,image/png,image/webp';const file=await new Promise(resolve=>{picker.onchange=()=>resolve(picker.files?.[0]||null);picker.click();});if(!file)return;const result=await uploadPostImage(table,id,file);if(!result.ok){alert('Fotografija nije sačuvana: '+result.error);return;}if(currentPath)await removePostImage(currentPath);alert('Fotografija je uspešno dodata/zamenjena.');}
 async function editAnnouncement(id){
  if(!isAdmin){alert('Samo administrator može menjati obaveštenja.');return;}
  const {data,error}=await db.from('club_announcements').select('*').eq('id',id).maybeSingle();
@@ -167,7 +168,7 @@ async function editAnnouncement(id){
  const {data:updated,error:updateError}=await db.from('club_announcements').update({title:title.trim(),description:description.trim(),location:location.trim()||null,starts_at}).eq('id',id).select('id');
  if(updateError){alert('Greška pri izmeni: '+updateError.message);return;}
  if(!updated?.length){alert('Izmena nije sačuvana. Proveri SQL dozvole za uređivanje obaveštenja.');return;}
- alert('Obaveštenje je uspešno izmenjeno.');
+  await chooseReplacementPostImage('club_announcements',id,data.storage_path);alert('Obaveštenje je uspešno izmenjeno.');
  await loadNews();await renderHomeFeed();
 }
 async function deleteContent(table,id){if(!isAdmin){alert('Samo administrator može brisati objave.');return}if(!['club_events','club_announcements'].includes(table)){alert('Nepoznata vrsta objave.');return}if(!confirm('Da li sigurno želiš da obrišeš ovu objavu?'))return;const {data:item,error:findError}=await db.from(table).select('storage_path').eq('id',id).maybeSingle();if(findError){alert('Ne mogu da pronađem fotografiju objave: '+findError.message);return}const {data,error}=await db.from(table).delete().eq('id',id).select('id');if(error){alert('Greška pri brisanju: '+error.message);return}if(!data?.length){alert('Objava nije obrisana. Baza ne dozvoljava administratoru brisanje ove objave. Primeni SQL podešavanje za administratorsko brisanje objava.');return}const cleanupError=await removePostImage(item?.storage_path);alert(cleanupError?'Objava je obrisana, ali fotografija nije uklonjena iz skladišta: '+cleanupError.message:'Objava i njena fotografija su uspešno obrisane.');if(table==='club_events')await loadEvents();else await loadNews();await renderHomeFeed();await loadClubNotifications()}
@@ -409,7 +410,7 @@ async function editRide(id){
  const exactTime=/^([01]\d|2[0-3]):[0-5]\d$/.test(departure_time);
  const {data:updated,error:updateError}=await db.from('rides').update({title:title.trim(),description:description.trim(),start_location:start_location.trim(),end_location:end_location.trim(),ride_date,departure_time:exactTime?departure_time:'00:00',departure_time_text:exactTime?null:departure_time,route_url:route_url.trim()||null}).eq('id',id).select('id');
  if(updateError){alert('Greška pri izmeni: '+updateError.message);return;}if(!updated?.length){alert('Izmena nije sačuvana. Proveri SQL dozvole za uređivanje.');return;}
- alert('Moto vožnja je izmenjena.');await loadRides();await renderHomeFeed();
+  await chooseReplacementPostImage('rides',id,data.storage_path);alert('Moto vožnja je izmenjena.');await loadRides();await renderHomeFeed();
 }
 async function editClubEvent(id){
  const {data,error}=await db.from('club_events').select('*').eq('id',id).maybeSingle();
@@ -427,7 +428,7 @@ async function editClubEvent(id){
  if(!title.trim()||!description.trim()||!location.trim()||!/^\d{4}-\d{2}-\d{2}$/.test(dateValue)||!timeValue.trim()||isNaN(parsed.getTime())){alert('Proveri naziv, opis, lokaciju, datum i vreme događaja.');return;}
  const {data:updated,error:updateError}=await db.from('club_events').update({title:title.trim(),description:description.trim(),location:location.trim(),starts_at:parsed.toISOString(),event_time_text:isExactTime?null:timeValue.trim()}).eq('id',id).select('id');
  if(updateError){alert('Greška pri izmeni: '+updateError.message);return;}if(!updated?.length){alert('Izmena nije sačuvana. Proveri SQL dozvole za uređivanje.');return;}
- alert('Događaj je izmenjen.');await loadEvents();await renderHomeFeed();
+  await chooseReplacementPostImage('club_events',id,data.storage_path);alert('Događaj je izmenjen.');await loadEvents();await renderHomeFeed();
 }
 async function loadPendingRides(){const el=$('pendingRidesList');if(!el||!isAdmin)return;const {data,error}=await db.from('rides').select('*').eq('is_approved',false).order('created_at',{ascending:false});if(error){el.innerHTML='<p class="muted">Ne mogu da učitam vožnje na čekanju: '+esc(error.message)+'</p>';return}el.innerHTML=data?.length?data.map(x=>'<div class="card"><b>'+esc(x.title||'Bez naslova')+'</b><p>'+esc(x.description||'')+'</p><p>📍 '+esc(x.start_location||'')+' → '+esc(x.end_location||'')+'</p><p>📅 '+dateOnly(x.ride_date)+' · 🕒 '+esc((x.departure_time_text||String(x.departure_time||'').slice(0,5)))+'</p><button class="btn" onclick="approveRide(\''+esc(x.id)+'\')">ODOBRI VOŽNJU</button><button class="btn danger" style="margin-left:6px" onclick="deleteRide(\''+esc(x.id)+'\')">OBRIŠI</button></div>').join(''):'<p class="muted">Nema moto vožnja koje čekaju odobrenje.</p>'}
 async function approveRide(id){if(!isAdmin){alert('Samo administrator može odobriti moto vožnju.');return}const {error}=await db.from('rides').update({is_approved:true}).eq('id',id);if(error){alert('Vožnja nije odobrena: '+error.message);return}alert('Moto vožnja je odobrena i sada je vidljiva članovima.');await loadPendingRides();await loadRides();await renderHomeFeed();await loadClubNotifications();await sendClubPush('Nova odobrena moto vožnja','Objavljena je nova moto vožnja.','ride')}
