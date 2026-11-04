@@ -446,9 +446,9 @@ async function renderHomeFeed(){
  const renderToken=++homeFeedRenderToken;
  if(!el.children.length)el.innerHTML='<div class="empty">Učitavanje objava…</div>';
  const [ridesResult,eventsResult,newsResult]=await Promise.all([
-  db.from('rides').select('*').eq('is_approved',true).order('created_at',{ascending:false}).limit(30),
-  db.from('club_events').select('*').order('created_at',{ascending:false}).limit(30),
-  db.from('club_announcements').select('*').order('created_at',{ascending:false}).limit(30)
+  db.from('rides').select('id,user_id,title,description,start_location,end_location,ride_date,departure_time,departure_time_text,route_url,image_url,created_at').eq('is_approved',true).order('created_at',{ascending:false}).limit(30),
+  db.from('club_events').select('id,created_by,title,description,location,starts_at,event_time_text,image_url,created_at').order('created_at',{ascending:false}).limit(30),
+  db.from('club_announcements').select('id,title,description,location,starts_at,image_url,created_at').order('created_at',{ascending:false}).limit(30)
  ]);
  if(renderToken!==homeFeedRenderToken)return;
  const errors=[ridesResult.error,eventsResult.error,newsResult.error].filter(Boolean);
@@ -464,7 +464,20 @@ async function renderHomeFeed(){
     return '<article class="feed-post"><div class="feed-post-head"><span class="tag">📢 OBAVEŠTENJE</span><span class="feed-open-label">Objava · '+date(x.created_at)+'</span>'+homeFeedDeleteButton(x,'news')+'</div>'+postImageMarkup(x,true)+'<h4 class="feed-title">'+esc(x.title||'Bez naslova')+'</h4>'+(x.starts_at?'<p>📅 Datum: '+new Date(x.starts_at).toLocaleDateString('sr-RS',{day:'2-digit',month:'2-digit',year:'numeric'})+'</p>':'')+(x.location?'<p>📍 '+esc(x.location)+'</p>':'')+'<div class="feed-content">'+esc(x.description||'')+'</div>'+homeFeedEditButton(x,'news')+'</article>';
 }).join('');
  };
- const [rv,ev,authors]=await Promise.all([getPostVotes('ride'),getPostVotes('event'),getPostAuthors(rides.map(x=>x.user_id))]);
+ const [votesResult,profilesResult]=await Promise.all([
+  db.from('post_votes').select('post_type,post_id,user_id,choice,created_at').in('post_type',['ride','event']),
+  db.from('profiles').select('id,full_name,avatar_url').eq('approved',true)
+ ]);
+ if(votesResult.error)console.warn('Glasovi na početnoj strani nisu učitani:',votesResult.error.message);
+ if(profilesResult.error)console.warn('Podaci o članovima na početnoj strani nisu učitani:',profilesResult.error.message);
+ const voterNames={},authors={};
+ (profilesResult.data||[]).forEach(member=>{
+  voterNames[member.id]=member.full_name||'Član kluba';
+  authors[member.id]=member;
+ });
+ const allVotes=votesResult.data||[];
+ const rv={rows:allVotes.filter(v=>v.post_type==='ride'),members:voterNames};
+ const ev={rows:allVotes.filter(v=>v.post_type==='event'),members:voterNames};
  renderPosts(rv,ev,authors);
 }
 async function loadRides(){
