@@ -199,15 +199,28 @@ async function openPrivateInbox(){
  if(!session||!profile?.approved){alert('Privatne poruke su dostupne samo odobrenim članovima.');return;}
  const {data:people,error}=await db.from('profiles').select('id,full_name,avatar_url').eq('approved',true).neq('id',session.user.id).order('full_name');
  if(error){alert('Ne mogu da učitam članove: '+error.message);return;}
- const {data:messages,error:msgError}=await db.from('private_messages').select('id,sender_id,recipient_id,message,created_at,read_at').or('sender_id.eq.'+session.user.id+',recipient_id.eq.'+session.user.id).order('created_at',{ascending:false}).limit(300);
+ const [{data:messages,error:msgError},{data:hiddenRows,error:hiddenError}]=await Promise.all([
+  db.from('private_messages').select('id,sender_id,recipient_id,message,created_at,read_at').or('sender_id.eq.'+session.user.id+',recipient_id.eq.'+session.user.id).order('created_at',{ascending:false}).limit(300),
+  db.from('private_message_hidden_conversations').select('peer_id,hidden_at').eq('user_id',session.user.id)
+ ]);
  if(msgError){alert('Ne mogu da učitam privatne razgovore: '+msgError.message);return;}
+ if(hiddenError){alert('Ne mogu da učitam podešavanja razgovora: '+hiddenError.message);return;}
+ const hiddenAt={};(hiddenRows||[]).forEach(x=>hiddenAt[x.peer_id]=new Date(x.hidden_at).getTime());
  const latest={};
  (messages||[]).forEach(m=>{const peer=m.sender_id===session.user.id?m.recipient_id:m.sender_id;if(!latest[peer])latest[peer]=m;});
  privateChannel=db.channel('private-messages-'+session.user.id).on('postgres_changes',{event:'INSERT',schema:'public',table:'private_messages',filter:'recipient_id=eq.'+session.user.id},()=>{if(privatePeerId)renderPrivateConversation();else openPrivateInbox();}).subscribe();
  const unread=(messages||[]).filter(m=>m.recipient_id===session.user.id&&!m.read_at).length;
  updatePrivateUnreadBadge();
- const rows=(people||[]).filter(p=>!!latest[p.id]).map(p=>{const m=latest[p.id],count=(messages||[]).filter(x=>x.sender_id===p.id&&x.recipient_id===session.user.id&&!x.read_at).length;return '<button type="button" class="card" style="width:100%;display:flex;align-items:center;gap:10px;text-align:left;color:#fff" onclick="openPrivateConversation(\''+p.id+'\',\''+esc(p.full_name||'Član kluba').replace(/'/g,'&#39;')+'\')">'+(p.avatar_url?'<img src="'+esc(p.avatar_url)+'" style="width:42px;height:42px;border-radius:50%;object-fit:cover">':'<div class="avatar">'+esc((p.full_name||'?').slice(0,1).toUpperCase())+'</div>')+'<span style="flex:1;min-width:0"><b>'+esc(p.full_name||'Član kluba')+'</b><small class="muted" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(m?esc(m.message):'Započni razgovor')+'</small></span>'+(count?'<b style="color:#ff555b">'+count+'</b>':'')+'</button>';}).join('');
+ const rows=(people||[]).filter(p=>!!latest[p.id]&&(!hiddenAt[p.id]||new Date(latest[p.id].created_at).getTime()>hiddenAt[p.id])).map(p=>{const m=latest[p.id],count=(messages||[]).filter(x=>x.sender_id===p.id&&x.recipient_id===session.user.id&&!x.read_at).length;return '<div class="card" style="width:100%;display:flex;align-items:center;gap:8px;padding:8px"><button type="button" style="flex:1;min-width:0;display:flex;align-items:center;gap:10px;text-align:left;color:#fff;background:transparent;border:0;padding:0" onclick="openPrivateConversation(\\''+p.id+'\\',\\''+esc(p.full_name||'Član kluba').replace(/'/g,'&#39;')+'\\')">'+(p.avatar_url?'<img src="'+esc(p.avatar_url)+'" style="width:42px;height:42px;border-radius:50%;object-fit:cover">':'<div class="avatar">'+esc((p.full_name||'?').slice(0,1).toUpperCase())+'</div>')+'<span style="flex:1;min-width:0"><b>'+esc(p.full_name||'Član kluba')+'</b><small class="muted" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(m?esc(m.message):'Započni razgovor')+'</small></span>'+(count?'<b style="color:#ff555b">'+count+'</b>':'')+'</button><button type="button" aria-label="Obriši razgovor" title="Obriši razgovor" onclick="deletePrivateConversation(\\''+p.id+'\\',\\''+esc(p.full_name||'Član kluba').replace(/'/g,'&#39;')+'\\')" style="flex:0 0 34px;width:34px;height:34px;border:1px solid #d9272e;border-radius:50%;background:#d9272e;color:white;font-size:21px;font-weight:700;line-height:1;cursor:pointer">×</button></div>';}).join('');
  modal('<h3>PRIVATNE PORUKE</h3><div id="privateInboxList">'+(rows||'<div class="empty">Još nemaš privatnih razgovora. Novi razgovor možeš započeti preko profila člana.</div>')+'</div>',true);
+}
+async function deletePrivateConversation(peerId,peerName){
+ if(!session||!peerId)return;
+ if(!confirm('Da li želiš da ukloniš razgovor sa '+peerName+' iz svojih privatnih poruka? Poruke ostaju vidljive drugom članu.'))return;
+ const {error}=await db.from('private_message_hidden_conversations').upsert({user_id:session.user.id,peer_id:peerId,hidden_at:new Date().toISOString()},{onConflict:'user_id,peer_id'});
+ if(error){alert('Nije moguće ukloniti razgovor: '+error.message);return;}
+ if(privatePeerId===peerId){privatePeerId=null;privatePeerName='';}
+ await openPrivateInbox();
 }
 async function openPrivateConversation(peerId,peerName){
  if(!session||!profile?.approved||peerId===session.user.id)return;
