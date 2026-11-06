@@ -681,6 +681,7 @@ function previewMotorcyclePhoto(){
 function renderMyMotorcycle(data){
   const view=$('myMotorcycleView'),form=$('myMotorcycleEditForm');
   if(!view||!form)return;
+  const isEditing=form.style.display!=='none';
   if(!data){
     view.style.display='none';
     form.style.display='block';
@@ -695,8 +696,9 @@ function renderMyMotorcycle(data){
   if(data.horsepower)html+='<p><b>Snaga:</b> '+esc(data.horsepower)+' KS</p>';
   html+='</div>';
   view.innerHTML=html;
-  view.style.display='block';
-  form.style.display='none';
+  // Ne zatvaraj formular ako se podaci učitaju dok član bira fotografiju ili menja motor.
+  view.style.display=isEditing?'none':'block';
+  form.style.display=isEditing?'block':'none';
 }
 function toggleMotorcycleEdit(){
   const form=$('myMotorcycleEditForm'),view=$('myMotorcycleView');
@@ -714,7 +716,8 @@ async function loadMotorcycleProfileForm(){
   $('bikeModel').value=data.model||'';
   $('bikeCc').value=data.cc||'';
   $('bikeHp').value=data.horsepower||'';
-  if(data.photo_url)$('bikePhotoPreview').innerHTML='<img src="'+esc(data.photo_url)+'" alt="Moj motor" style="width:100%;max-height:180px;object-fit:cover;border-radius:10px">';
+  // Ne prepisuj novi pregled fotografije ako se učitavanje završi nakon izbora fajla.
+  if(data.photo_url&&!$('bikePhotoFile')?.files?.length)$('bikePhotoPreview').innerHTML='<img src="'+esc(data.photo_url)+'" alt="Moj motor" style="width:100%;max-height:180px;object-fit:cover;border-radius:10px">';
   renderMyMotorcycle(data);
 }
 async function deleteMyMotorcycleProfile(){
