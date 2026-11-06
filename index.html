@@ -224,15 +224,30 @@ async function renderPrivateConversation(){
  modal('<div class="private-chat-header"><button class="btn secondary" type="button" onclick="openPrivateInbox()">‹ Poruke</button><h3>'+esc(privatePeerName)+'</h3><button class="close" type="button" onclick="closePrivateMessagesToHome()" aria-label="Zatvori">✕</button></div><div id="privateConversationMessages" class="chat-messages" style="max-height:52vh">'+((rows||[]).map(m=>'<div class="chat-message '+(m.sender_id===session.user.id?'mine':'')+'"><div class="chat-message-content"><div class="chat-message-head"><b>'+(m.sender_id===session.user.id?'Ti':esc(privatePeerName))+'</b><small>'+date(m.created_at)+'</small></div><div class="chat-message-text">'+esc(m.message)+'</div></div></div>').join('')||'<div class="empty">Još nema poruka. Pošalji prvu poruku!</div>')+'</div><div class="chat-composer"><textarea id="privateMessageInput" class="field" rows="2" maxlength="2000" placeholder="Napiši privatnu poruku…"></textarea><button class="btn" id="privateSendButton" onclick="sendPrivateMessage()">POŠALJI</button></div>',true);
  const box=$('privateConversationMessages');if(box)box.scrollTop=box.scrollHeight;
 }
+let privateMessageSending=false;
 async function sendPrivateMessage(){
  const input=$('privateMessageInput'),button=$('privateSendButton'),message=input?.value.trim();
- if(!message||!privatePeerId||!session||!profile?.approved)return;
- button.disabled=true;
- const {error}=await db.from('private_messages').insert({sender_id:session.user.id,recipient_id:privatePeerId,message});
- button.disabled=false;
- if(error){alert('Poruka nije poslata: '+error.message);return;}
- try{const {data:pushData,error:pushError}=await db.functions.invoke('quick-service',{body:{kind:'private_message',recipientId:privatePeerId,title:'Nova privatna poruka',body:'Primili ste privatnu poruku od '+(profile?.full_name||'člana kluba')}});if(pushError||pushData?.error)console.warn('Privatna poruka je poslata, ali push nije isporučen:',pushError?.message||pushData?.error);else console.log('Push privatne poruke:',pushData);}catch(pushErr){console.warn('Greška pri slanju push obaveštenja za privatnu poruku:',pushErr);}
- await renderPrivateConversation();
+ if(privateMessageSending||!message||!privatePeerId||!session||!profile?.approved)return;
+ privateMessageSending=true;
+ if(button){button.disabled=true;button.textContent='ŠALJEM…';}
+ try{
+  const recipientId=privatePeerId;
+  const {error}=await db.from('private_messages').insert({sender_id:session.user.id,recipient_id:recipientId,message});
+  if(error)throw error;
+  if(input)input.value='';
+  await renderPrivateConversation();
+  db.functions.invoke('quick-service',{body:{kind:'private_message',recipientId,title:'Nova privatna poruka',body:'Primili ste privatnu poruku od '+(profile?.full_name||'člana kluba')}}).then(({data,error})=>{
+   if(error||data?.error)console.warn('Privatna poruka je poslata, ali push nije isporučen:',error?.message||data?.error);
+   else console.log('Push privatne poruke:',data);
+  }).catch(pushErr=>console.warn('Greška pri slanju push obaveštenja za privatnu poruku:',pushErr));
+ }catch(error){
+  console.error('Greška pri slanju privatne poruke:',error);
+  alert('Poruka nije poslata: '+(error.message||error));
+ }finally{
+  privateMessageSending=false;
+  const currentButton=$('privateSendButton');
+  if(currentButton){currentButton.disabled=false;currentButton.textContent='POŠALJI';}
+ }
 }
 
 let clubNotifications=[];
