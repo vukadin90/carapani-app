@@ -231,7 +231,11 @@ async function openPrivateConversation(peerId,peerName){
  await renderPrivateConversation();
 }
 async function renderPrivateConversation(){
- const {data:rows,error}=await db.from('private_messages').select('id,sender_id,recipient_id,message,created_at,read_at').or('and(sender_id.eq.'+session.user.id+',recipient_id.eq.'+privatePeerId+'),and(sender_id.eq.'+privatePeerId+',recipient_id.eq.'+session.user.id+')').order('created_at',{ascending:true}).limit(200);
+ const {data:hidden,error:hiddenError}=await db.from('private_message_hidden_conversations').select('hidden_at').eq('user_id',session.user.id).eq('peer_id',privatePeerId).maybeSingle();
+ if(hiddenError){alert('Greška pri učitavanju podešavanja razgovora: '+hiddenError.message);return;}
+ let conversationQuery=db.from('private_messages').select('id,sender_id,recipient_id,message,created_at,read_at').or('and(sender_id.eq.'+session.user.id+',recipient_id.eq.'+privatePeerId+'),and(sender_id.eq.'+privatePeerId+',recipient_id.eq.'+session.user.id+')');
+ if(hidden?.hidden_at)conversationQuery=conversationQuery.gt('created_at',hidden.hidden_at);
+ const {data:rows,error}=await conversationQuery.order('created_at',{ascending:true}).limit(200);
  if(error){alert('Greška pri učitavanju razgovora: '+error.message);return;}
  await db.from('private_messages').update({read_at:new Date().toISOString()}).eq('sender_id',privatePeerId).eq('recipient_id',session.user.id).is('read_at',null);
  await updatePrivateUnreadBadge();
