@@ -209,7 +209,9 @@ async function openPrivateInbox(){
 }
 async function openPrivateConversation(peerId,peerName){
  if(!session||!profile?.approved||peerId===session.user.id)return;
+ if(privateChannel)db.removeChannel(privateChannel);
  privatePeerId=peerId;privatePeerName=peerName;
+ privateChannel=db.channel('private-messages-'+session.user.id).on('postgres_changes',{event:'INSERT',schema:'public',table:'private_messages',filter:'recipient_id=eq.'+session.user.id},payload=>{if(payload.new?.sender_id===privatePeerId)renderPrivateConversation();}).subscribe();
  await renderPrivateConversation();
 }
 async function renderPrivateConversation(){
