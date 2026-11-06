@@ -73,7 +73,7 @@
 </div>
 <nav class="tabs">
 <button class="active" data-page="home" onclick="showPage('home')"><b>⌂</b>Početna</button>
-<button data-page="messages" onclick="showPage('messages')"><b>✉️</b>Poruke <span id="privateUnreadBadge" style="display:none;color:#ff555b;font-size:10px">●</span></button>
+<button data-page="messages" onclick="showPage('messages')"><b><span style="position:relative;display:inline-block">✉️<span id="privateUnreadBadge" style="display:none;position:absolute;right:-5px;top:-3px;width:9px;height:9px;border-radius:50%;background:#ff3038;border:1px solid #101215"></span></span></b>Poruke</button>
 <button data-page="members" onclick="showPage('members')"><b><svg viewBox="0 0 32 24" width="25" height="21" aria-hidden="true" style="display:block;margin:0 auto 3px"><g fill="#e53945"><circle cx="10" cy="7" r="4"/><path d="M2 21v-2.2c0-4 3.2-7 8-7s8 3 8 7V21H2Z"/></g><g fill="#2685e8"><circle cx="22" cy="7" r="4"/><path d="M14 21v-2.2c0-4 3.2-7 8-7s8 3 8 7V21H14Z"/></g></svg></b>Članovi</button>
 <button data-page="account" onclick="showPage('account')"><b>♟</b>Nalog</button>
 </nav>
@@ -192,6 +192,7 @@ async function editAnnouncement(id){
 async function deleteContent(table,id){if(!isAdmin){alert('Samo administrator može brisati objave.');return}if(!['club_events','club_announcements'].includes(table)){alert('Nepoznata vrsta objave.');return}if(!confirm('Da li sigurno želiš da obrišeš ovu objavu?'))return;const {data:item,error:findError}=await db.from(table).select('storage_path').eq('id',id).maybeSingle();if(findError){alert('Ne mogu da pronađem fotografiju objave: '+findError.message);return}const {data,error}=await db.from(table).delete().eq('id',id).select('id');if(error){alert('Greška pri brisanju: '+error.message);return}if(!data?.length){alert('Objava nije obrisana. Baza ne dozvoljava administratoru brisanje ove objave. Primeni SQL podešavanje za administratorsko brisanje objava.');return}const cleanupError=await removePostImage(item?.storage_path);alert(cleanupError?'Objava je obrisana, ali fotografija nije uklonjena iz skladišta: '+cleanupError.message:'Objava i njena fotografija su uspešno obrisane.');if(table==='club_events')await loadEvents();else await loadNews();await renderHomeFeed();await loadClubNotifications()}
 
 let privateChannel=null,privatePeerId=null,privatePeerName='';
+async function updatePrivateUnreadBadge(){const badge=$('privateUnreadBadge');if(!badge)return;if(!session||!profile?.approved){badge.style.display='none';return;}const {count,error}=await db.from('private_messages').select('id',{count:'exact',head:true}).eq('recipient_id',session.user.id).is('read_at',null);if(error){console.warn('Broj nepročitanih privatnih poruka nije učitan:',error);return;}badge.style.display=count>0?'block':'none';}
 function closePrivateMessagesToHome(){privatePeerId=null;if(privateChannel){db.removeChannel(privateChannel);privateChannel=null;}const back=$('modalBack');if(back)back.classList.remove('show');showPage('home');}
 async function openPrivateInbox(){
  if(privateChannel)db.removeChannel(privateChannel);
@@ -204,7 +205,7 @@ async function openPrivateInbox(){
  (messages||[]).forEach(m=>{const peer=m.sender_id===session.user.id?m.recipient_id:m.sender_id;if(!latest[peer])latest[peer]=m;});
  privateChannel=db.channel('private-messages-'+session.user.id).on('postgres_changes',{event:'INSERT',schema:'public',table:'private_messages',filter:'recipient_id=eq.'+session.user.id},()=>{if(privatePeerId)renderPrivateConversation();else openPrivateInbox();}).subscribe();
  const unread=(messages||[]).filter(m=>m.recipient_id===session.user.id&&!m.read_at).length;
- const badge=$('privateUnreadBadge');if(badge)badge.textContent=unread?'('+unread+')':'';
+ updatePrivateUnreadBadge();
  const rows=(people||[]).filter(p=>!!latest[p.id]).map(p=>{const m=latest[p.id],count=(messages||[]).filter(x=>x.sender_id===p.id&&x.recipient_id===session.user.id&&!x.read_at).length;return '<button type="button" class="card" style="width:100%;display:flex;align-items:center;gap:10px;text-align:left;color:#fff" onclick="openPrivateConversation(\''+p.id+'\',\''+esc(p.full_name||'Član kluba').replace(/'/g,'&#39;')+'\')">'+(p.avatar_url?'<img src="'+esc(p.avatar_url)+'" style="width:42px;height:42px;border-radius:50%;object-fit:cover">':'<div class="avatar">'+esc((p.full_name||'?').slice(0,1).toUpperCase())+'</div>')+'<span style="flex:1;min-width:0"><b>'+esc(p.full_name||'Član kluba')+'</b><small class="muted" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(m?esc(m.message):'Započni razgovor')+'</small></span>'+(count?'<b style="color:#ff555b">'+count+'</b>':'')+'</button>';}).join('');
  modal('<h3>PRIVATNE PORUKE</h3><div id="privateInboxList">'+(rows||'<div class="empty">Još nemaš privatnih razgovora. Novi razgovor možeš započeti preko profila člana.</div>')+'</div>',true);
 }
@@ -219,6 +220,7 @@ async function renderPrivateConversation(){
  const {data:rows,error}=await db.from('private_messages').select('id,sender_id,recipient_id,message,created_at,read_at').or('and(sender_id.eq.'+session.user.id+',recipient_id.eq.'+privatePeerId+'),and(sender_id.eq.'+privatePeerId+',recipient_id.eq.'+session.user.id+')').order('created_at',{ascending:true}).limit(200);
  if(error){alert('Greška pri učitavanju razgovora: '+error.message);return;}
  await db.from('private_messages').update({read_at:new Date().toISOString()}).eq('sender_id',privatePeerId).eq('recipient_id',session.user.id).is('read_at',null);
+ await updatePrivateUnreadBadge();
  modal('<div class="private-chat-header"><button class="btn secondary" type="button" onclick="openPrivateInbox()">‹ Poruke</button><h3>'+esc(privatePeerName)+'</h3><button class="close" type="button" onclick="closePrivateMessagesToHome()" aria-label="Zatvori">✕</button></div><div id="privateConversationMessages" class="chat-messages" style="max-height:52vh">'+((rows||[]).map(m=>'<div class="chat-message '+(m.sender_id===session.user.id?'mine':'')+'"><div class="chat-message-content"><div class="chat-message-head"><b>'+(m.sender_id===session.user.id?'Ti':esc(privatePeerName))+'</b><small>'+date(m.created_at)+'</small></div><div class="chat-message-text">'+esc(m.message)+'</div></div></div>').join('')||'<div class="empty">Još nema poruka. Pošalji prvu poruku!</div>')+'</div><div class="chat-composer"><textarea id="privateMessageInput" class="field" rows="2" maxlength="2000" placeholder="Napiši privatnu poruku…"></textarea><button class="btn" id="privateSendButton" onclick="sendPrivateMessage()">POŠALJI</button></div>',true);
  const box=$('privateConversationMessages');if(box)box.scrollTop=box.scrollHeight;
 }
@@ -331,7 +333,7 @@ async function sendChatMessage(){
  const pushResult=await sendClubPush('Nova poruka u Članskom chatu',(profile.full_name||'Član kluba')+': '+message,'chat');
  if(!pushResult.ok)console.warn('Poruka je poslata, ali push obaveštenje nije isporučeno:',pushResult.error);
 }
-async function refresh(){const {data:{session:s}}=await db.auth.getSession();session=s;profile=null;isAdmin=false;canPublishAnnouncements=false;if(session){const {data}=await db.from('profiles').select('*').eq('id',session.user.id).maybeSingle();profile=data;isAdmin=!!data?.is_admin;canPublishAnnouncements=canPublishClubEvents();}
+async function refresh(){const {data:{session:s}}=await db.auth.getSession();session=s;profile=null;isAdmin=false;canPublishAnnouncements=false;if(session){const {data}=await db.from('profiles').select('*').eq('id',session.user.id).maybeSingle();profile=data;isAdmin=!!data?.is_admin;canPublishAnnouncements=canPublishClubEvents();}await updatePrivateUnreadBadge();
 $('authStatus').textContent=session?(profile?.approved?'ČLAN':'NA ČEKANJU'):'GOST';updateMainMenuOptions();const eventPublishButton=$('memberEventPublishButton');if(eventPublishButton)eventPublishButton.style.display=canPublishClubEvents()?'':'none';renderAccount();const allowed=applyMemberAccessGate();if(!allowed){showPage('account');return;}const feedPromise=renderHomeFeed();const notificationsPromise=loadClubNotifications();await Promise.all([feedPromise,notificationsPromise]);if($('announcementPublishControls'))$('announcementPublishControls').style.display=canPublishAnnouncements?'block':'none';if($('publisherAnnouncementForm'))$('publisherAnnouncementForm').style.display='none';if($('gallery')?.classList.contains('active'))await loadGallery();const requestedPage=new URLSearchParams(location.search).get('open');if(requestedPage==='chat')showPage('chat');else if(isAdmin&&requestedPage==='admin')showPage('admin')}
 
 async function getPostVotes(type){
@@ -1093,6 +1095,7 @@ if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serv
 refresh();
 setInterval(()=>{if(document.visibilityState==='visible'&&session&&profile?.approved&&isAdmin)loadClubNotifications();},10000);
 setInterval(()=>{if(document.visibilityState==='visible'&&session&&profile?.approved&&!isAdmin)loadClubNotifications();},60000);
+setInterval(()=>{if(document.visibilityState==='visible'&&session&&profile?.approved)updatePrivateUnreadBadge();},15000);
 async function loadGallery(){
   const list=$('galleryList');
   const uploadBox=$('galleryUpload');
