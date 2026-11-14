@@ -52,7 +52,7 @@
 <button class="bell-button menu-button" id="mainMenuButton" onclick="toggleMainMenu()" aria-label="Meni" aria-expanded="false">☰</button>
 </header>
 
-<div id="notificationPanel" class="notification-panel" style="display:none"><div class="notification-panel-head"><b>OBAVEŠTENJA</b><div style="display:flex;gap:6px;align-items:center"><button onclick="markAllNotificationsRead()">OBRIŠI OBAVEŠTENJA</button><button onclick="toggleNotificationPanel()" aria-label="Zatvori">✕</button></div></div><div id="notificationItems" class="notification-items"><div class="muted">Učitavanje…</div></div></div>
+<div id="notificationPanel" class="notification-panel" style="display:none"><div class="notification-panel-head"><b>OBAVEŠTENJA</b><button onclick="toggleNotificationPanel()" aria-label="Zatvori">✕</button></div><div id="notificationItems" class="notification-items"><div class="muted">Učitavanje…</div></div></div>
 <div id="mainMenuPanel" class="main-menu-panel" style="display:none"></div>
 <main>
 <section id="home" class="page active">
@@ -281,13 +281,15 @@ async function sendPrivateMessage(){
 
 let clubNotifications=[];
 let notificationPanelOpen=false;
+let notificationPanelItems=[];
 function notificationSeenKey(){return 'carapani_notifications_seen_'+(session?.user?.id||'guest');}
 function pendingSeenKey(){return 'carapani_pending_seen_'+(session?.user?.id||'guest');}
 function getSeenNotificationKeys(){try{return JSON.parse(localStorage.getItem(notificationSeenKey())||'[]')}catch(_){return []}}
 function notificationKey(n){return [n.type||'',n.post_type||'',n.id||n.post_id||'',n.user_id||'',n.created_at||'',n.choice||''].join('|')}
 function visibleNotifications(){const seen=getSeenNotificationKeys();return clubNotifications.filter(n=>!seen.includes(notificationKey(n)))}
+function saveSeenNotificationKeys(items){const seen=getSeenNotificationKeys();const keys=items.map(notificationKey);const merged=[...new Set([...seen,...keys])];localStorage.setItem(notificationSeenKey(),JSON.stringify(merged.slice(-500)));}
 function updateNotificationBadge(){const badge=$('notificationBadge');if(!badge)return;badge.style.display=visibleNotifications().length?'block':'none';}
-function renderNotificationItems(){const el=$('notificationItems');if(!el)return;const items=visibleNotifications();el.innerHTML=items.length?items.map(n=>'<button class="notification-item" onclick="openClubNotification('+clubNotifications.indexOf(n)+')"><b>'+esc(n.title||'Nova objava')+'</b><small>'+esc(n.type)+' · '+date(n.created_at)+'</small></button>').join(''):'<div class="muted" style="padding:12px 4px">Nema novih obaveštenja. Pogledana obaveštenja se uklanjaju sa liste.</div>';}
+function renderNotificationItems(){const el=$('notificationItems');if(!el)return;const items=notificationPanelOpen?notificationPanelItems:visibleNotifications();el.innerHTML=items.length?items.map(n=>'<button class="notification-item" onclick="openClubNotification('+clubNotifications.indexOf(n)+')"><b>'+esc(n.title||'Nova objava')+'</b><small>'+esc(n.type)+' · '+date(n.created_at)+'</small></button>').join(''):'<div class="muted" style="padding:12px 4px">Nema novih obaveštenja.</div>';}
 async function loadClubNotifications(){
   try{
    const [r,e,a,c,p]=await Promise.all([
@@ -307,9 +309,40 @@ async function loadClubNotifications(){
    updateNotificationBadge();
   }catch(err){console.error('Greška pri učitavanju obaveštenja:',err);}
  }
-function markAllNotificationsRead(){const seen=getSeenNotificationKeys();const keys=clubNotifications.map(notificationKey);const merged=[...new Set([...seen,...keys])];localStorage.setItem(notificationSeenKey(),JSON.stringify(merged.slice(-500)));renderNotificationItems();updateNotificationBadge();}
-function toggleNotificationPanel(){const panel=$('notificationPanel');if(!panel)return;notificationPanelOpen=!notificationPanelOpen;panel.style.display=notificationPanelOpen?'block':'none';if(notificationPanelOpen){renderNotificationItems();updateNotificationBadge();}}
-function openClubNotification(index){const n=clubNotifications[index];if(!n)return;const key=notificationKey(n),seen=getSeenNotificationKeys();if(!seen.includes(key)){seen.push(key);localStorage.setItem(notificationSeenKey(),JSON.stringify(seen.slice(-500)));}clubNotifications=clubNotifications.filter((item)=>notificationKey(item)!==key);renderNotificationItems();updateNotificationBadge();const panel=$('notificationPanel');if(panel)panel.style.display='none';notificationPanelOpen=false;showPage(n.page);}
+function markAllNotificationsRead(){saveSeenNotificationKeys(clubNotifications);renderNotificationItems();updateNotificationBadge();}
+function toggleNotificationPanel(){
+ const panel=$('notificationPanel');if(!panel)return;
+ if(!notificationPanelOpen){
+  notificationPanelItems=visibleNotifications().slice();
+  notificationPanelOpen=true;
+  saveSeenNotificationKeys(notificationPanelItems);
+  panel.style.display='block';
+  renderNotificationItems();
+  updateNotificationBadge();
+  return;
+ }
+ const closingKeys=new Set(notificationPanelItems.map(notificationKey));
+ clubNotifications=clubNotifications.filter(item=>!closingKeys.has(notificationKey(item)));
+ notificationPanelItems=[];
+ notificationPanelOpen=false;
+ panel.style.display='none';
+ renderNotificationItems();
+ updateNotificationBadge();
+}
+function openClubNotification(index){
+ const n=clubNotifications[index];if(!n)return;
+ const key=notificationKey(n);
+ saveSeenNotificationKeys([n]);
+ const closingKeys=new Set(notificationPanelItems.map(notificationKey));
+ closingKeys.add(key);
+ clubNotifications=clubNotifications.filter(item=>!closingKeys.has(notificationKey(item)));
+ notificationPanelItems=[];
+ renderNotificationItems();
+ updateNotificationBadge();
+ const panel=$('notificationPanel');if(panel)panel.style.display='none';
+ notificationPanelOpen=false;
+ showPage(n.page);
+}
 let chatChannel=null;
 let chatRestrictions={};
 let myChatBlocked=false;
