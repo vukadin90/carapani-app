@@ -586,7 +586,6 @@ async function renderHomeFeed(){
  const renderToken=++homeFeedRenderToken;
  let visiblePostCount=15;
  let homeFeedObserver=null;
- let currentRv={rows:[],members:{}},currentEv={rows:[],members:{}},currentAuthors={};
  if(!el.children.length)el.innerHTML='<div class="empty">Učitavanje objava…</div>';
  const [ridesResult,eventsResult,newsResult]=await Promise.all([
   db.from('rides').select('id,user_id,title,description,start_location,end_location,ride_date,departure_time,departure_time_text,route_url,image_url,created_at').eq('is_approved',true).order('created_at',{ascending:false}).limit(30),
@@ -599,44 +598,13 @@ async function renderHomeFeed(){
  const rides=ridesResult.data||[],events=eventsResult.data||[],news=newsResult.data||[];
  const posts=[...rides.map(x=>({...x,_kind:'ride',_created:x.created_at||x.ride_date||''})),...events.map(x=>({...x,_kind:'event',_created:x.created_at||x.starts_at||''})),...news.map(x=>({...x,_kind:'news',_created:x.created_at||x.starts_at||''}))].sort((a,b)=>new Date(b._created||0)-new Date(a._created||0));
  if(!posts.length){el.innerHTML='<div class="empty">Još nema objava u klubu. Čim neko objavi vožnju, događaj ili obaveštenje, pojaviće se ovde.</div>';return;}
- const renderPosts=()=>{
+ const renderPosts=(rv,ev,authors)=>{
   if(renderToken!==homeFeedRenderToken)return;
   if(homeFeedObserver){homeFeedObserver.disconnect();homeFeedObserver=null;}
   el.innerHTML=posts.slice(0,visiblePostCount).map(x=>{
-    const author=x._kind==='ride'?'<div class="home-post-author" data-author-id="'+esc(x.user_id||'')+'">'+postAuthorMarkup(currentAuthors[x.user_id])+'</div>':'';
-    const vote=x._kind==='ride'?'<div class="home-vote-panel" data-vote-type="ride" data-vote-id="'+esc(x.id)+'">'+votePanel('ride',x.id,currentRv.rows,currentRv.members)+'</div>':x._kind==='event'?'<div class="home-vote-panel" data-vote-type="event" data-vote-id="'+esc(x.id)+'">'+votePanel('event',x.id,currentEv.rows,currentEv.members)+'</div>':'';
-    if(x._kind==='ride')return '<article class="feed-post"><div class="feed-post-head"><span class="tag">🏍️ MOTO VOŽNJA</span><span class="feed-open-label">Objava · '+date(x.created_at)+'</span>'+homeFeedDeleteButton(x,'ride')+'</div>'+author+postImageMarkup(x,true)+'<h4 class="feed-title">'+esc(x.title||'Bez naslova')+'</h4>'+(x.description?'<div class="feed-content">'+esc(x.description)+'</div>':'')+(x.start_location?'<p>📍 Polazna lokacija: '+esc(x.start_location)+'</p>':'')+(x.end_location?'<p>🏁 Krajnja lokacija: '+esc(x.end_location)+'</p>':'')+(x.ride_date?'<p>📅 Datum vožnje: '+dateOnly(x.ride_date)+'</p>':'')+((x.departure_time_text||x.departure_time)?'<p>🕒 Vreme polaska: '+esc(x.departure_time_text||String(x.departure_time).slice(0,5))+'</p>':'')+(x.route_url?'<a class="route-link" href="'+esc(x.route_url)+'" target="_blank" rel="noopener">OTVORI RUTU U GOOGLE MAPS</a>':'')+vote+homeFeedEditButton(x,'ride')+'</article>';
-    if(x._kind==='event')return '<article class="feed-post"><div class="feed-post-head"><span class="tag">📅 DOGAĐAJ</span><span class="feed-open-label">Objava · '+date(x.created_at)+'</span>'+homeFeedDeleteButton(x,'event')+'</div>'+postImageMarkup(x,true)+'<h4 class="event-title">'+esc(x.title||'Bez naslova')+'</h4>'+(x.starts_at?'<p>📅 Datum: '+new Date(x.starts_at).toLocaleDateString('sr-RS',{day:'2-digit',month:'2-digit',year:'numeric'})+'</p><p>🕒 Vreme: '+esc(x.event_time_text||new Date(x.starts_at).toLocaleTimeString('sr-RS',{hour:'2-digit',minute:'2-digit'}))+'</p>':'')+(x.location?'<p>📍 '+esc(x.location)+'</p>':'')+'<div class="feed-content">'+esc(x.description||'')+'</div>'+vote+homeFeedEditButton(x,'event')+'</article>';
+    if(x._kind==='ride')return '<article class="feed-post"><div class="feed-post-head"><span class="tag">🏍️ MOTO VOŽNJA</span><span class="feed-open-label">Objava · '+date(x.created_at)+'</span>'+homeFeedDeleteButton(x,'ride')+'</div>'+postAuthorMarkup(authors[x.user_id])+postImageMarkup(x,true)+'<h4 class="feed-title">'+esc(x.title||'Bez naslova')+'</h4>'+(x.description?'<div class="feed-content">'+esc(x.description)+'</div>':'')+(x.start_location?'<p>📍 Polazna lokacija: '+esc(x.start_location)+'</p>':'')+(x.end_location?'<p>🏁 Krajnja lokacija: '+esc(x.end_location)+'</p>':'')+(x.ride_date?'<p>📅 Datum vožnje: '+dateOnly(x.ride_date)+'</p>':'')+((x.departure_time_text||x.departure_time)?'<p>🕒 Vreme polaska: '+esc(x.departure_time_text||String(x.departure_time).slice(0,5))+'</p>':'')+(x.route_url?'<a class="route-link" href="'+esc(x.route_url)+'" target="_blank" rel="noopener">OTVORI RUTU U GOOGLE MAPS</a>':'')+votePanel('ride',x.id,rv.rows,rv.members)+homeFeedEditButton(x,'ride')+'</article>';
+    if(x._kind==='event')return '<article class="feed-post"><div class="feed-post-head"><span class="tag">📅 DOGAĐAJ</span><span class="feed-open-label">Objava · '+date(x.created_at)+'</span>'+homeFeedDeleteButton(x,'event')+'</div>'+postImageMarkup(x,true)+'<h4 class="event-title">'+esc(x.title||'Bez naslova')+'</h4>'+(x.starts_at?'<p>📅 Datum: '+new Date(x.starts_at).toLocaleDateString('sr-RS',{day:'2-digit',month:'2-digit',year:'numeric'})+'</p><p>🕒 Vreme: '+esc(x.event_time_text||new Date(x.starts_at).toLocaleTimeString('sr-RS',{hour:'2-digit',minute:'2-digit'}))+'</p>':'')+(x.location?'<p>📍 '+esc(x.location)+'</p>':'')+'<div class="feed-content">'+esc(x.description||'')+'</div>'+votePanel('event',x.id,ev.rows,ev.members)+homeFeedEditButton(x,'event')+'</article>';
     return '<article class="feed-post"><div class="feed-post-head"><span class="tag">📢 OBAVEŠTENJE</span><span class="feed-open-label">Objava · '+date(x.created_at)+'</span>'+homeFeedDeleteButton(x,'news')+'</div>'+postImageMarkup(x,true)+'<h4 class="feed-title">'+esc(x.title||'Bez naslova')+'</h4>'+(x.starts_at?'<p>📅 Datum: '+new Date(x.starts_at).toLocaleDateString('sr-RS',{day:'2-digit',month:'2-digit',year:'numeric'})+'</p>':'')+(x.location?'<p>📍 '+esc(x.location)+'</p>':'')+'<div class="feed-content">'+esc(x.description||'')+'</div>'+homeFeedEditButton(x,'news')+'</article>';
-  }).join('')+(visiblePostCount<posts.length?'<div id="homeFeedScrollSentinel" class="empty" style="padding:14px">Učitavanje još objava…</div>':'');
-  const sentinel=$('homeFeedScrollSentinel');
-  if(sentinel&&'IntersectionObserver'in window){homeFeedObserver=new IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting)){homeFeedObserver.disconnect();homeFeedObserver=null;visiblePostCount=Math.min(visiblePostCount+15,posts.length);renderPosts();}} ,{rootMargin:'250px'});homeFeedObserver.observe(sentinel);}
- };
- renderPosts();
- const [votesResult,profilesResult]=await Promise.all([
-  db.from('post_votes').select('post_type,post_id,user_id,choice,created_at').in('post_type',['ride','event']),
-  db.from('profiles').select('id,full_name,avatar_url').eq('approved',true)
- ]);
- if(renderToken!==homeFeedRenderToken)return;
- if(votesResult.error)console.warn('Glasovi na početnoj strani nisu učitani:',votesResult.error.message);
- if(profilesResult.error)console.warn('Podaci o članovima na početnoj strani nisu učitani:',profilesResult.error.message);
- const voterNames={};
- (profilesResult.data||[]).forEach(member=>{
-  voterNames[member.id]=member.full_name||'Član kluba';
-  currentAuthors[member.id]=member;
- });
- const allVotes=votesResult.data||[];
- currentRv={rows:allVotes.filter(v=>v.post_type==='ride'),members:voterNames};
- currentEv={rows:allVotes.filter(v=>v.post_type==='event'),members:voterNames};
- // Dopuni samo delove objava sa autorom i glasanjem; ne iscrtavaj ponovo ceo feed.
- el.querySelectorAll('.home-post-author').forEach(node=>{
-  const author=currentAuthors[node.dataset.authorId];
-  if(author)node.innerHTML=postAuthorMarkup(author);
- });
- el.querySelectorAll('.home-vote-panel').forEach(node=>{
-  const type=node.dataset.voteType,id=node.dataset.voteId;
-  node.innerHTML=type==='ride'?votePanel('ride',id,currentRv.rows,currentRv.members):votePanel('event',id,currentEv.rows,currentEv.members);
- });
 }).join('')+(visiblePostCount<posts.length?'<div id="homeFeedScrollSentinel" class="empty" style="padding:14px">Učitavanje još objava…</div>':'');
   const sentinel=$('homeFeedScrollSentinel');
   if(sentinel&&'IntersectionObserver'in window){homeFeedObserver=new IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting)){homeFeedObserver.disconnect();homeFeedObserver=null;visiblePostCount=Math.min(visiblePostCount+15,posts.length);renderPosts(rv,ev,authors);}} ,{rootMargin:'250px'});homeFeedObserver.observe(sentinel);}
