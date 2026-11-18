@@ -53,6 +53,12 @@
 /* Center only the private-message deletion confirmation above the fixed bottom navigation */
 .modalback.private-delete-confirm{align-items:center;padding:0 16px 76px}
 .modalback.private-delete-confirm .modal{width:min(520px,100%);max-height:calc(100dvh - 120px);border-radius:18px;padding:20px 16px calc(env(safe-area-inset-bottom) + 20px)}
+
+/* Member profiles use the full screen while keeping the fixed bottom navigation visible */
+.modalback.member-profile-fullscreen{align-items:stretch;padding:0}
+.modalback.member-profile-fullscreen>.modal{width:100%;max-width:none;height:100dvh;min-height:100dvh;max-height:100dvh;border:0;border-radius:0;padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 92px);overflow-y:auto;overscroll-behavior:contain}
+.modalback.member-profile-fullscreen .modal>.close{position:sticky;top:0;z-index:2;float:right;margin:0 0 8px 12px}
+.member-profile-fullscreen-content{clear:both}
 </style>
 </head>
 <body>
@@ -155,7 +161,7 @@ function openMainMenuAction(action){
 }
 document.addEventListener('click',event=>{const panel=$('mainMenuPanel'),button=$('mainMenuButton');if(panel&&panel.style.display!=='none'&&!panel.contains(event.target)&&!button?.contains(event.target)){panel.style.display='none';button?.setAttribute('aria-expanded','false');}});
 function showPage(name){const allowed=applyMemberAccessGate();if(!allowed&&name!=='account'){name='account';}const modalBack=$('modalBack');if(modalBack?.classList.contains('show')&&name!=='messages'){modalBack.classList.remove('show');privatePeerId=null;if(privateChannel){db.removeChannel(privateChannel);privateChannel=null;}}document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===name));document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.page===name));if(name==='account')renderAccount();if(name==='admin')renderAdmin();if(name==='members'&&allowed)loadMembers();if(name==='chat'&&allowed)loadChatMessages();if(name==='messages'&&allowed)openPrivateInbox();window.scrollTo(0,0)}
-function modal(html,returnHome=false){const back=$('modalBack');back.classList.toggle('private-fullscreen',returnHome);back.classList.toggle('private-delete-confirm',html.includes('Da li želiš obrisati poruke?'));back.querySelector('.modal').classList.toggle('private-conversation',html.includes('id="privateConversationMessages"'));$('modalContent').innerHTML=html;const closeButton=back.querySelector('.modal>.close');if(closeButton){closeButton.textContent=returnHome?'Zatvori':'Zatvori ✕';closeButton.onclick=returnHome?closePrivateMessagesToHome:null;}if(!back.dataset.closeHandler){back.addEventListener('click',event=>{if(event.target===back||event.target.closest('[data-modal-close="true"]')){event.preventDefault();back.classList.remove('show');}});back.dataset.closeHandler='1';}back.querySelectorAll('[data-modal-close="true"]').forEach(button=>{button.type='button';});back.classList.add('show')}
+function modal(html,returnHome=false){const back=$('modalBack');back.classList.toggle('private-fullscreen',returnHome);back.classList.toggle('private-delete-confirm',html.includes('Da li želiš obrisati poruke?'));back.classList.toggle('member-profile-fullscreen',html.includes('member-profile-fullscreen-content'));back.querySelector('.modal').classList.toggle('private-conversation',html.includes('id="privateConversationMessages"'));$('modalContent').innerHTML=html;const closeButton=back.querySelector('.modal>.close');if(closeButton){closeButton.textContent=returnHome?'Zatvori':'Zatvori ✕';closeButton.onclick=returnHome?closePrivateMessagesToHome:null;}if(!back.dataset.closeHandler){back.addEventListener('click',event=>{if(event.target===back||event.target.closest('[data-modal-close="true"]')){event.preventDefault();back.classList.remove('show');}});back.dataset.closeHandler='1';}back.querySelectorAll('[data-modal-close="true"]').forEach(button=>{button.type='button';});back.classList.add('show')}
 function closeModal(){$('modalBack').classList.remove('show')}
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function date(v){if(!v)return 'Datum nije određen';return new Date(v).toLocaleString('sr-RS',{dateStyle:'medium',timeStyle:'short'})}
@@ -854,7 +860,7 @@ async function openMemberProfile(userId){
   if(memberError||!member){alert('Profil člana nije pronađen.');return;}
   const {data:bike,error}=await db.from('member_motorcycles').select('*').eq('user_id',userId).maybeSingle();
   const avatar=member.avatar_url?'<img src="'+esc(member.avatar_url)+'" alt="Profilna fotografija" style="width:76px;height:76px;border-radius:50%;object-fit:cover">':'<div class="avatar" style="width:76px;height:76px;font-size:25px">'+esc((member.full_name||'?').slice(0,1).toUpperCase())+'</div>';
-  let html='<div style="display:flex;align-items:center;gap:14px;margin:8px 0 18px">'+avatar+'<div><h3 style="margin:0">'+esc(member.full_name||'Član kluba')+'</h3></div></div>';
+  let html='<button type="button" class="close" onclick="closeModal()">Zatvori ✕</button><div class="member-profile-fullscreen-content"><div style="display:flex;align-items:center;gap:14px;margin:8px 0 18px">'+avatar+'<div><h3 style="margin:0">'+esc(member.full_name||'Član kluba')+'</h3></div></div>';
   html+='<button class="btn" style="width:100%;margin-bottom:14px" onclick="closeModal();openPrivateConversation(\''+esc(userId)+'\',\''+esc(member.full_name||'Član kluba').replace(/'/g,'&#39;')+'\')">✉ POŠALJI PRIVATNU PORUKU</button>';
   if(error){html+='<div class="notice">Podaci o motoru trenutno nisu dostupni.</div>';}
   else if(!bike){html+='<div class="empty">Ovaj član još nije dodao podatke o svom motoru.</div>';}
@@ -868,6 +874,7 @@ async function openMemberProfile(userId){
     if(bike.horsepower)html+='<p><b>Snaga:</b> '+esc(bike.horsepower)+' KS</p>';
     html+='</div>';
   }
+  html+='</div>';
   modal(html);
 }
 function renderAccount(){
