@@ -942,7 +942,7 @@ ${profile?.approved?`<div id="myMotorcycleView" class="formbox" style="display:n
 <div id="myMotorcycleEditForm" class="formbox" style="display:none;margin-top:12px">
 <h3>🏍️ Podešavanja motora</h3>
 <p class="muted">Ovde možeš da dodaš ili izmeniš fotografiju i podatke o svom motoru.</p>
-<label>Fotografija motora</label><input class="field" id="bikePhotoFile" type="file" accept="image/*,.heic,.heif" onchange="previewMotorcyclePhoto()">
+<label>Fotografija motora</label><input class="field" id="bikePhotoFile" type="file" accept="image/*" oninput="previewMotorcyclePhoto()" onchange="previewMotorcyclePhoto()"><div class="muted" style="font-size:12px;margin-top:5px">Na telefonu izaberi fotografiju iz Galerije / Photos. Ako se izbor ne prenese, pokušaj ponovo direktno iz Galerije, a ne iz „Moje datoteke“.</div>
 <div id="bikePhotoPreview" class="muted" style="margin:8px 0 14px">Fotografija nije izabrana.</div>
 <label>Marka</label><input class="field" id="bikeBrand" maxlength="60" placeholder="">
 <label>Model</label><input class="field" id="bikeModel" maxlength="80" placeholder="">
