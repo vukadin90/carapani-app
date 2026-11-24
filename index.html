@@ -515,7 +515,15 @@ window.castVote = async function(type,id,choice,button){
       .maybeSingle();
     if(lookupError){console.error('Vote lookup error:',lookupError);alert('Ne mogu da proverim postojeći glas: '+lookupError.message);return;}
     let error;
-    if(existingVote?.choice===choice){
+    if(type==='event'){
+      // Kod događaja ponovni dodir na isti izbor ne briše glas:
+      // ako je član već izabrao IDEM i ponovo pritisne IDEM, prebaci ga na NE IDEM.
+      const nextChoice = existingVote?.choice==='yes' && choice==='yes' ? 'no' : choice;
+      ({error}=await db.from('post_votes').upsert(
+        {post_type:type,post_id:String(id),user_id:session.user.id,choice:nextChoice,created_at:new Date().toISOString()},
+        {onConflict:'post_type,post_id,user_id'}
+      ));
+    }else if(existingVote?.choice===choice){
       ({error}=await db.from('post_votes').delete()
         .eq('post_type',type)
         .eq('post_id',String(id))
