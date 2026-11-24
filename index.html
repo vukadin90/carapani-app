@@ -763,12 +763,18 @@ async function compressMotorcyclePhoto(file){
     throw error;
   }finally{URL.revokeObjectURL(objectUrl);}
 }
+let stagedMotorcyclePhoto=null;
+function openMotorcyclePhotoDraftDB(){return new Promise((resolve,reject)=>{if(!('indexedDB' in window)){reject(new Error('Privremeno čuvanje fotografije nije podržano.'));return;}const q=indexedDB.open('carapani-motorcycle-photo-drafts',1);q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains('photos'))q.result.createObjectStore('photos',{keyPath:'userId'});};q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);});}
+async function saveMotorcyclePhotoDraft(file){if(!file||!session?.user?.id)return;try{const d=await openMotorcyclePhotoDraftDB();await new Promise((resolve,reject)=>{const tx=d.transaction('photos','readwrite');tx.objectStore('photos').put({userId:session.user.id,blob:file,name:file.name||'motor.jpg',type:file.type||'image/jpeg',lastModified:file.lastModified||Date.now(),savedAt:Date.now()});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});d.close();}catch(e){console.warn('Privremeno čuvanje fotografije nije uspelo:',e);}}
+async function restoreMotorcyclePhotoDraft(){if(!session?.user?.id||!$('bikePhotoPreview'))return;try{const d=await openMotorcyclePhotoDraftDB();const rec=await new Promise((resolve,reject)=>{const tx=d.transaction('photos','readonly'),q=tx.objectStore('photos').get(session.user.id);q.onsuccess=()=>resolve(q.result||null);q.onerror=()=>reject(q.error);});d.close();if(!rec?.blob||!$('bikePhotoPreview'))return;if(Date.now()-(rec.savedAt||0)>86400000){await clearMotorcyclePhotoDraft();return;}stagedMotorcyclePhoto=new File([rec.blob],rec.name||'motor.jpg',{type:rec.type||rec.blob.type||'image/jpeg',lastModified:rec.lastModified||Date.now()});const url=URL.createObjectURL(stagedMotorcyclePhoto);$('bikePhotoPreview').innerHTML='<img src="'+url+'" alt="Izabrana fotografija motora" style="width:85%;max-height:200px;object-fit:contain;border-radius:10px"><div class="muted">Izabrana fotografija je sačuvana. Nastavi sa čuvanjem podataka.</div>';}catch(e){console.warn('Vraćanje privremene fotografije nije uspelo:',e);}}
+async function clearMotorcyclePhotoDraft(){stagedMotorcyclePhoto=null;if(!('indexedDB' in window)||!session?.user?.id)return;try{const d=await openMotorcyclePhotoDraftDB();await new Promise((resolve,reject)=>{const tx=d.transaction('photos','readwrite');tx.objectStore('photos').delete(session.user.id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});d.close();}catch(e){console.warn('Brisanje privremene fotografije nije uspelo:',e);}}
 function previewMotorcyclePhoto(){
   const file=$('bikePhotoFile')?.files?.[0],preview=$('bikePhotoPreview');
   if(!preview)return;
   if(!file){preview.textContent='Fotografija nije izabrana.';return;}
   if(!isSupportedMotorcycleImage(file)){preview.textContent='Izabrani fajl nije prepoznat kao fotografija.';return;}
   if(file.size>15*1024*1024){preview.textContent='Fotografija je veća od 15 MB. Izaberi manju fotografiju.';return;}
+  stagedMotorcyclePhoto=file;saveMotorcyclePhotoDraft(file);
   const reader=new FileReader();
   reader.onload=()=>{preview.innerHTML='<img src="'+reader.result+'" alt="Pregled fotografije motora" style="width:85%;max-height:200px;object-fit:contain;border-radius:10px">';};
   reader.onerror=()=>{preview.textContent='Pregled fotografije nije uspeo. Pokušaj sa drugom fotografijom.';};
@@ -808,6 +814,7 @@ async function loadMotorcycleProfileForm(){
   if(!session||!profile?.approved||!$('bikeBrand'))return;
   const {data,error}=await db.from('member_motorcycles').select('*').eq('user_id',session.user.id).maybeSingle();
   if(error){console.warn('Podaci o motoru nisu učitani:',error.message);return;}
+  await restoreMotorcyclePhotoDraft();
   if(!data){renderMyMotorcycle(null);return;}
   $('bikeBrand').value=data.brand||'';
   $('bikeModel').value=data.model||'';
@@ -843,7 +850,7 @@ async function saveMotorcycleProfile(){
  if(!session||!profile?.approved){alert('Ova opcija je dostupna samo odobrenim članovima.');return;}
  const brand=$('bikeBrand').value.trim(),model=$('bikeModel').value.trim();
  const cc=$('bikeCc').value?Number($('bikeCc').value):null,horsepower=$('bikeHp').value?Number($('bikeHp').value):null;
- const file=$('bikePhotoFile').files?.[0];
+ const file=$('bikePhotoFile').files?.[0]||stagedMotorcyclePhoto||null;
  if(!brand){alert('Marka motora je obavezna.');$('bikeBrand').focus();return;}
  if(cc!==null&&(!Number.isInteger(cc)||cc<1||cc>3000)){alert('Unesi ispravnu kubikažu.');return;}
  if(horsepower!==null&&(!Number.isInteger(horsepower)||horsepower<1||horsepower>1000)){alert('Unesi ispravnu snagu u KS.');return;}
@@ -878,6 +885,7 @@ async function saveMotorcycleProfile(){
   catch(error){throw new Error('Podaci o motoru nisu sačuvani: '+(error?.message||'mrežna greška.'));}
   if(saveResult.error)throw new Error('Podaci o motoru nisu sačuvani: '+saveResult.error.message);
   $('bikePhotoFile').value='';
+   await clearMotorcyclePhotoDraft();
   alert('Podaci o motoru i fotografija su uspešno sačuvani!');
   await loadMotorcycleProfileForm();
  }catch(error){
