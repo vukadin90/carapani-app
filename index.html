@@ -808,9 +808,32 @@ async function openAttendanceEditor(type,id,title){
  if(error){alert('Ne mogu da učitam članove: '+error.message);return;}
  const eligible=(members||[]).filter(m=>!excludedFromActivityLog(m)).sort((a,b)=>(a.full_name||'').localeCompare(b.full_name||'','sr'));
  const checked=new Set((existing||[]).map(x=>x.user_id));
- const list=eligible.length?eligible.map(m=>'<label style="display:flex;align-items:center;gap:10px;padding:11px 5px;border-bottom:1px solid #30343a;font-size:13px"><input type="checkbox" data-attendance-user="'+esc(m.id)+'" '+(checked.has(m.id)?'checked':'')+' style="width:19px;height:19px;accent-color:#d9272e">'+esc(m.full_name||'Član kluba')+'</label>').join(''):'<p class="muted">Nema članova za evidentiranje.</p>';
+ const list=eligible.length?eligible.map(m=>'<label style="display:flex;align-items:center;gap:10px;padding:11px 5px;border-bottom:1px solid #30343a;font-size:13px"><input type="checkbox" data-attendance-user="'+esc(m.id)+'" '+(checked.has(m.id)?'checked':'')+' onchange="toggleActivityAttendance(this)" style="width:19px;height:19px;accent-color:#d9272e"><span style="flex:1">'+esc(m.full_name||'Član kluba')+'</span><small data-attendance-status="'+esc(m.id)+'" style="color:'+(checked.has(m.id)?'#70d69a':'#a4a8ad')+'">'+(checked.has(m.id)?'SAČUVANO':'')+'</small></label>').join(''):'<p class="muted">Nema članova za evidentiranje.</p>';
  const note=type==='meeting'?'Za sastanak su prikazani svi odobreni članovi koji nisu izuzeti po činu.':'Prikazani su samo članovi koji su glasali IDEM/VOZIM, kao i ranije evidentirani članovi. Oni koji nisu čekirani neće biti uračunati kao prisutni.';
- modal('<div id="attendanceEditor" data-type="'+esc(type)+'" data-id="'+esc(id)+'" data-title="'+esc(title)+'"><button class="close" onclick="closeModal()">Zatvori ✕</button><h3>EVIDENCIJA PRISUSTVA</h3><h4 style="margin:0 0 8px">'+esc(title)+'</h4><p class="muted">'+note+'</p><div style="max-height:48vh;overflow-y:auto;border-top:1px solid #30343a;margin-top:10px">'+list+'</div><div class="actions"><button class="btn" style="width:100%" onclick="saveActivityAttendance()">SAČUVAJ PRISUSTVO</button></div></div>');
+ modal('<div id="attendanceEditor" data-type="'+esc(type)+'" data-id="'+esc(id)+'" data-title="'+esc(title)+'"><button class="close" onclick="closeModal()">Zatvori ✕</button><h3>EVIDENCIJA PRISUSTVA</h3><h4 style="margin:0 0 8px">'+esc(title)+'</h4><p class="muted">'+note+' Svaka promena se čuva odmah.</p><div style="max-height:55vh;overflow-y:auto;border-top:1px solid #30343a;margin-top:10px">'+list+'</div></div>');
+}
+async function toggleActivityAttendance(input){
+ if(!isAdmin){input.checked=!input.checked;alert('Samo administrator može evidentirati prisustvo.');return;}
+ const root=$('attendanceEditor');if(!root||!session?.user?.id)return;
+ const type=root.dataset.type,id=root.dataset.id,userId=input.dataset.attendanceUser;
+ const status=root.querySelector('[data-attendance-status="'+userId+'"]');
+ const shouldMark=input.checked;
+ input.disabled=true;if(status){status.textContent='ČUVAM...';status.style.color='#d4ad62';}
+ try{
+  if(shouldMark){
+   const {error}=await db.from('club_activity_attendance').upsert({activity_type:type,activity_id:String(id),user_id:userId,marked_by:session.user.id},{onConflict:'activity_type,activity_id,user_id'});
+   if(error)throw error;
+  }else{
+   const {error}=await db.from('club_activity_attendance').delete().eq('activity_type',type).eq('activity_id',String(id)).eq('user_id',userId);
+   if(error)throw error;
+  }
+  if(status){status.textContent=shouldMark?'SAČUVANO':'UKLONJENO';status.style.color=shouldMark?'#70d69a':'#a4a8ad';}
+  await loadActivityLog();
+ }catch(error){
+  input.checked=!shouldMark;
+  if(status){status.textContent='GREŠKA';status.style.color='#ff777c';}
+  alert('Promena prisustva nije sačuvana: '+(error?.message||error));
+ }finally{input.disabled=false;}
 }
 async function saveActivityAttendance(){
  if(!isAdmin){alert('Samo administrator može sačuvati prisustvo.');return;}
