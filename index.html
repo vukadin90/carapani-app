@@ -599,7 +599,6 @@ function renderClubFinance(){
  '<h4 class="finance-section-title">EVIDENCIJA ČLANARINA</h4><div class="finance-note">Mesečna članarina: '+financeMoney(financeMonthlyFee)+' · Godišnja uplata: '+financeMoney(financeMonthlyFee*12)+'. Zeleno – plaćeno · Crveno – prošao mesec, nije plaćeno · Sivo – tekući mesec ili van obračunskog perioda.</div>'+
  '<div class="finance-scroll"><table class="finance-table"><thead><tr><th>ČLAN</th><th>MESECI · ZELENO = PLAĆENO</th><th>PLAĆENO</th></tr></thead><tbody>'+(duesRows||'<tr><td colspan="3">Nema odobrenih članova.</td></tr>')+'</tbody></table></div>'+
  '<div class="finance-note">Pokriveno '+paidMonths+' od '+applicableMonths+' dospelih mesečnih članarina. Nepokriveno: '+unpaid+' meseci ('+financeMoney(unpaid*financeMonthlyFee)+'). Broj meseci se računa od meseca registracije člana do izabranog perioda.</div>'+
- '<h4 class="finance-section-title">PROMET BLAGAJNE</h4><div class="finance-scroll"><table class="finance-table"><thead><tr><th>DATUM</th><th>VRSTA</th><th>OPIS</th><th>IZNOS</th>'+(isAdmin?'<th>IZMENE</th>':'')+'</tr></thead><tbody>'+(transactionRows||'<tr><td colspan="'+(isAdmin?5:4)+'">Nema evidentiranih stavki za izabranu godinu.</td></tr>')+'</tbody></table></div>'+
  adminForm;
  const heading=$('financeYearHeading');if(heading)heading.textContent=String(financeYear);
 }
