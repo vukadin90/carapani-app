@@ -768,7 +768,7 @@ async function editMeeting(id){
  const currentTime=data.event_time_text||(data.starts_at?new Date(data.starts_at).toISOString().slice(11,16):'');
  const time=prompt('Vreme sastanka:',currentTime);if(time===null)return;
  const exact=/^([01]\d|2[0-3]):[0-5]\d$/.test(time.trim()),parsed=new Date(dateValue+'T'+(exact?time.trim():'00:00'));
- if(!title.trim()||!/^ \d{4}-\d{2}-\d{2}$/.test(dateValue)||!time.trim()||isNaN(parsed.getTime())){alert('Proveri naziv, datum i vreme sastanka.');return;}
+ if(!title.trim()||!/^\d{4}-\d{2}-\d{2}$/.test(dateValue)||!time.trim()||isNaN(parsed.getTime())){alert('Proveri naziv, datum i vreme sastanka.');return;}
  const {error:updateError}=await db.from('club_meetings').update({title:title.trim(),description:description.trim(),location:location.trim()||null,starts_at:parsed.toISOString(),event_time_text:exact?null:time.trim()}).eq('id',id);
  if(updateError){alert('Sastanak nije izmenjen: '+updateError.message);return;}
  alert('Sastanak je izmenjen.');await loadMeetings();
