@@ -166,7 +166,7 @@ const SUPABASE_KEY='sb_publishable_9GrOIhDzus7HQYGfTXpJqw_3GobgKaI';
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let session=null, profile=null, isAdmin=false, canPublishAnnouncements=false;
 let editPostMode=null;
-let financeYear=new Date().getFullYear(),financeTransactions=[],financeMembers=[],financeMonthlyFee=1000;
+let financeYear=new Date().getFullYear(),financeTransactions=[],financeMembers=[],financeRosterIds=[],financeMonthlyFee=1000;
 const PUSH_VAPID_PUBLIC_KEY='BOlA_LxT67z8xE6S-tKuXswZ50ThqLXj_JYskySJO_hC2u7WbADlOJTxjQR5a54t5gh4gqC1l1TrgS8RRrHK8Oo';
 const $=id=>document.getElementById(id);
 
@@ -538,14 +538,16 @@ async function loadClubFinance(){
  const results=await Promise.all([
   db.from('club_finance_settings').select('monthly_fee').eq('id',true).maybeSingle(),
   db.from('club_finance_transactions').select('*').order('transaction_date',{ascending:false}).limit(2000),
-  db.from('profiles').select('id,full_name,created_at').eq('approved',true).order('full_name')
+  db.from('profiles').select('id,full_name,created_at').eq('approved',true).order('full_name'),
+  db.from('club_finance_roster').select('member_id')
  ]);
- const setting=results[0],transactions=results[1],members=results[2];
- const error=setting.error||transactions.error||members.error;
+ const setting=results[0],transactions=results[1],members=results[2],roster=results[3];
+ const error=setting.error||transactions.error||members.error||roster.error;
  if(error){el.innerHTML='<div class="notice">Ne mogu da učitam blagajnu: '+esc(error.message)+'</div>';return;}
  financeMonthlyFee=Number(setting.data?.monthly_fee||1000);
  financeTransactions=transactions.data||[];
  financeMembers=members.data||[];
+ financeRosterIds=(roster.data||[]).map(row=>row.member_id);
  renderClubFinance();
 }
 function renderClubFinance(){
@@ -560,7 +562,7 @@ function renderClubFinance(){
  const lastMonth=financeYear<currentYear?12:financeYear===currentYear?currentMonth:0;
  let applicableMonths=0,paidMonths=0;
  const monthNames=['Jan.','Feb.','Mart.','Apr.','Maj.','Jun.','Jul.','Avg.','Sep.','Okt.','Nov.','Dec.'];
- const duesRows=financeMembers.map(m=>{
+ const duesRows=financeMembers.filter(m=>financeRosterIds.includes(m.id)).map(m=>{
   const created=new Date(m.created_at||String(financeYear)+'-01-01');
   const first=created.getFullYear()>financeYear?13:created.getFullYear()===financeYear?created.getMonth()+1:1;
   const payments=rows.filter(t=>t.transaction_type==='membership'&&t.member_id===m.id);
@@ -596,7 +598,7 @@ function renderClubFinance(){
  }).join('');
  const today=new Date().toISOString().slice(0,10);
  const memberOptions=financeMembers.map(m=>'<option value="'+esc(m.id)+'">'+esc(m.full_name||'Član kluba')+'</option>').join('');
- const adminForm=isAdmin?'<div class="actions"><button class="btn" onclick="openFinanceAddExternalMember()">＋ DODAJ ČLANA</button><button class="btn secondary" onclick="loadFinanceAuditLog()">ISTORIJA IZMENA</button><button class="btn secondary" onclick="exportFinanceCsv()">IZVEZI CSV</button></div><div id="financeManageList"></div>' +
+ const adminForm=isAdmin?'<div class="actions"><button class="btn" onclick="openFinanceAddExternalMember()">＋ DODAJ ČLANA</button><button class="btn secondary" onclick="openFinanceRosterManager()">IZBOR ČLANOVA</button><button class="btn secondary" onclick="loadFinanceAuditLog()">ISTORIJA IZMENA</button><button class="btn secondary" onclick="exportFinanceCsv()">IZVEZI CSV</button></div><div id="financeManageList"></div>' +
  '<div id="financeEntryBox" class="formbox" style="display:none"><h3>NOVA STAVKA BLAGAJNE</h3>'+
  '<label>VRSTA STAVKE</label><select class="field" id="financeType" onchange="updateFinanceForm()"><option value="membership">Članarina</option><option value="donation">Donacija</option><option value="other_income">Ostali prihod</option><option value="expense">Trošak kluba</option></select>'+
  '<div id="financeMemberFields"><label>ČLAN</label><select class="field" id="financeMember">'+memberOptions+'</select><label>GODINA ČLANARINE</label><input class="field" id="financeMembershipYear" type="number" min="2000" max="2200" value="'+financeYear+'"><div id="financeMonthField"><label>MESEC(I) UPLATE</label><div class="finance-month-pick" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0 14px">'+monthNames.map((m,i)=>'<label style="display:flex;align-items:center;gap:7px;padding:9px 7px;border:1px solid #3a3f46;border-radius:7px;background:#202328;font-size:13px"><input type="checkbox" class="financeMonthCheck" value="'+(i+1)+'" '+((i+1)===currentMonth?'checked':'')+' style="width:17px;height:17px;accent-color:#22a06b">'+m+'</label>').join('')+'</div></div></div>'+
@@ -623,6 +625,27 @@ function openFinanceExpenses(){
   return '<button type="button" class="finance-expense-item" onclick="openFinanceExpenseDetail(\''+t.id+'\')"><span class="finance-expense-date">'+esc(dateOnly(t.transaction_date))+'</span><span class="finance-expense-description">'+esc(details||'Trošak kluba')+'</span><strong class="finance-negative finance-expense-amount">−'+financeMoney(t.amount)+'</strong><span class="finance-expense-chevron">›</span></button>';
  }).join('');
  modal('<h3>TROŠKOVI BLAGAJNE · '+financeYear+'</h3>'+(isAdmin?'<button class="btn" style="width:100%;margin:0 0 14px" onclick="openFinanceAddExpense()">＋ DODAJ TROŠAK</button>':'')+'<div class="finance-kpi"><small>UKUPAN RASHOD</small><strong class="finance-negative">'+financeMoney(total)+'</strong></div><div class="finance-expense-list">'+(rows||'<div class="empty">Nema evidentiranih troškova za izabranu godinu.</div>')+'</div><p class="muted" style="text-align:center;margin-top:12px">Pritisni na trošak za detalje i izmene.</p>');
+}
+function openFinanceRosterManager(){
+ if(!isAdmin)return;
+ const options=financeMembers.map(member=>'<label style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid #3a3f46;border-radius:8px;background:#202328;margin:6px 0"><input type="checkbox" class="financeRosterCheck" value="'+esc(member.id)+'" '+(financeRosterIds.includes(member.id)?'checked':'')+' style="width:18px;height:18px;accent-color:#22a06b"><span style="font-weight:700">'+esc(member.full_name||'Član kluba')+'</span></label>').join('');
+ modal('<h3>IZBOR ČLANOVA ZA ČLANARINU</h3><p class="muted">Označi članove koji treba da budu prikazani u evidenciji članarina. Članovi koji nisu označeni neće biti prikazani, ali njihove ranije uplate ostaju sačuvane.</p><div style="max-height:55vh;overflow:auto;padding-right:3px">'+(options||'<p class="muted">Nema odobrenih članova.</p>')+'</div><div class="actions"><button type="button" class="btn" onclick="saveFinanceRoster()">SAČUVAJ IZBOR</button><button type="button" class="btn secondary" onclick="closeModal()">OTKAŽI</button></div>');
+}
+async function saveFinanceRoster(){
+ if(!isAdmin||!session)return;
+ const selected=[...document.querySelectorAll('.financeRosterCheck:checked')].map(el=>el.value);
+ const current=financeRosterIds.slice();
+ const toAdd=selected.filter(id=>!current.includes(id));
+ const toRemove=current.filter(id=>!selected.includes(id));
+ if(toAdd.length){
+  const {error}=await db.from('club_finance_roster').insert(toAdd.map(member_id=>({member_id,created_by:session.user.id})));
+  if(error){alert('Izbor članova nije sačuvan: '+error.message);return;}
+ }
+ if(toRemove.length){
+  const {error}=await db.from('club_finance_roster').delete().in('member_id',toRemove);
+  if(error){alert('Izbor je delimično sačuvan, ali uklanjanje nije uspelo: '+error.message);await loadClubFinance();return;}
+ }
+ closeModal();await loadClubFinance();
 }
 function openFinanceAddExternalMember(){
  if(!isAdmin)return;
