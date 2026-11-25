@@ -773,11 +773,12 @@ async function loadActivityLog(){
  const counts={};
  (attendance||[]).forEach(row=>{if(!counts[row.user_id])counts[row.user_id]={meeting:0,event:0,ride:0};if(counts[row.user_id][row.activity_type]!==undefined)counts[row.user_id][row.activity_type]++;});
  if(!visible.length){el.innerHTML='<div class="empty">Nema članova za prikaz.</div>';return;}
- el.innerHTML='<div style="margin-bottom:12px;color:#a4a8ad;font-size:12px">Izaberi člana da vidiš njegovu istoriju prisustva.</div>'+visible.map(m=>{const x=counts[m.id]||{meeting:0,event:0,ride:0};const total=x.meeting+x.event+x.ride;return '<button type="button" class="activity-member-row" onclick="openMemberActivityHistory(\''+esc(m.id)+'\',\''+esc(m.full_name||'Član kluba')+'\')"><b>'+esc(m.full_name||'Član kluba')+'</b><span class="activity-member-total">'+total+'</span></button>';}).join('')+'<p class="muted" style="margin-top:14px">Ukupno prikazanih članova: '+visible.length+'. Broje se samo prisustva koja je administrator čekirao i sačuvao.</p>';
+ el.innerHTML='<div style="margin-bottom:12px;color:#a4a8ad;font-size:12px">Izaberi člana da vidiš njegovu istoriju prisustva.</div>'+visible.map(m=>{const x=counts[m.id]||{meeting:0,event:0,ride:0};const total=x.meeting+x.event+x.ride;return '<button type="button" class="activity-member-row" onclick="openMemberActivityHistory(\''+esc(m.id)+'\')"><b>'+esc(m.full_name||'Član kluba')+'</b><span class="activity-member-total">'+total+'</span></button>';}).join('')+'<p class="muted" style="margin-top:14px">Ukupno prikazanih članova: '+visible.length+'. Broje se samo prisustva koja je administrator čekirao i sačuvao.</p>';
 }
-async function openMemberActivityHistory(userId,fullName){
+async function openMemberActivityHistory(userId){
  if(!isAdmin){alert('Samo administrator može da vidi istoriju aktivnosti.');return;}
- const {data,error}=await db.from('club_activity_attendance').select('activity_type').eq('user_id',userId);
+ const [{data,error},{data:member,error:memberError}]=await Promise.all([db.from('club_activity_attendance').select('activity_type').eq('user_id',userId),db.from('profiles').select('full_name').eq('id',userId).maybeSingle()]);
+ const fullName=member?.full_name||'Član kluba';
  if(error){alert('Ne mogu da učitam istoriju člana: '+error.message);return;}
  const counts={meeting:0,event:0,ride:0};
  (data||[]).forEach(row=>{if(counts[row.activity_type]!==undefined)counts[row.activity_type]++;});
