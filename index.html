@@ -581,7 +581,7 @@ function renderClubFinance(){
  }).join('');
  const externalGroups={};
  rows.filter(t=>t.transaction_type==='membership'&&!t.member_id&&t.member_name_snapshot).forEach(t=>{const key=String(t.member_name_snapshot).trim().toLowerCase();if(!externalGroups[key])externalGroups[key]={name:t.member_name_snapshot,paid:new Set()};externalGroups[key].paid.add(Number(t.membership_month));});
- const externalDuesRows=Object.values(externalGroups).map(group=>{const cells=monthNames.map((name,i)=>group.paid.has(i+1)?'<span class="finance-month paid" title="'+name+' – plaćeno">'+name+'</span>':'<span class="finance-month na" title="'+name+' – nije evidentirano">'+name+'</span>').join('');return '<tr><td>'+esc(group.name)+' <small class="muted">(van aplikacije)</small></td><td><div class="finance-months">'+cells+'</div></td><td>'+group.paid.size+'/12</td></tr>';}).join('');
+ const externalDuesRows=Object.values(externalGroups).map(group=>{const cells=monthNames.map((name,i)=>group.paid.has(i+1)?'<span class="finance-month paid" title="'+name+' – plaćeno">'+name+'</span>':'<span class="finance-month na" title="'+name+' – nije evidentirano">'+name+'</span>').join('');return '<tr><td><span class="finance-member-name" style="text-decoration:none;cursor:default">'+esc(group.name)+'</span> <small class="muted">(van aplikacije)</small></td><td><div class="finance-months">'+cells+'</div></td><td>'+group.paid.size+'/12</td></tr>';}).join('');
  const unpaid=applicableMonths-paidMonths;
  const years=[];for(let y=currentYear-3;y<=currentYear+1;y++)years.push('<option value="'+y+'" '+(y===Number(financeYear)?'selected':'')+'>'+y+'</option>');
  const transactionRows=rows.slice().sort((a,b)=>String(b.transaction_date).localeCompare(String(a.transaction_date))).map(t=>{
