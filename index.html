@@ -105,6 +105,7 @@
 .finance-months{display:flex;align-items:center;gap:3px;flex-wrap:nowrap;min-width:max-content;white-space:nowrap}.finance-month{display:grid;flex:0 0 29px;place-items:center;width:29px;min-width:29px;height:30px;padding:0 1px;border:1px solid #3a3f46;border-radius:6px;background:#292d32;font-size:8px;font-weight:800;letter-spacing:-.35px;line-height:1;white-space:nowrap}
 .finance-month.paid{background:#153a29;border-color:#286b49;color:#7de0a4}.finance-month.unpaid{background:#451a1e;border-color:#783036;color:#ff9296}.finance-month.pending,.finance-month.na{background:#292d32;border-color:#3a3f46;color:#b9bec4}
 .finance-table td:nth-child(2){white-space:normal;min-width:250px}.finance-table td:first-child{min-width:125px}
+.finance-member-name{padding:0;border:0;background:transparent;color:#f4f4f4;text-align:left;font:700 12px Inter,system-ui,sans-serif;text-decoration:underline;text-decoration-color:#777;text-underline-offset:3px;cursor:pointer}
 .finance-section-title{font:700 19px 'Barlow Condensed',sans-serif;letter-spacing:.7px;margin:18px 0 8px}
 .finance-positive{color:#72d69a}.finance-negative{color:#ff777d}
 .finance-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
@@ -574,7 +575,7 @@ function renderClubFinance(){
    if(!activeMonths.has(month))return '<span class="finance-month na" title="'+name+' – van perioda">'+name+'</span>';
    const overdue=financeYear<currentYear||(financeYear===currentYear&&month<currentMonth);return overdue?'<span class="finance-month unpaid" title="'+name+' – prošao mesec, nije plaćeno">'+name+'</span>':'<span class="finance-month pending" title="'+name+' – tekući mesec ili još nije dospeo">'+name+'</span>';
   }).join('');
-  return '<tr><td>'+esc(m.full_name||'Član kluba')+'</td><td><div class="finance-months">'+cells+'</div></td><td>'+(Array.from({length:12},(_,i)=>i+1).filter(month=>paid.has(month)).length+'/12')+'</td></tr>';
+  return '<tr><td><button type="button" class="finance-member-name" onclick="openFinanceMemberDues(\''+m.id+'\')">'+esc(m.full_name||'Član kluba')+'</button></td><td><div class="finance-months">'+cells+'</div></td><td>'+(Array.from({length:12},(_,i)=>i+1).filter(month=>paid.has(month)).length+'/12')+'</td></tr>';
  }).join('');
  const unpaid=applicableMonths-paidMonths;
  const years=[];for(let y=currentYear-3;y<=currentYear+1;y++)years.push('<option value="'+y+'" '+(y===Number(financeYear)?'selected':'')+'>'+y+'</option>');
@@ -617,6 +618,37 @@ function openFinanceExpenses(){
   return '<button type="button" class="finance-expense-item" onclick="openFinanceExpenseDetail(\''+t.id+'\')"><span class="finance-expense-date">'+esc(dateOnly(t.transaction_date))+'</span><span class="finance-expense-description">'+esc(details||'Trošak kluba')+'</span><strong class="finance-negative finance-expense-amount">−'+financeMoney(t.amount)+'</strong><span class="finance-expense-chevron">›</span></button>';
  }).join('');
  modal('<h3>TROŠKOVI BLAGAJNE · '+financeYear+'</h3>'+(isAdmin?'<button class="btn" style="width:100%;margin:0 0 14px" onclick="openFinanceAddExpense()">＋ DODAJ TROŠAK</button>':'')+'<div class="finance-kpi"><small>UKUPAN RASHOD</small><strong class="finance-negative">'+financeMoney(total)+'</strong></div><div class="finance-expense-list">'+(rows||'<div class="empty">Nema evidentiranih troškova za izabranu godinu.</div>')+'</div><p class="muted" style="text-align:center;margin-top:12px">Pritisni na trošak za detalje i izmene.</p>');
+}
+function openFinanceMemberDues(memberId){
+ if(!isAdmin)return;
+ const member=financeMembers.find(m=>m.id===memberId);if(!member)return;
+ const payments=financeYearRows().filter(t=>t.transaction_type==='membership'&&t.member_id===memberId);
+ const paid=new Set(payments.filter(t=>t.membership_period!=='annual').map(t=>Number(t.membership_month)));
+ const monthNames=['Jan.','Feb.','Mart.','Apr.','Maj.','Jun.','Jul.','Avg.','Sep.','Okt.','Nov.','Dec.'];
+ const options=monthNames.map((name,i)=>'<option value="'+(i+1)+'">'+name+'</option>').join('');
+ const paidList=monthNames.map((name,i)=>paid.has(i+1)?name:null).filter(Boolean).join(', ')||'Nema evidentiranih uplata';
+ modal('<h3>ČLANARINA · '+esc(member.full_name||'Član kluba')+'</h3><div class="formbox"><p class="muted">Evidentirani meseci za '+financeYear+'</p><b>'+esc(paidList)+'</b></div><label>IZABERI MESEC</label><select class="field" id="financeMemberDuesMonth">'+options+'</select><div class="actions"><button class="btn" onclick="addFinanceMemberDues(\''+memberId+'\')">DODAJ ČLANARINU</button><button class="btn danger" onclick="removeFinanceMemberDues(\''+memberId+'\')">UKLONI ČLANARINU</button></div><p class="muted">Uplata se evidentira ili uklanja samo za izabranog člana i mesec.</p>');
+}
+async function addFinanceMemberDues(memberId){
+ if(!isAdmin||!session)return;
+ const month=Number($('financeMemberDuesMonth')?.value);
+ const member=financeMembers.find(m=>m.id===memberId);if(!member||month<1||month>12)return;
+ const exists=financeYearRows().some(t=>t.transaction_type==='membership'&&t.member_id===memberId&&Number(t.membership_month)===month&&Number(t.membership_year)===Number(financeYear));
+ if(exists){alert('Članarina za ovaj mesec je već evidentirana.');return;}
+ const now=new Date(),transaction_date=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+ const {error}=await db.from('club_finance_transactions').insert({transaction_type:'membership',transaction_date,description:'Mesečna članarina – '+financeMonthName(month)+' '+financeYear,amount:financeMonthlyFee,member_id:memberId,member_name_snapshot:member.full_name||'Član kluba',membership_year:Number(financeYear),membership_month:month,membership_period:'monthly'});
+ if(error){alert('Članarina nije dodata: '+error.message);return;}
+ closeModal();await loadClubFinance();
+}
+async function removeFinanceMemberDues(memberId){
+ if(!isAdmin)return;
+ const month=Number($('financeMemberDuesMonth')?.value);
+ const payment=financeYearRows().find(t=>t.transaction_type==='membership'&&t.member_id===memberId&&Number(t.membership_month)===month&&Number(t.membership_year)===Number(financeYear));
+ if(!payment){alert('Za izabrani mesec nema evidentirane članarine.');return;}
+ if(!confirm('Da li sigurno želiš da ukloniš članarinu za '+financeMonthName(month)+' '+financeYear+'?'))return;
+ const {error}=await db.from('club_finance_transactions').delete().eq('id',payment.id);
+ if(error){alert('Članarina nije uklonjena: '+error.message);return;}
+ closeModal();await loadClubFinance();
 }
 function openFinanceDonations(){
  const donations=financeYearRows().filter(t=>t.transaction_type==='donation').sort((a,b)=>String(b.transaction_date).localeCompare(String(a.transaction_date)));
