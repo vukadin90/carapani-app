@@ -565,8 +565,8 @@ function renderClubFinance(){
  let applicableMonths=0,paidMonths=0;
  const monthNames=['Jan.','Feb.','Mart.','Apr.','Maj.','Jun.','Jul.','Avg.','Sep.','Okt.','Nov.','Dec.'];
  const duesRows=financeMembers.filter(m=>financeRosterIds.includes(m.id)).map(m=>{
-  const created=new Date(m.created_at||String(financeYear)+'-01-01');
-  const first=created.getFullYear()>financeYear?13:created.getFullYear()===financeYear?created.getMonth()+1:1;
+  // Evidencija članarina počinje od januara 2027. Do tada su svi meseci sivi.
+  const first=financeYear<2027?13:1;
   const payments=rows.filter(t=>t.transaction_type==='membership'&&t.member_id===m.id);
   const annual=payments.some(t=>t.membership_period==='annual');
   const paid=new Set(annual?Array.from({length:Math.max(0,lastMonth-first+1)},(_,i)=>first+i):payments.filter(t=>t.membership_period==='monthly').map(t=>Number(t.membership_month)));
