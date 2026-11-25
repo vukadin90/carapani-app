@@ -583,7 +583,7 @@ function renderClubFinance(){
  }).join('');
  const today=new Date().toISOString().slice(0,10);
  const memberOptions=financeMembers.map(m=>'<option value="'+esc(m.id)+'">'+esc(m.full_name||'Član kluba')+'</option>').join('');
- const adminForm=isAdmin?'<div class="actions"><button class="btn" onclick="toggleFinanceEntry()">＋ DODAJ STAVKU</button><button class="btn secondary" onclick="loadFinanceAuditLog()">ISTORIJA IZMENA</button><button class="btn secondary" onclick="exportFinanceCsv()">IZVEZI CSV</button></div>'+
+ const adminForm=isAdmin?'<div class="actions"><button class="btn" onclick="toggleFinanceEntry()">＋ DODAJ STAVKU</button><button class="btn secondary" onclick="loadFinanceManageList()">IZMENI / OBRIŠI STAVKE</button><button class="btn secondary" onclick="loadFinanceAuditLog()">ISTORIJA IZMENA</button><button class="btn secondary" onclick="exportFinanceCsv()">IZVEZI CSV</button></div><div id="financeManageList"></div>' +
  '<div id="financeEntryBox" class="formbox" style="display:none"><h3>NOVA STAVKA BLAGAJNE</h3>'+
  '<label>VRSTA STAVKE</label><select class="field" id="financeType" onchange="updateFinanceForm()"><option value="membership">Članarina</option><option value="donation">Donacija</option><option value="other_income">Ostali prihod</option><option value="expense">Trošak kluba</option></select>'+
  '<div id="financeMemberFields"><label>ČLAN</label><select class="field" id="financeMember">'+memberOptions+'</select><label>GODINA ČLANARINE</label><input class="field" id="financeMembershipYear" type="number" min="2000" max="2200" value="'+financeYear+'"><div id="financeMonthField"><label>MESEC(I) UPLATE</label><div class="finance-month-pick" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0 14px">'+monthNames.map((m,i)=>'<label style="display:flex;align-items:center;gap:7px;padding:9px 7px;border:1px solid #3a3f46;border-radius:7px;background:#202328;font-size:13px"><input type="checkbox" class="financeMonthCheck" value="'+(i+1)+'" '+((i+1)===currentMonth?'checked':'')+' style="width:17px;height:17px;accent-color:#22a06b">'+m+'</label>').join('')+'</div></div></div>'+
@@ -712,6 +712,21 @@ function financeAuditItemDescription(x){
   return action+': '+subject+(changes.length?' · '+changes.join('; '):'');
  }
  return action+': '+subject+(amount?' · '+financeMoney(amount):'');
+}
+async function loadFinanceManageList(){
+ if(!isAdmin)return;
+ const box=$('financeManageList');if(!box)return;
+ const rows=financeYearRows().slice().sort((a,b)=>String(b.transaction_date).localeCompare(String(a.transaction_date)));
+ box.innerHTML='<h4 class="finance-section-title">IZMENA I BRISANJE STAVKI</h4><div class="finance-scroll"><table class="finance-table"><thead><tr><th>DATUM</th><th>VRSTA</th><th>OPIS</th><th>IZMENE</th></tr></thead><tbody>'+
+ (rows.length?rows.map(t=>{
+  const member=financeMembers.find(m=>m.id===t.member_id);const name=member?.full_name||t.member_name_snapshot||'Član';
+  let desc=t.description||'';
+  if(t.transaction_type==='membership')desc=name+' – '+(t.membership_period==='annual'?'Godišnja članarina '+t.membership_year:financeMonthName(t.membership_month)+' '+t.membership_year);
+  if(t.transaction_type==='donation')desc=(t.is_anonymous?'Anonimna donacija':(t.donor_name||'Donacija'))+(desc?' – '+desc:'');
+  if(t.category)desc=t.category+(desc?' – '+desc:'');
+  return '<tr><td>'+esc(dateOnly(t.transaction_date))+'</td><td>'+esc(financeTypeName(t.transaction_type))+'</td><td>'+esc(desc||'—')+'</td><td><div class="finance-row-actions"><button class="btn secondary" onclick="openFinanceEdit(\''+t.id+'\')">IZMENI</button><button class="btn danger" onclick="deleteFinanceTransaction(\''+t.id+'\')">✕</button></div></td></tr>';
+ }).join(''):'<tr><td colspan="4">Nema stavki za izabranu godinu.</td></tr>')+
+ '</tbody></table></div>';
 }
 async function loadFinanceAuditLog(){
  if(!isAdmin)return;
