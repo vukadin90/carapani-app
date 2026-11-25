@@ -610,7 +610,7 @@ function openFinanceExpenses(){
   const details=[t.category,t.description].filter(Boolean).join(' · ');
   return '<tr><td>'+esc(dateOnly(t.transaction_date))+'</td><td>'+esc(details||'Trošak kluba')+'</td><td class="finance-negative">−'+financeMoney(t.amount)+'</td></tr>';
  }).join('');
- modal('<h3>TROŠKOVI BLAGAJNE · '+financeYear+'</h3><div class="finance-kpi"><small>UKUPAN RASHOD</small><strong class="finance-negative">'+financeMoney(total)+'</strong></div><div class="finance-scroll"><table class="finance-table"><thead><tr><th>DATUM</th><th>OPIS / KATEGORIJA</th><th>IZNOS</th></tr></thead><tbody>'+(rows||'<tr><td colspan="3">Nema evidentiranih troškova za izabranu godinu.</td></tr>')+'</tbody></table></div><div class="actions"><button class="btn secondary" onclick="closeModal()">ZATVORI</button></div>');
+ modal('<h3>TROŠKOVI BLAGAJNE · '+financeYear+'</h3><div class="finance-kpi"><small>UKUPAN RASHOD</small><strong class="finance-negative">'+financeMoney(total)+'</strong></div><div class="finance-scroll"><table class="finance-table"><thead><tr><th>DATUM</th><th>OPIS / KATEGORIJA</th><th>IZNOS</th></tr></thead><tbody>'+(rows||'<tr><td colspan="3">Nema evidentiranih troškova za izabranu godinu.</td></tr>')+'</tbody></table></div>');
 }
 function changeFinanceYear(value){const year=Number(value);if(!Number.isInteger(year)||year<2000||year>2200)return;financeYear=year;renderClubFinance();}
 function toggleFinanceEntry(){const box=$('financeEntryBox');if(!box)return;box.style.display=box.style.display==='none'?'block':'none';updateFinanceForm();}
