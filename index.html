@@ -95,7 +95,7 @@
 .finance-table th{background:#202328;color:#d7dade;font-size:10px}
 .finance-table tr:last-child td{border-bottom:0}
 .finance-paid{color:#72d69a;font-weight:800}.finance-unpaid{color:#ff777d;font-weight:800}.finance-na{color:#737980}
-.finance-months{display:flex;gap:3px}.finance-month{width:22px;height:22px;display:grid;place-items:center;border-radius:5px;font-size:10px;font-weight:800}
+.finance-months{display:flex;gap:3px}.finance-month{width:36px;min-width:36px;height:28px;display:grid;place-items:center;border-radius:6px;font-size:10px;font-weight:800;letter-spacing:-.25px}
 .finance-month.paid{background:#153a29;color:#7de0a4}.finance-month.unpaid{background:#451a1e;color:#ff9296}.finance-month.na{background:#292d32;color:#777}
 .finance-section-title{font:700 19px 'Barlow Condensed',sans-serif;letter-spacing:.7px;margin:18px 0 8px}
 .finance-positive{color:#72d69a}.finance-negative{color:#ff777d}
@@ -548,7 +548,7 @@ function renderClubFinance(){
  const currentYear=new Date().getFullYear(),currentMonth=new Date().getMonth()+1;
  const lastMonth=financeYear<currentYear?12:financeYear===currentYear?currentMonth:0;
  let applicableMonths=0,paidMonths=0;
- const monthNames=['Jan','Feb','Mar','Apr','Maj','Jun','Jul','Avg','Sep','Okt','Nov','Dec'];
+ const monthNames=['Jan.','Feb.','Mart','Apr.','Maj','Jun','Jul','Avg','Sep','Okt','Nov','Dec'];
  const duesRows=financeMembers.map(m=>{
   const created=new Date(m.created_at||String(financeYear)+'-01-01');
   const first=created.getFullYear()>financeYear?13:created.getFullYear()===financeYear?created.getMonth()+1:1;
@@ -561,7 +561,7 @@ function renderClubFinance(){
   const cells=monthNames.map((name,i)=>{
    const month=i+1;
    if(month<first||month>lastMonth)return '<span class="finance-month na" title="'+name+' – van perioda">–</span>';
-   return paid.has(month)?'<span class="finance-month paid" title="'+name+' – plaćeno">✓</span>':'<span class="finance-month unpaid" title="'+name+' – nije plaćeno">×</span>';
+   if(paid.has(month))return '<span class="finance-month paid" title="'+name+' – plaćeno">'+name+'</span>';const overdue=financeYear<currentYear||(financeYear===currentYear&&month<currentMonth);return overdue?'<span class="finance-month unpaid" title="'+name+' – prošao mesec, nije plaćeno">'+name+'</span>':'<span class="finance-month pending" title="'+name+' – tekući mesec">'+name+'</span>';
   }).join('');
   return '<tr><td>'+esc(m.full_name||'Član kluba')+'</td><td><div class="finance-months">'+cells+'</div></td><td>'+(activeMonths.length?paid.size+'/'+activeMonths.length:'—')+'</td></tr>';
  }).join('');
@@ -592,7 +592,7 @@ function renderClubFinance(){
  el.innerHTML='<div class="finance-toolbar"><span class="muted">Pregled klupske blagajne</span><select class="field" aria-label="Izbor godine" onchange="changeFinanceYear(this.value)">'+years.join('')+'</select></div>'+
  '<div class="finance-kpis"><div class="finance-kpi"><small>STANJE BLAGAJNE · '+financeYear+'</small><strong class="'+(income-expense>=0?'finance-positive':'finance-negative')+'">'+financeMoney(income-expense)+'</strong></div><div class="finance-kpi"><small>UKUPNI PRIHODI</small><strong class="finance-positive">'+financeMoney(income)+'</strong></div><div class="finance-kpi"><small>UKUPNI RASHODI</small><strong class="finance-negative">'+financeMoney(expense)+'</strong></div><div class="finance-kpi"><small>ČLANARINE</small><strong>'+financeMoney(membership)+'</strong></div><div class="finance-kpi"><small>DONACIJE</small><strong>'+financeMoney(donations)+'</strong></div><div class="finance-kpi"><small>OSTALI PRIHODI</small><strong>'+financeMoney(otherIncome)+'</strong></div></div>'+
  '<div class="finance-note">Početno stanje je 0 RSD. Stanje se računa iz svih evidentiranih prihoda i rashoda za izabranu godinu.</div>'+
- '<h4 class="finance-section-title">EVIDENCIJA ČLANARINA</h4><div class="finance-note">Mesečna članarina: '+financeMoney(financeMonthlyFee)+' · Godišnja uplata: '+financeMoney(financeMonthlyFee*12)+'. ✓ plaćeno · × nije plaćeno · – nije u obračunskom periodu.</div>'+
+ '<h4 class="finance-section-title">EVIDENCIJA ČLANARINA</h4><div class="finance-note">Mesečna članarina: '+financeMoney(financeMonthlyFee)+' · Godišnja uplata: '+financeMoney(financeMonthlyFee*12)+'. Zeleno – plaćeno · Crveno – prošao mesec, nije plaćeno · Sivo – tekući mesec ili van obračunskog perioda.</div>'+
  '<div class="finance-scroll"><table class="finance-table"><thead><tr><th>ČLAN</th><th>JAN–DEC</th><th>PLAĆENO</th></tr></thead><tbody>'+(duesRows||'<tr><td colspan="3">Nema odobrenih članova.</td></tr>')+'</tbody></table></div>'+
  '<div class="finance-note">Pokriveno '+paidMonths+' od '+applicableMonths+' dospelih mesečnih članarina. Nepokriveno: '+unpaid+' meseci ('+financeMoney(unpaid*financeMonthlyFee)+'). Broj meseci se računa od meseca registracije člana do izabranog perioda.</div>'+
  '<h4 class="finance-section-title">PROMET BLAGAJNE</h4><div class="finance-scroll"><table class="finance-table"><thead><tr><th>DATUM</th><th>VRSTA</th><th>OPIS</th><th>IZNOS</th>'+(isAdmin?'<th>IZMENE</th>':'')+'</tr></thead><tbody>'+(transactionRows||'<tr><td colspan="'+(isAdmin?5:4)+'">Nema evidentiranih stavki za izabranu godinu.</td></tr>')+'</tbody></table></div>'+
