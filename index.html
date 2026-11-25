@@ -636,7 +636,7 @@ async function saveFinanceExternalMember(){
  const name=$('financeExternalMemberName')?.value?.trim().replace(/\\s+/g,' ');
  const year=Number($('financeExternalMemberYear')?.value);
  const months=[...document.querySelectorAll('.financeExternalMonth:checked')].map(el=>Number(el.value)).filter(m=>m>=1&&m<=12);
- if(!name||name.split(' ').length<2){alert('Unesi ime i prezime člana.');return;}
+ if(!name){alert('Unesi ime člana.');return;}
  if(!Number.isInteger(year)||year<2000||year>2200){alert('Unesi ispravnu godinu članarine.');return;}
  if(!months.length){alert('Izaberi najmanje jedan mesec.');return;}
  const now=new Date(),transaction_date=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
