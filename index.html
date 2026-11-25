@@ -586,10 +586,10 @@ function renderClubFinance(){
  const adminForm=isAdmin?'<div class="actions"><button class="btn" onclick="toggleFinanceEntry()">＋ DODAJ STAVKU</button><button class="btn secondary" onclick="loadFinanceAuditLog()">ISTORIJA IZMENA</button><button class="btn secondary" onclick="exportFinanceCsv()">IZVEZI CSV</button></div>'+
  '<div id="financeEntryBox" class="formbox" style="display:none"><h3>NOVA STAVKA BLAGAJNE</h3>'+
  '<label>VRSTA STAVKE</label><select class="field" id="financeType" onchange="updateFinanceForm()"><option value="membership">Članarina</option><option value="donation">Donacija</option><option value="other_income">Ostali prihod</option><option value="expense">Trošak kluba</option></select>'+
- '<div id="financeMemberFields"><label>ČLAN</label><select class="field" id="financeMember">'+memberOptions+'</select><label>NAČIN UPLATE</label><select class="field" id="financePeriod" onchange="updateFinanceForm()"><option value="monthly">Mesečno – 1.000 RSD</option><option value="annual">Godišnje unapred – 12.000 RSD</option></select><label>GODINA ČLANARINE</label><input class="field" id="financeMembershipYear" type="number" min="2000" max="2200" value="'+financeYear+'"><div id="financeMonthField"><label>MESEC</label><select class="field" id="financeMonth">'+monthNames.map((m,i)=>'<option value="'+(i+1)+'" '+((i+1)===currentMonth?'selected':'')+'>'+m+'</option>').join('')+'</select></div></div>'+
+ '<div id="financeMemberFields"><label>ČLAN</label><select class="field" id="financeMember">'+memberOptions+'</select><label>GODINA ČLANARINE</label><input class="field" id="financeMembershipYear" type="number" min="2000" max="2200" value="'+financeYear+'"><div id="financeMonthField"><label>MESEC</label><select class="field" id="financeMonth">'+monthNames.map((m,i)=>'<option value="'+(i+1)+'" '+((i+1)===currentMonth?'selected':'')+'>'+m+'</option>').join('')+'</select></div></div>'+
  '<div id="financeDonationFields" style="display:none"><label>IME DONATORA (OPCIONO)</label><input class="field" id="financeDonor" placeholder="Ime donatora"><label><input type="checkbox" id="financeAnonymous"> Prikaži kao anonimnu donaciju</label></div>'+
  '<div id="financeCategoryField" style="display:none"><label>KATEGORIJA</label><select class="field" id="financeCategory"><option value="Organizacija događaja">Organizacija događaja</option><option value="Gorivo i putni troškovi">Gorivo i putni troškovi</option><option value="Hrana i piće">Hrana i piće</option><option value="Klupska oprema">Klupska oprema</option><option value="Održavanje kluba">Održavanje kluba</option><option value="Ostalo">Ostalo</option></select></div>'+
- '<label>IZNOS (RSD)</label><input class="field" id="financeAmount" type="number" min="1" step="1" value="'+financeMonthlyFee+'" required>'+
+ '<input type="hidden" id="financeAmount" value="'+financeMonthlyFee+'">'+
  '<label>DATUM UPLATE / TROŠKA</label><input class="field" id="financeDate" type="date" value="'+today+'">'+
  '<label>OPIS / NAPOMENA</label><textarea class="field" id="financeDescription" rows="2" placeholder="Dodatne informacije (opciono)"></textarea>'+
  '<div class="actions"><button class="btn" onclick="saveFinanceTransaction()">SAČUVAJ STAVKU</button><button class="btn secondary" onclick="toggleFinanceEntry()">OTKAŽI</button></div></div><div id="financeAuditLog"></div>':'<p class="finance-note">Pregled je dostupan svim odobrenim članovima. Unos i izmene su dozvoljeni samo administratorima i ovlašćenim blagajnicima.</p>';
@@ -611,7 +611,7 @@ function updateFinanceForm(){
  if(memberFields)memberFields.style.display=type==='membership'?'':'none';
  if(donationFields)donationFields.style.display=type==='donation'?'':'none';
  if(categoryField)categoryField.style.display=(type==='expense'||type==='other_income')?'':'none';
- const period=$('financePeriod')?.value||'monthly';
+ const period='monthly';
  if(monthField)monthField.style.display=type==='membership'&&period==='monthly'?'':'none';
  const amount=$('financeAmount');
  if(amount){if(type==='membership'){amount.value=String(period==='annual'?financeMonthlyFee*12:financeMonthlyFee);amount.readOnly=true;}else{amount.readOnly=false;}}
@@ -622,12 +622,12 @@ async function saveFinanceTransaction(){
  const payload={transaction_type:type,transaction_date:transactionDate,description,amount:Number($('financeAmount')?.value||0)};
  if(!transactionDate||!payload.amount||payload.amount<=0){alert('Unesi ispravan datum i iznos.');return;}
  if(type==='membership'){
-  const period=$('financePeriod').value;
+  const period='monthly';
   payload.member_id=$('financeMember').value;
   payload.membership_year=Number($('financeMembershipYear').value);
-  payload.membership_period=period;
-  payload.membership_month=period==='monthly'?Number($('financeMonth').value):null;
-  payload.amount=period==='annual'?financeMonthlyFee*12:financeMonthlyFee;
+  payload.membership_period='monthly';
+  payload.membership_month=Number($('financeMonth').value);
+  payload.amount=financeMonthlyFee;
   if(!payload.member_id||!payload.membership_year){alert('Izaberi člana i godinu članarine.');return;}
   if(!description)payload.description=period==='annual'?'Godišnja članarina za '+payload.membership_year: 'Mesečna članarina – '+financeMonthName(payload.membership_month)+' '+payload.membership_year;
  }else if(type==='donation'){
