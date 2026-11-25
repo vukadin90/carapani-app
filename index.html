@@ -164,7 +164,6 @@ function openMainMenuAction(action){
  if(action==='ride')toggleMemberRideForm();
  else if(action==='event')toggleMemberEventForm();
  else if(action==='announcement')toggleAnnouncementForm();
- else if(action==='meetings')loadMeetings();
  setTimeout(()=>{const id=action==='ride'?'memberRideForm':action==='event'?'memberEventForm':action==='meetings'?'meetingForm':'publisherAnnouncementForm';$(id)?.scrollIntoView({behavior:'smooth',block:'start'});},50);
 }
 document.addEventListener('click',event=>{const panel=$('mainMenuPanel'),button=$('mainMenuButton');if(panel&&panel.style.display!=='none'&&!panel.contains(event.target)&&!button?.contains(event.target)){panel.style.display='none';button?.setAttribute('aria-expanded','false');}});
