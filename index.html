@@ -568,7 +568,7 @@ function renderClubFinance(){
  const transactionRows=rows.slice().sort((a,b)=>String(b.transaction_date).localeCompare(String(a.transaction_date))).map(t=>{
   const member=financeMembers.find(m=>m.id===t.member_id);const memberName=member?.full_name||t.member_name_snapshot||'Član';
   let details=t.description||'';
-  if(t.transaction_type==='membership')details=memberName+' · '(t.membership_period==='annual'?'Godišnja članarina '+t.membership_year:financeMonthName(t.membership_month)+' '+t.membership_year)+(details?' · '+details:'');
+  if(t.transaction_type==='membership')details=memberName+' · '+(t.membership_period==='annual'?'Godišnja članarina '+t.membership_year:financeMonthName(t.membership_month)+' '+t.membership_year)+(details?' · '+details:'');
   if(t.transaction_type==='donation')details=(t.is_anonymous?'Anonimna donacija':(t.donor_name?'Donator: '+t.donor_name:'Donacija'))+(details?' · '+details:'');
   if(t.category)details=t.category+(details?' · '+details:'');
   const amountClass=t.transaction_type==='expense'?'finance-negative':'finance-positive';
@@ -684,7 +684,7 @@ function exportFinanceCsv(){
  rows.forEach(t=>{
   const member=financeMembers.find(m=>m.id===t.member_id);const memberName=member?.full_name||t.member_name_snapshot||'Član';
   let desc=t.description||'';
-  if(t.transaction_type==='membership')desc=memberName+' – '(t.membership_period==='annual'?'Godišnja članarina '+t.membership_year:financeMonthName(t.membership_month)+' '+t.membership_year);
+  if(t.transaction_type==='membership')desc=memberName+' – '+(t.membership_period==='annual'?'Godišnja članarina '+t.membership_year:financeMonthName(t.membership_month)+' '+t.membership_year);
   if(t.transaction_type==='donation')desc=(t.is_anonymous?'Anonimna donacija':(t.donor_name||'Donacija'))+' '+desc;
   values.push([t.transaction_date,financeTypeName(t.transaction_type),desc,(t.transaction_type==='expense'?-1:1)*Number(t.amount)]);
  });
