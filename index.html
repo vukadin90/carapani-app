@@ -202,14 +202,14 @@ function updateMainMenuOptions(){
  const panel=$('mainMenuPanel');if(!panel)return;
  if(!session||!profile?.approved){panel.innerHTML='';return;}
  const options=[{label:'Dodaj Moto vožnju',icon:'🏍️',action:'ride'}];
- if(isAdmin||canViewFinance){
-  options.push({label:'Članarina i blagajna',icon:'💰',action:'finance'});
- }
  if(isAdmin){
   options.push({label:'Dodaj Događaj',icon:'📅',action:'event'});
   options.push({label:'Dodaj Obaveštenje',icon:'📢',action:'announcement'});
   options.push({label:'Sastanci',icon:'📝',action:'meetings'});
   options.push({label:'Evidencija aktivnosti',icon:'📊',action:'activity-log'});
+ }
+ if(isAdmin||canViewFinance){
+  options.push({label:'Članarina i blagajna',icon:'💰',action:'finance'});
  }
  panel.innerHTML=options.map(item=>'<button type="button" onclick="openMainMenuAction(&quot;'+item.action+'&quot;)">'+item.icon+' <span>'+item.label+'</span><b>›</b></button>').join('');
 }
