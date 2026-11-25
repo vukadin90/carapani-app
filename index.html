@@ -566,7 +566,7 @@ function renderClubFinance(){
  const lastMonth=financeYear<currentYear?12:financeYear===currentYear?currentMonth:0;
  let applicableMonths=0,paidMonths=0;
  const monthNames=['Jan.','Feb.','Mart.','Apr.','Maj.','Jun.','Jul.','Avg.','Sep.','Okt.','Nov.','Dec.'];
- const duesRows=financeMembers.filter(m=>financeRosterIds.includes(m.id)).map(m=>{
+ const duesEntries=financeMembers.filter(m=>financeRosterIds.includes(m.id)).map(m=>{
   // Evidencija članarina počinje od januara 2027. Do tada su svi meseci sivi.
   const first=financeYear<2027?13:1;
   const payments=rows.filter(t=>t.transaction_type==='membership'&&t.member_id===m.id);
@@ -584,11 +584,13 @@ function renderClubFinance(){
    const overdue=financeYear<currentYear||(financeYear===currentYear&&month<currentMonth);return overdue?'<span class="finance-month unpaid" title="'+name+' – prošao mesec, nije plaćeno">'+name+'</span>':'<span class="finance-month pending" title="'+name+' – tekući mesec ili još nije dospeo">'+name+'</span>';
   }).join('');
   const memberPhoto=m.avatar_url?'<img class="finance-member-photo" src="'+esc(m.avatar_url)+'" alt="" loading="lazy">':'<span class="finance-member-photo finance-member-photo-fallback">'+esc((m.full_name||'?').trim().slice(0,1).toUpperCase())+'</span>';
-  return '<tr><td><button type="button" class="finance-member-name" onclick="openFinanceMemberDues(\''+m.id+'\')">'+memberPhoto+'<span>'+esc(m.full_name||'Član kluba')+'</span></button></td><td><div class="finance-months">'+cells+'</div></td><td>'+(Array.from({length:12},(_,i)=>i+1).filter(month=>paid.has(month)).length+'/12')+'</td></tr>';
- }).join('');
+  const paidCount=Array.from({length:12},(_,i)=>i+1).filter(month=>paid.has(month)).length;
+  return {paidCount,name:m.full_name||'Član kluba',html:'<tr><td><button type="button" class="finance-member-name" onclick="openFinanceMemberDues(\\''+m.id+'\\')">'+memberPhoto+'<span>'+esc(m.full_name||'Član kluba')+'</span></button></td><td><div class="finance-months">'+cells+'</div></td><td>'+paidCount+'/12</td></tr>'};
+ });
  const externalGroups={};
- rows.filter(t=>t.transaction_type==='membership'&&!t.member_id&&t.member_name_snapshot).forEach(t=>{const key=String(t.member_name_snapshot).trim().toLowerCase();if(!externalGroups[key])externalGroups[key]={name:t.member_name_snapshot,paid:new Set()};externalGroups[key].paid.add(Number(t.membership_month));});
- const externalDuesRows=Object.values(externalGroups).map(group=>{const cells=monthNames.map((name,i)=>group.paid.has(i+1)?'<span class="finance-month paid" title="'+name+' – plaćeno">'+name+'</span>':'<span class="finance-month na" title="'+name+' – nije evidentirano">'+name+'</span>').join('');return '<tr><td><button type="button" class="finance-member-name" onclick="openFinanceExternalMemberDues(\''+encodeURIComponent(group.name)+'\')">'+esc(group.name)+'</button> <small class="muted">(van aplikacije)</small></td><td><div class="finance-months">'+cells+'</div></td><td>'+group.paid.size+'/12</td></tr>';}).join('');
+ rows.filter(t=>t.transaction_type==='membership'&&!t.member_id&&t.member_name_snapshot).forEach(t=>{const key=String(t.member_name_snapshot).trim().toLowerCase();if(!externalGroups[key])externalGroups[key]={name:t.member_name_snapshot,paid:new Set()};if(t.membership_period==='annual'){for(let month=1;month<=12;month++)externalGroups[key].paid.add(month);}else externalGroups[key].paid.add(Number(t.membership_month));});
+ const externalDuesEntries=Object.values(externalGroups).map(group=>{const cells=monthNames.map((name,i)=>group.paid.has(i+1)?'<span class="finance-month paid" title="'+name+' – plaćeno">'+name+'</span>':'<span class="finance-month na" title="'+name+' – nije evidentirano">'+name+'</span>').join('');return {paidCount:group.paid.size,name:group.name,html:'<tr><td><button type="button" class="finance-member-name" onclick="openFinanceExternalMemberDues(\\''+encodeURIComponent(group.name)+'\\')">'+esc(group.name)+'</button> <small class="muted">(van aplikacije)</small></td><td><div class="finance-months">'+cells+'</div></td><td>'+group.paid.size+'/12</td></tr>'};});
+ const duesRows=[...duesEntries,...externalDuesEntries].sort((a,b)=>b.paidCount-a.paidCount||a.name.localeCompare(b.name,'sr')).map(entry=>entry.html).join('');
  const unpaid=applicableMonths-paidMonths;
  const years=[];for(let y=currentYear-3;y<=currentYear+1;y++)years.push('<option value="'+y+'" '+(y===Number(financeYear)?'selected':'')+'>'+y+'</option>');
  const transactionRows=rows.slice().sort((a,b)=>String(b.transaction_date).localeCompare(String(a.transaction_date))).map(t=>{
