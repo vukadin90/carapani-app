@@ -650,7 +650,11 @@ function openFinanceEdit(id){
  if(!isAdmin)return;
  const t=financeTransactions.find(x=>x.id===id);if(!t)return;
  const isMembership=t.transaction_type==='membership';
+ const monthNames=['Jan.','Feb.','Mart.','Apr.','Maj.','Jun.','Jul.','Avg.','Sep.','Okt.','Nov.','Dec.'];
+ const memberOptions=financeMembers.map(m=>'<option value="'+esc(m.id)+'" '+(m.id===t.member_id?'selected':'')+'>'+esc(m.full_name||'Član kluba')+'</option>').join('');
+ const membershipFields=isMembership?'<label>ČLAN</label><select class="field" id="financeEditMember">'+memberOptions+'</select><label>GODINA ČLANARINE</label><input class="field" id="financeEditMembershipYear" type="number" min="2000" max="2200" value="'+Number(t.membership_year||financeYear)+'"><label>MESEC ČLANARINE</label><select class="field" id="financeEditMembershipMonth">'+monthNames.map((m,i)=>'<option value="'+(i+1)+'" '+(Number(t.membership_month)===i+1?'selected':'')+'>'+m+'</option>').join('')+'</select>':'';
  modal('<h3>IZMENA STAVKE BLAGAJNE</h3><p class="muted">'+esc(financeTypeName(t.transaction_type))+'</p>'+
+ membershipFields+
  '<label>IZNOS (RSD)</label><input class="field" id="financeEditAmount" type="number" min="1" step="1" value="'+Number(t.amount)+'" '+(isMembership?'readonly':'')+'>'+
  '<label>DATUM</label><input class="field" id="financeEditDate" type="date" value="'+esc(t.transaction_date)+'">'+
  '<label>OPIS</label><textarea class="field" id="financeEditDescription" rows="3">'+esc(t.description||'')+'</textarea>'+
@@ -663,8 +667,17 @@ async function saveFinanceEdit(id){
  const t=financeTransactions.find(x=>x.id===id);if(!t)return;
  const payload={transaction_date:$('financeEditDate').value,description:$('financeEditDescription').value.trim(),category:$('financeEditCategory').value.trim()||null};
  if(t.transaction_type!=='membership')payload.amount=Number($('financeEditAmount').value);
+ if(t.transaction_type==='membership'){
+  payload.member_id=$('financeEditMember').value;
+  payload.membership_year=Number($('financeEditMembershipYear').value);
+  payload.membership_month=Number($('financeEditMembershipMonth').value);
+  payload.membership_period='monthly';
+  const member=financeMembers.find(m=>m.id===payload.member_id);
+  payload.member_name_snapshot=member?.full_name||'Član kluba';
+  if(!payload.description)payload.description='Mesečna članarina – '+financeMonthName(payload.membership_month)+' '+payload.membership_year;
+ }
  if(t.transaction_type==='donation'){payload.donor_name=$('financeEditDonor').value.trim()||null;payload.is_anonymous=$('financeEditAnonymous').checked;if(payload.is_anonymous)payload.donor_name=null;}
- if(!payload.transaction_date||(payload.amount!==undefined&&(!payload.amount||payload.amount<=0))){alert('Proveri datum i iznos.');return;}
+ if(!payload.transaction_date||(payload.amount!==undefined&&(!payload.amount||payload.amount<=0))||(t.transaction_type==='membership'&&(!payload.member_id||payload.membership_year<2000||payload.membership_year>2200||payload.membership_month<1||payload.membership_month>12))){alert('Proveri unete podatke.');return;}
  const {error}=await db.from('club_finance_transactions').update(payload).eq('id',id);
  if(error){alert('Izmena nije sačuvana: '+error.message);return;}
  closeModal();await loadClubFinance();
