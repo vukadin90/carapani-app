@@ -164,7 +164,7 @@
 const SUPABASE_URL='https://gbmbnapxvetedlfpgtit.supabase.co';
 const SUPABASE_KEY='sb_publishable_9GrOIhDzus7HQYGfTXpJqw_3GobgKaI';
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-let session=null, profile=null, isAdmin=false, canPublishAnnouncements=false;
+let session=null, profile=null, isAdmin=false, canViewFinance=false, canPublishAnnouncements=false;
 let editPostMode=null;
 let financeYear=new Date().getFullYear(),financeTransactions=[],financeMembers=[],financeRosterIds=[],financeMonthlyFee=1000;
 const PUSH_VAPID_PUBLIC_KEY='BOlA_LxT67z8xE6S-tKuXswZ50ThqLXj_JYskySJO_hC2u7WbADlOJTxjQR5a54t5gh4gqC1l1TrgS8RRrHK8Oo';
@@ -201,8 +201,10 @@ function updateMainMenuOptions(){
  const panel=$('mainMenuPanel');if(!panel)return;
  if(!session||!profile?.approved){panel.innerHTML='';return;}
  const options=[{label:'Dodaj Moto vožnju',icon:'🏍️',action:'ride'}];
- if(isAdmin){
+ if(isAdmin||canViewFinance){
   options.push({label:'Članarina i blagajna',icon:'💰',action:'finance'});
+ }
+ if(isAdmin){
   options.push({label:'Dodaj Događaj',icon:'📅',action:'event'});
   options.push({label:'Dodaj Obaveštenje',icon:'📢',action:'announcement'});
   options.push({label:'Sastanci',icon:'📝',action:'meetings'});
@@ -215,7 +217,7 @@ function openMainMenuAction(action){
  const panel=$('mainMenuPanel');if(panel)panel.style.display='none';
  const button=$('mainMenuButton');if(button)button.setAttribute('aria-expanded','false');
  if(!session||!profile?.approved){alert('Prijavi se kao odobren član kluba.');return;}
- if(action==='finance'&&!isAdmin){alert('Blagajna je trenutno dostupna samo administratoru.');return;}
+ if(action==='finance'&&!isAdmin&&!canViewFinance){alert('Nemaš dozvolu za pregled blagajne.');return;}
   if(action==='event'&&!isAdmin){alert('Samo administrator može dodavati događaje iz ovog menija.');return;}
  if(action==='announcement'&&!isAdmin){alert('Samo administrator može dodavati obaveštenja iz ovog menija.');return;}
  if(action==='meetings'&&!isAdmin){alert('Sastanke mogu da vide i objavljuju samo administratori.');return;}
@@ -228,7 +230,7 @@ function openMainMenuAction(action){
  setTimeout(()=>{const id=action==='ride'?'memberRideForm':action==='event'?'memberEventForm':action==='meetings'?'meetingForm':'publisherAnnouncementForm';$(id)?.scrollIntoView({behavior:'smooth',block:'start'});},50);
 }
 document.addEventListener('click',event=>{const panel=$('mainMenuPanel'),button=$('mainMenuButton');if(panel&&panel.style.display!=='none'&&!panel.contains(event.target)&&!button?.contains(event.target)){panel.style.display='none';button?.setAttribute('aria-expanded','false');}});
-function showPage(name){const allowed=applyMemberAccessGate();if(name==='finance'&&!isAdmin){alert('Blagajna je trenutno dostupna samo administratoru.');name='home';}if((name==='meetings'||name==='activity-log')&&!isAdmin){alert('Ovu stranicu mogu da vide samo administratori.');name='home';}if(!allowed&&name!=='account'){name='account';}const appRoot=document.querySelector('.app');if(appRoot)appRoot.classList.toggle('activity-log-mode',name==='activity-log'&&isAdmin);const modalBack=$('modalBack');if(modalBack?.classList.contains('show')&&name!=='messages'){modalBack.classList.remove('show');privatePeerId=null;if(privateChannel){db.removeChannel(privateChannel);privateChannel=null;}}document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===name));document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.page===name));if(name==='finance')loadClubFinance();if(name==='account')renderAccount();if(name==='admin')renderAdmin();if(name==='members'&&allowed)loadMembers();if(name==='meetings'&&isAdmin)loadMeetings();if(name==='activity-log'&&isAdmin)loadActivityLog();if(name==='chat'&&allowed)loadChatMessages();if(name==='messages'&&allowed)openPrivateInbox();window.scrollTo(0,0)}
+function showPage(name){const allowed=applyMemberAccessGate();if(name==='finance'&&!isAdmin&&!canViewFinance){alert('Nemaš dozvolu za pregled blagajne.');name='home';}if((name==='meetings'||name==='activity-log')&&!isAdmin){alert('Ovu stranicu mogu da vide samo administratori.');name='home';}if(!allowed&&name!=='account'){name='account';}const appRoot=document.querySelector('.app');if(appRoot)appRoot.classList.toggle('activity-log-mode',name==='activity-log'&&isAdmin);const modalBack=$('modalBack');if(modalBack?.classList.contains('show')&&name!=='messages'){modalBack.classList.remove('show');privatePeerId=null;if(privateChannel){db.removeChannel(privateChannel);privateChannel=null;}}document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===name));document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.page===name));if(name==='finance')loadClubFinance();if(name==='account')renderAccount();if(name==='admin')renderAdmin();if(name==='members'&&allowed)loadMembers();if(name==='meetings'&&isAdmin)loadMeetings();if(name==='activity-log'&&isAdmin)loadActivityLog();if(name==='chat'&&allowed)loadChatMessages();if(name==='messages'&&allowed)openPrivateInbox();window.scrollTo(0,0)}
 function modal(html,returnHome=false){const back=$('modalBack');back.classList.toggle('private-fullscreen',returnHome);back.classList.toggle('attendance-fullscreen',html.includes('id="attendanceEditor"'));back.classList.toggle('private-delete-confirm',html.includes('Da li želiš obrisati poruke?'));back.classList.toggle('member-profile-fullscreen',html.includes('member-profile-fullscreen-content'));back.classList.toggle('club-rank-modal',html.includes('club-rank-modal-content'));back.classList.toggle('finance-edit-fullscreen',html.includes('IZMENA STAVKE BLAGAJNE'));back.classList.toggle('finance-expenses-fullscreen',html.includes('TROŠKOVI BLAGAJNE'));back.classList.toggle('finance-expense-detail-modal',html.includes('DETALJI TROŠKA')||html.includes('DETALJI DONACIJE'));back.classList.toggle('finance-expense-add-modal',html.includes('DODAJ TROŠAK'));back.classList.toggle('finance-donation-add-modal',html.includes('id="financeNewDonationDescription"'));back.classList.toggle('finance-donations-fullscreen',html.includes('DONACIJE BLAGAJNE'));back.classList.toggle('finance-member-dues-modal',html.includes('ČLANARINA ·'));back.classList.toggle('finance-external-member-modal',html.includes('id="financeExternalMemberName"'));back.querySelector('.modal').classList.toggle('private-conversation',html.includes('id="privateConversationMessages"'));$('modalContent').innerHTML=html;const closeButton=back.querySelector('.modal>.close');if(closeButton){closeButton.textContent=returnHome?'Zatvori':'Zatvori ✕';closeButton.onclick=returnHome?closePrivateMessagesToHome:null;}if(!back.dataset.closeHandler){back.addEventListener('click',event=>{if(event.target===back||event.target.closest('[data-modal-close="true"]')){event.preventDefault();back.classList.remove('show');}});back.dataset.closeHandler='1';}back.querySelectorAll('[data-modal-close="true"]').forEach(button=>{button.type='button';});back.classList.add('show')}
 function closeModal(){$('modalBack').classList.remove('show')}
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -533,7 +535,7 @@ function financeMonthName(month){return ['','Januar','Februar','Mart','April','M
 function financeYearRows(){return financeTransactions.filter(t=>t.transaction_type==='membership'?Number(t.membership_year)===Number(financeYear):String(t.transaction_date||'').slice(0,4)===String(financeYear));}
 async function loadClubFinance(){
  const el=$('financeContent');if(!el)return;
- if(!session||!profile?.approved||!isAdmin){el.innerHTML='<div class="notice">Blagajna je trenutno dostupna samo administratoru.</div>';return;}
+ if(!session||!profile?.approved||(!isAdmin&&!canViewFinance)){el.innerHTML='<div class="notice">Nemaš dozvolu za pregled blagajne.</div>';return;}
  el.innerHTML='<div class="empty">Učitavanje finansijskih podataka…</div>';
  const results=await Promise.all([
   db.from('club_finance_settings').select('monthly_fee').eq('id',true).maybeSingle(),
@@ -625,6 +627,27 @@ function openFinanceExpenses(){
   return '<button type="button" class="finance-expense-item" onclick="openFinanceExpenseDetail(\''+t.id+'\')"><span class="finance-expense-date">'+esc(dateOnly(t.transaction_date))+'</span><span class="finance-expense-description">'+esc(details||'Trošak kluba')+'</span><strong class="finance-negative finance-expense-amount">−'+financeMoney(t.amount)+'</strong><span class="finance-expense-chevron">›</span></button>';
  }).join('');
  modal('<h3>TROŠKOVI BLAGAJNE · '+financeYear+'</h3>'+(isAdmin?'<button class="btn" style="width:100%;margin:0 0 14px" onclick="openFinanceAddExpense()">＋ DODAJ TROŠAK</button>':'')+'<div class="finance-kpi"><small>UKUPAN RASHOD</small><strong class="finance-negative">'+financeMoney(total)+'</strong></div><div class="finance-expense-list">'+(rows||'<div class="empty">Nema evidentiranih troškova za izabranu godinu.</div>')+'</div><p class="muted" style="text-align:center;margin-top:12px">Pritisni na trošak za detalje i izmene.</p>');
+}
+async function openFinanceViewersManager(){
+ if(!isAdmin)return;
+ const [membersResult,viewersResult]=await Promise.all([
+  db.from('profiles').select('id,full_name').eq('approved',true).order('full_name'),
+  db.from('club_finance_viewers').select('member_id')
+ ]);
+ if(membersResult.error||viewersResult.error){alert('Ne mogu da učitam izbor članova: '+(membersResult.error||viewersResult.error).message);return;}
+ const current=(viewersResult.data||[]).map(x=>x.member_id);
+ const options=(membersResult.data||[]).filter(m=>m.id!==session.user.id).map(member=>'<label style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid #3a3f46;border-radius:8px;background:#202328;margin:6px 0"><input type="checkbox" class="financeViewerCheck" value="'+esc(member.id)+'" '+(current.includes(member.id)?'checked':'')+' style="width:18px;height:18px;accent-color:#22a06b"><span style="font-weight:700">'+esc(member.full_name||'Član kluba')+'</span></label>').join('');
+ modal('<h3>PRISTUP BLAGAJNI I ČLANARINAMA</h3><p class="muted">Označeni članovi mogu da vide stanje blagajne, prihode, troškove i evidenciju članarina. Ne mogu ništa da dodaju, menjaju ili brišu.</p><div style="max-height:55vh;overflow:auto;padding-right:3px">'+(options||'<p class="muted">Nema drugih odobrenih članova.</p>')+'</div><div class="actions"><button type="button" class="btn" onclick="saveFinanceViewers()">SAČUVAJ DOZVOLE</button><button type="button" class="btn secondary" onclick="closeModal()">OTKAŽI</button></div>');
+}
+async function saveFinanceViewers(){
+ if(!isAdmin||!session)return;
+ const selected=[...document.querySelectorAll('.financeViewerCheck:checked')].map(el=>el.value);
+ const {data:existing,error:readError}=await db.from('club_finance_viewers').select('member_id');
+ if(readError){alert('Ne mogu da proverim postojeće dozvole: '+readError.message);return;}
+ const current=(existing||[]).map(x=>x.member_id),toAdd=selected.filter(id=>!current.includes(id)),toRemove=current.filter(id=>!selected.includes(id));
+ if(toAdd.length){const {error}=await db.from('club_finance_viewers').insert(toAdd.map(member_id=>({member_id,created_by:session.user.id})));if(error){alert('Dozvole nisu sačuvane: '+error.message);return;}}
+ if(toRemove.length){const {error}=await db.from('club_finance_viewers').delete().in('member_id',toRemove);if(error){alert('Dodavanje je sačuvano, ali uklanjanje nekih dozvola nije uspelo: '+error.message);return;}}
+ closeModal();alert('Dozvole za pregled blagajne su sačuvane.');
 }
 function openFinanceRosterManager(){
  if(!isAdmin)return;
@@ -972,7 +995,7 @@ function exportFinanceCsv(){
  const a=document.createElement('a');a.href=url;a.download='Carapani-blagajna-'+financeYear+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
-async function refresh(){const {data:{session:s}}=await db.auth.getSession();session=s;profile=null;isAdmin=false;canPublishAnnouncements=false;if(session){const {data}=await db.from('profiles').select('*').eq('id',session.user.id).maybeSingle();profile=data;isAdmin=!!data?.is_admin;canPublishAnnouncements=canPublishClubEvents();}await updatePrivateUnreadBadge();
+async function refresh(){const {data:{session:s}}=await db.auth.getSession();session=s;profile=null;isAdmin=false;canViewFinance=false;canPublishAnnouncements=false;if(session){const {data}=await db.from('profiles').select('*').eq('id',session.user.id).maybeSingle();profile=data;isAdmin=!!data?.is_admin;if(profile?.approved&&!isAdmin){const {data:financeAccess}=await db.from('club_finance_viewers').select('member_id').eq('member_id',session.user.id).maybeSingle();canViewFinance=!!financeAccess;}canPublishAnnouncements=canPublishClubEvents();}await updatePrivateUnreadBadge();
 $('authStatus').textContent=session?(profile?.approved?'ČLAN':'NA ČEKANJU'):'GOST';updateMainMenuOptions();const eventPublishButton=$('memberEventPublishButton');if(eventPublishButton)eventPublishButton.style.display=canPublishClubEvents()?'':'none';renderAccount();const allowed=applyMemberAccessGate();if(!allowed){showPage('account');return;}const feedPromise=renderHomeFeed();const notificationsPromise=loadClubNotifications();await Promise.all([feedPromise,notificationsPromise]);if($('announcementPublishControls'))$('announcementPublishControls').style.display=canPublishAnnouncements?'block':'none';if($('publisherAnnouncementForm'))$('publisherAnnouncementForm').style.display='none';if($('gallery')?.classList.contains('active'))await loadGallery();const requestedPage=new URLSearchParams(location.search).get('open');if(requestedPage==='chat')showPage('chat');else if(requestedPage==='messages')showPage('messages');else if(isAdmin&&requestedPage==='admin')showPage('admin')}
 
 async function getPostVotes(type){
@@ -1872,7 +1895,7 @@ async function login(){
 async function resendSignupConfirmation(){const email=$('loginEmail').value.trim();if(!email){alert('Prvo unesi e-mail adresu u polje za prijavu.');$('loginEmail').focus();return}const {error}=await db.auth.resend({type:'signup',email,options:{emailRedirectTo:'https://vukadin90.github.io/carapani-app/'}});if(error){alert('Slanje nije uspelo: '+error.message);return}alert('Zahtev za ponovno slanje potvrde je poslat. Proveri prijemno sanduče i SPAM folder.');}
 async function logout(){if(!confirm('Da li sigurno želiš da se odjaviš sa svog naloga?'))return;const {error}=await db.auth.signOut();if(error){alert('Odjavljivanje nije uspelo: '+error.message);return;}await refresh();showPage('home')}
 function renderAdmin(){const el=$('adminPanel');if(!el)return;if(!isAdmin){el.innerHTML='<div class="notice">Ovaj deo je dostupan samo administratorima kluba.</div>';return}
-el.innerHTML=`<div class="formbox"><h3>📊 STATISTIKA ČLANSTVA</h3><p class="muted">Automatski pregled svih registrovanih naloga u aplikaciji.</p><div id="adminMemberStats" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px"><div class="card" style="text-align:center;padding:12px"><div class="muted" style="font-size:11px">UKUPNO REGISTROVANIH</div><b style="font-size:27px">…</b></div><div class="card" style="text-align:center;padding:12px"><div class="muted" style="font-size:11px">ODOBRENI</div><b style="font-size:27px">…</b></div><div class="card" style="text-align:center;padding:12px"><div class="muted" style="font-size:11px">NA ČEKANJU</div><b style="font-size:27px">…</b></div></div><button class="btn secondary" style="width:100%;margin-top:10px" onclick="loadAdminMemberStats()">OSVEŽI STATISTIKU</button></div><div class="formbox"><h3>Moto vožnje na čekanju</h3><div id="pendingRidesList">Učitavanje…</div></div><div class="formbox"><h3>Članovi na čekanju</h3><div id="pendingList">Učitavanje…</div></div><div class="formbox"><h3>Upravljanje članovima</h3><p class="muted">Pregled odobrenih članova i uklanjanje naloga iz aplikacije.</p><div id="adminMembersList">Učitavanje članova…</div></div>`;
+el.innerHTML=`<div class="formbox"><h3>💰 PRISTUP BLAGAJNI I ČLANARINAMA</h3><p class="muted">Izaberi članove kojima dozvoljavaš da pregledaju blagajnu i evidenciju članarina. Nemaju pravo izmene podataka.</p><button class="btn" type="button" onclick="openFinanceViewersManager()">IZABERI ČLANOVE</button></div><div class="formbox"><h3>📊 STATISTIKA ČLANSTVA</h3><p class="muted">Automatski pregled svih registrovanih naloga u aplikaciji.</p><div id="adminMemberStats" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px"><div class="card" style="text-align:center;padding:12px"><div class="muted" style="font-size:11px">UKUPNO REGISTROVANIH</div><b style="font-size:27px">…</b></div><div class="card" style="text-align:center;padding:12px"><div class="muted" style="font-size:11px">ODOBRENI</div><b style="font-size:27px">…</b></div><div class="card" style="text-align:center;padding:12px"><div class="muted" style="font-size:11px">NA ČEKANJU</div><b style="font-size:27px">…</b></div></div><button class="btn secondary" style="width:100%;margin-top:10px" onclick="loadAdminMemberStats()">OSVEŽI STATISTIKU</button></div><div class="formbox"><h3>Moto vožnje na čekanju</h3><div id="pendingRidesList">Učitavanje…</div></div><div class="formbox"><h3>Članovi na čekanju</h3><div id="pendingList">Učitavanje…</div></div><div class="formbox"><h3>Upravljanje članovima</h3><p class="muted">Pregled odobrenih članova i uklanjanje naloga iz aplikacije.</p><div id="adminMembersList">Učitavanje članova…</div></div>`;
 loadAdminMemberStats();loadPendingRides();loadPending();loadAdminMembers()}
 async function loadAdminMemberStats(){
  const el=$('adminMemberStats');if(!el||!isAdmin)return;
