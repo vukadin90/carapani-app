@@ -997,9 +997,18 @@ async function loadFinanceAuditLog(){
  const ids=[...new Set((data||[]).map(x=>x.actor_id).filter(Boolean))];
  let names={};
  if(ids.length){const result=await db.from('profiles').select('id,full_name').in('id',ids);(result.data||[]).forEach(p=>names[p.id]=p.full_name||'Administrator');}
- box.innerHTML='<h4 class="finance-section-title">ISTORIJA IZMENA</h4><div class="finance-scroll"><table class="finance-table"><thead><tr><th>VREME</th><th>IZVRŠIO</th><th>ŠTA JE URAĐENO</th></tr></thead><tbody>'+
+ box.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><h4 class="finance-section-title">ISTORIJA IZMENA</h4><button type="button" class="btn danger" onclick="clearFinanceAuditLog()">OBRIŠI ISTORIJU</button></div><div class="finance-scroll"><table class="finance-table"><thead><tr><th>VREME</th><th>IZVRŠIO</th><th>ŠTA JE URAĐENO</th></tr></thead><tbody>'+
  (data||[]).map(x=>'<tr><td>'+esc(new Date(x.changed_at).toLocaleString('sr-RS'))+'</td><td>'+esc(names[x.actor_id]||'Nepoznato')+'</td><td>'+esc(financeAuditItemDescription(x))+'</td></tr>').join('')+
+ ((data||[]).length?'':'<tr><td colspan="3">Istorija izmena je prazna.</td></tr>')+
  '</tbody></table></div>';
+}
+async function clearFinanceAuditLog(){
+ if(!isAdmin||!session){alert('Samo administrator može da obriše istoriju izmena.');return;}
+ if(!confirm('Da li sigurno želiš da obrišeš kompletnu istoriju izmena blagajne? Ova radnja se ne može poništiti. Podaci o uplatama i troškovima neće biti obrisani.'))return;
+ const {error}=await db.from('club_finance_audit_log').delete().gte('changed_at','1970-01-01T00:00:00.000Z');
+ if(error){alert('Istorija nije obrisana: '+error.message);return;}
+ alert('Istorija izmena je obrisana. Podaci blagajne su ostali sačuvani.');
+ await loadFinanceAuditLog();
 }
 function exportFinanceCsv(){
  if(!session||!profile?.approved)return;
