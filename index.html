@@ -586,7 +586,7 @@ function renderClubFinance(){
  const adminForm=isAdmin?'<div class="actions"><button class="btn" onclick="toggleFinanceEntry()">＋ DODAJ STAVKU</button><button class="btn secondary" onclick="loadFinanceAuditLog()">ISTORIJA IZMENA</button><button class="btn secondary" onclick="exportFinanceCsv()">IZVEZI CSV</button></div>'+
  '<div id="financeEntryBox" class="formbox" style="display:none"><h3>NOVA STAVKA BLAGAJNE</h3>'+
  '<label>VRSTA STAVKE</label><select class="field" id="financeType" onchange="updateFinanceForm()"><option value="membership">Članarina</option><option value="donation">Donacija</option><option value="other_income">Ostali prihod</option><option value="expense">Trošak kluba</option></select>'+
- '<div id="financeMemberFields"><label>ČLAN</label><select class="field" id="financeMember">'+memberOptions+'</select><label>GODINA ČLANARINE</label><input class="field" id="financeMembershipYear" type="number" min="2000" max="2200" value="'+financeYear+'"><div id="financeMonthField"><label>MESEC</label><select class="field" id="financeMonth">'+monthNames.map((m,i)=>'<option value="'+(i+1)+'" '+((i+1)===currentMonth?'selected':'')+'>'+m+'</option>').join('')+'</select></div></div>'+
+ '<div id="financeMemberFields"><label>ČLAN</label><select class="field" id="financeMember">'+memberOptions+'</select><label>GODINA ČLANARINE</label><input class="field" id="financeMembershipYear" type="number" min="2000" max="2200" value="'+financeYear+'"><div id="financeMonthField"><label>MESEC(I) UPLATE</label><div class="finance-month-pick" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0 14px">'+monthNames.map((m,i)=>'<label style="display:flex;align-items:center;gap:7px;padding:9px 7px;border:1px solid #3a3f46;border-radius:7px;background:#202328;font-size:13px"><input type="checkbox" class="financeMonthCheck" value="'+(i+1)+'" '+((i+1)===currentMonth?'checked':'')+' style="width:17px;height:17px;accent-color:#22a06b">'+m+'</label>').join('')+'</div></div></div>'+
  '<div id="financeDonationFields" style="display:none"><label>IME DONATORA (OPCIONO)</label><input class="field" id="financeDonor" placeholder="Ime donatora"><label><input type="checkbox" id="financeAnonymous"> Prikaži kao anonimnu donaciju</label></div>'+
  '<div id="financeCategoryField" style="display:none"><label>KATEGORIJA</label><select class="field" id="financeCategory"><option value="Organizacija događaja">Organizacija događaja</option><option value="Gorivo i putni troškovi">Gorivo i putni troškovi</option><option value="Hrana i piće">Hrana i piće</option><option value="Klupska oprema">Klupska oprema</option><option value="Održavanje kluba">Održavanje kluba</option><option value="Ostalo">Ostalo</option></select></div>'+
  '<input type="hidden" id="financeAmount" value="'+financeMonthlyFee+'">'+
@@ -626,10 +626,16 @@ async function saveFinanceTransaction(){
   payload.member_id=$('financeMember').value;
   payload.membership_year=Number($('financeMembershipYear').value);
   payload.membership_period='monthly';
-  payload.membership_month=Number($('financeMonth').value);
+  const selectedMonths=Array.from(document.querySelectorAll('.financeMonthCheck:checked')).map(el=>Number(el.value)).sort((a,b)=>a-b);
+  if(!selectedMonths.length){alert('Izaberi najmanje jedan mesec članarine.');return;}
   payload.amount=financeMonthlyFee;
   if(!payload.member_id||!payload.membership_year){alert('Izaberi člana i godinu članarine.');return;}
-  if(!description)payload.description=period==='annual'?'Godišnja članarina za '+payload.membership_year: 'Mesečna članarina – '+financeMonthName(payload.membership_month)+' '+payload.membership_year;
+  const rows=selectedMonths.map(month=>({...payload,membership_month:month,description:description||'Mesečna članarina – '+financeMonthName(month)+' '+payload.membership_year}));
+  const {error}=await db.from('club_finance_transactions').insert(rows);
+  if(error){alert('Stavka nije sačuvana: '+error.message);return;}
+  alert(selectedMonths.length===1?'Članarina je uspešno evidentirana.':'Uspešno je evidentirano '+selectedMonths.length+' meseci članarine.');
+  await loadClubFinance();
+  return;
  }else if(type==='donation'){
   payload.donor_name=$('financeDonor')?.value?.trim()||null;
   payload.is_anonymous=!!$('financeAnonymous')?.checked;
