@@ -626,28 +626,32 @@ function openFinanceMemberDues(memberId){
  const payments=financeYearRows().filter(t=>t.transaction_type==='membership'&&t.member_id===memberId);
  const paid=new Set(payments.filter(t=>t.membership_period!=='annual').map(t=>Number(t.membership_month)));
  const monthNames=['Jan.','Feb.','Mart.','Apr.','Maj.','Jun.','Jul.','Avg.','Sep.','Okt.','Nov.','Dec.'];
- const options=monthNames.map((name,i)=>'<option value="'+(i+1)+'">'+name+'</option>').join('');
+ const months=monthNames.map((name,i)=>'<label class="finance-dues-month-option" style="display:flex;align-items:center;gap:8px;padding:10px 8px;border:1px solid '+(paid.has(i+1)?'#277a43':'#41464d')+';border-radius:9px;background:'+(paid.has(i+1)?'#12351f':'#101215')+'"><input type="checkbox" name="financeMemberDuesMonth" value="'+(i+1)+'" style="width:18px;height:18px;accent-color:#27b45b"><span>'+name+'</span>'+(paid.has(i+1)?'<small style="margin-left:auto;color:#65d98b">PLAĆENO</small>':'')+'</label>').join('');
  const paidList=monthNames.map((name,i)=>paid.has(i+1)?name:null).filter(Boolean).join(', ')||'Nema evidentiranih uplata';
- modal('<h3>ČLANARINA · '+esc(member.full_name||'Član kluba')+'</h3><div class="formbox"><p class="muted">Evidentirani meseci za '+financeYear+'</p><b>'+esc(paidList)+'</b></div><label>IZABERI MESEC</label><select class="field" id="financeMemberDuesMonth">'+options+'</select><div class="actions"><button class="btn" onclick="addFinanceMemberDues(\''+memberId+'\')">DODAJ ČLANARINU</button><button class="btn danger" onclick="removeFinanceMemberDues(\''+memberId+'\')">UKLONI ČLANARINU</button></div><p class="muted">Uplata se evidentira ili uklanja samo za izabranog člana i mesec.</p>');
+ modal('<h3>ČLANARINA · '+esc(member.full_name||'Član kluba')+'</h3><div class="formbox"><p class="muted">Evidentirani meseci za '+financeYear+'</p><b>'+esc(paidList)+'</b></div><label>IZABERI JEDAN ILI VIŠE MESECI</label><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:8px 0 14px">'+months+'</div><div class="actions"><button class="btn" onclick="addFinanceMemberDues(\''+memberId+'\')">DODAJ ČLANARINU</button><button class="btn danger" onclick="removeFinanceMemberDues(\''+memberId+'\')">UKLONI ČLANARINU</button></div><p class="muted">Možeš označiti više meseci odjednom. Već plaćeni meseci biće preskočeni prilikom dodavanja.</p>');
 }
 async function addFinanceMemberDues(memberId){
  if(!isAdmin||!session)return;
- const month=Number($('financeMemberDuesMonth')?.value);
- const member=financeMembers.find(m=>m.id===memberId);if(!member||month<1||month>12)return;
- const exists=financeYearRows().some(t=>t.transaction_type==='membership'&&t.member_id===memberId&&Number(t.membership_month)===month&&Number(t.membership_year)===Number(financeYear));
- if(exists){alert('Članarina za ovaj mesec je već evidentirana.');return;}
+ const months=[...document.querySelectorAll('input[name="financeMemberDuesMonth"]:checked')].map(el=>Number(el.value)).filter(m=>m>=1&&m<=12);
+ const member=financeMembers.find(m=>m.id===memberId);if(!member||!months.length){alert('Izaberi najmanje jedan mesec.');return;}
+ const existing=financeYearRows().filter(t=>t.transaction_type==='membership'&&t.member_id===memberId&&Number(t.membership_year)===Number(financeYear)).map(t=>Number(t.membership_month));
+ const toAdd=months.filter(month=>!existing.includes(month));
+ if(!toAdd.length){alert('Svi izabrani meseci su već evidentirani.');return;}
  const now=new Date(),transaction_date=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
- const {error}=await db.from('club_finance_transactions').insert({transaction_type:'membership',transaction_date,description:'Mesečna članarina – '+financeMonthName(month)+' '+financeYear,amount:financeMonthlyFee,member_id:memberId,member_name_snapshot:member.full_name||'Član kluba',membership_year:Number(financeYear),membership_month:month,membership_period:'monthly'});
+ const rows=toAdd.map(month=>({transaction_type:'membership',transaction_date,description:'Mesečna članarina – '+financeMonthName(month)+' '+financeYear,amount:financeMonthlyFee,member_id:memberId,member_name_snapshot:member.full_name||'Član kluba',membership_year:Number(financeYear),membership_month:month,membership_period:'monthly'}));
+ const {error}=await db.from('club_finance_transactions').insert(rows);
  if(error){alert('Članarina nije dodata: '+error.message);return;}
+ alert('Uspešno evidentirano '+toAdd.length+' meseci članarine.');
  closeModal();await loadClubFinance();
 }
 async function removeFinanceMemberDues(memberId){
  if(!isAdmin)return;
- const month=Number($('financeMemberDuesMonth')?.value);
- const payment=financeYearRows().find(t=>t.transaction_type==='membership'&&t.member_id===memberId&&Number(t.membership_month)===month&&Number(t.membership_year)===Number(financeYear));
- if(!payment){alert('Za izabrani mesec nema evidentirane članarine.');return;}
- if(!confirm('Da li sigurno želiš da ukloniš članarinu za '+financeMonthName(month)+' '+financeYear+'?'))return;
- const {error}=await db.from('club_finance_transactions').delete().eq('id',payment.id);
+ const months=[...document.querySelectorAll('input[name="financeMemberDuesMonth"]:checked')].map(el=>Number(el.value)).filter(m=>m>=1&&m<=12);
+ if(!months.length){alert('Izaberi najmanje jedan mesec.');return;}
+ const payments=financeYearRows().filter(t=>t.transaction_type==='membership'&&t.member_id===memberId&&Number(t.membership_year)===Number(financeYear)&&months.includes(Number(t.membership_month)));
+ if(!payments.length){alert('Među izabranim mesecima nema evidentirane članarine.');return;}
+ if(!confirm('Da li sigurno želiš da ukloniš '+payments.length+' uplata članarine za izabranog člana?'))return;
+ const {error}=await db.from('club_finance_transactions').delete().in('id',payments.map(p=>p.id));
  if(error){alert('Članarina nije uklonjena: '+error.message);return;}
  closeModal();await loadClubFinance();
 }
