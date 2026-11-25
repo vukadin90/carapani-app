@@ -769,9 +769,14 @@ async function loadActivityLog(){
   db.from('club_activity_attendance').select('user_id,activity_type')
  ]);
  if(membersError||attendanceError){el.innerHTML='<div class="empty">Evidencija nije dostupna: '+esc(membersError?.message||attendanceError?.message||'Greška pri učitavanju')+'</div>';return;}
- const visible=(members||[]).filter(m=>!excludedFromActivityLog(m)).sort((a,b)=>(a.full_name||'').localeCompare(b.full_name||'','sr'));
+ const visible=(members||[]).filter(m=>!excludedFromActivityLog(m));
  const counts={};
  (attendance||[]).forEach(row=>{if(!counts[row.user_id])counts[row.user_id]={meeting:0,event:0,ride:0};if(counts[row.user_id][row.activity_type]!==undefined)counts[row.user_id][row.activity_type]++;});
+ visible.sort((a,b)=>{
+  const ca=counts[a.id]||{meeting:0,event:0,ride:0},cb=counts[b.id]||{meeting:0,event:0,ride:0};
+  const ta=ca.meeting+ca.event+ca.ride,tb=cb.meeting+cb.event+cb.ride;
+  return tb-ta||(a.full_name||'').localeCompare(b.full_name||'','sr');
+ });
  if(!visible.length){el.innerHTML='<div class="empty">Nema članova za prikaz.</div>';return;}
  el.innerHTML='<div style="margin-bottom:12px;color:#a4a8ad;font-size:12px">Izaberi člana da vidiš njegovu istoriju prisustva.</div>'+visible.map(m=>{const x=counts[m.id]||{meeting:0,event:0,ride:0};const total=x.meeting+x.event+x.ride;return '<button type="button" class="activity-member-row" onclick="openMemberActivityHistory(\''+esc(m.id)+'\')"><b>'+esc(m.full_name||'Član kluba')+'</b><span class="activity-member-total">'+total+'</span></button>';}).join('')+'<p class="muted" style="margin-top:14px">Ukupno prikazanih članova: '+visible.length+'. Broje se samo prisustva koja je administrator čekirao i sačuvao.</p>';
 }
