@@ -19,7 +19,8 @@ create table if not exists public.club_finance_transactions (
   transaction_date date not null default current_date,
   description text not null default '',
   category text,
-  member_id uuid references public.profiles(id) on delete restrict,
+  member_id uuid references public.profiles(id) on delete set null,
+  member_name_snapshot text,
   donor_name text,
   is_anonymous boolean not null default false,
   membership_year integer,
@@ -29,10 +30,10 @@ create table if not exists public.club_finance_transactions (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint club_finance_membership_fields check (
-    (transaction_type = 'membership' and member_id is not null and membership_year between 2000 and 2200
+    (transaction_type = 'membership' and (member_id is not null or nullif(btrim(member_name_snapshot),'') is not null) and membership_year between 2000 and 2200
       and ((membership_period = 'monthly' and membership_month between 1 and 12 and amount = 1000)
         or (membership_period = 'annual' and membership_month is null and amount = 12000)))
-    or (transaction_type <> 'membership' and member_id is null and membership_year is null and membership_month is null and membership_period is null)
+    or (transaction_type <> 'membership' and member_id is null and member_name_snapshot is null and membership_year is null and membership_month is null and membership_period is null)
   ),
   constraint club_finance_donor_only_for_donations check (
     transaction_type = 'donation' or (donor_name is null and is_anonymous = false)
@@ -57,7 +58,10 @@ create index if not exists club_finance_audit_log_changed_at_idx on public.club_
 create or replace function public.club_finance_validate_membership()
 returns trigger language plpgsql set search_path = '' as $$
 begin
-  if new.transaction_type = 'membership' then
+  if new.transaction_type = 'membership' and new.member_id is not null then
+    if new.member_name_snapshot is null then
+      select p.full_name into new.member_name_snapshot from public.profiles p where p.id = new.member_id;
+    end if;
     perform pg_advisory_xact_lock(hashtextextended(new.member_id::text || ':' || new.membership_year::text,0));
     if new.membership_period = 'annual' and exists (
       select 1 from public.club_finance_transactions t where t.transaction_type='membership'
