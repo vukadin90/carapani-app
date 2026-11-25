@@ -579,7 +579,7 @@ function renderClubFinance(){
  }).join('');
  const today=new Date().toISOString().slice(0,10);
  const memberOptions=financeMembers.map(m=>'<option value="'+esc(m.id)+'">'+esc(m.full_name||'Član kluba')+'</option>').join('');
- const adminForm=isAdmin?'<div class="actions"><button class="btn" onclick="toggleFinanceEntry()">＋ DODAJ STAVKU</button><button class="btn secondary" onclick="loadFinanceAuditLog()">ISTORIJA IZMENA</button><button class="btn secondary" onclick="exportFinanceCsv()">IZVEZI CSV</button></div>'+
+ const adminForm=isAdmin?'<div class="actions"><button class="btn" onclick="toggleFinanceEntry()">＋ DODAJ STAVKU</button><button class="btn danger" onclick="openFinanceExpenseEntry()">− DODAJ TROŠAK</button><button class="btn secondary" onclick="loadFinanceAuditLog()">ISTORIJA IZMENA</button><button class="btn secondary" onclick="exportFinanceCsv()">IZVEZI CSV</button></div>'+
  '<div id="financeEntryBox" class="formbox" style="display:none"><h3>NOVA STAVKA BLAGAJNE</h3>'+
  '<label>VRSTA STAVKE</label><select class="field" id="financeType" onchange="updateFinanceForm()"><option value="membership">Članarina</option><option value="donation">Donacija</option><option value="other_income">Ostali prihod</option><option value="expense">Trošak kluba</option></select>'+
  '<div id="financeMemberFields"><label>ČLAN</label><select class="field" id="financeMember">'+memberOptions+'</select><label>NAČIN UPLATE</label><select class="field" id="financePeriod" onchange="updateFinanceForm()"><option value="monthly">Mesečno – 1.000 RSD</option><option value="annual">Godišnje unapred – 12.000 RSD</option></select><label>GODINA ČLANARINE</label><input class="field" id="financeMembershipYear" type="number" min="2000" max="2200" value="'+financeYear+'"><div id="financeMonthField"><label>MESEC</label><select class="field" id="financeMonth">'+monthNames.map((m,i)=>'<option value="'+(i+1)+'" '+((i+1)===currentMonth?'selected':'')+'>'+m+'</option>').join('')+'</select></div></div>'+
@@ -601,6 +601,7 @@ function renderClubFinance(){
 }
 function changeFinanceYear(value){const year=Number(value);if(!Number.isInteger(year)||year<2000||year>2200)return;financeYear=year;renderClubFinance();}
 function toggleFinanceEntry(){const box=$('financeEntryBox');if(!box)return;box.style.display=box.style.display==='none'?'block':'none';updateFinanceForm();}
+function openFinanceExpenseEntry(){if(!isAdmin)return;const box=$('financeEntryBox');if(!box)return;box.style.display='block';const type=$('financeType');if(type)type.value='expense';updateFinanceForm();}
 function updateFinanceForm(){
  const type=$('financeType')?.value||'membership';
  const memberFields=$('financeMemberFields'),donationFields=$('financeDonationFields'),categoryField=$('financeCategoryField'),monthField=$('financeMonthField');
