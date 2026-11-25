@@ -84,6 +84,28 @@
 .activity-history-card.total strong{color:#ff777c}
 .activity-history-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 @media(min-width:650px){.activity-history-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+.finance-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}
+.finance-kpi{background:linear-gradient(145deg,#1b1e22,#111316);border:1px solid var(--line);border-radius:12px;padding:13px}
+.finance-kpi small{display:block;color:var(--muted);font-size:10px;margin-bottom:6px}
+.finance-kpi strong{font:800 22px 'Barlow Condensed',sans-serif;overflow-wrap:anywhere}
+.finance-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin:10px 0}
+.finance-table{width:100%;border-collapse:collapse;min-width:650px;font-size:11px}
+.finance-table th,.finance-table td{padding:9px 8px;border-bottom:1px solid #30343a;text-align:left;white-space:nowrap}
+.finance-table th{background:#202328;color:#d7dade;font-size:10px}
+.finance-table tr:last-child td{border-bottom:0}
+.finance-paid{color:#72d69a;font-weight:800}.finance-unpaid{color:#ff777d;font-weight:800}.finance-na{color:#737980}
+.finance-months{display:flex;gap:3px}.finance-month{width:22px;height:22px;display:grid;place-items:center;border-radius:5px;font-size:10px;font-weight:800}
+.finance-month.paid{background:#153a29;color:#7de0a4}.finance-month.unpaid{background:#451a1e;color:#ff9296}.finance-month.na{background:#292d32;color:#777}
+.finance-section-title{font:700 19px 'Barlow Condensed',sans-serif;letter-spacing:.7px;margin:18px 0 8px}
+.finance-positive{color:#72d69a}.finance-negative{color:#ff777d}
+.finance-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.finance-toolbar select{max-width:135px;margin:0}
+.finance-row-actions{display:flex;gap:5px}
+.finance-row-actions button{padding:6px 8px;font-size:10px}
+.finance-note{font-size:10px;color:var(--muted);line-height:1.45;margin:8px 0}
+@media(max-width:390px){.finance-kpi strong{font-size:19px}.finance-kpi{padding:10px}}
+
 </style>
 </head>
 <body>
@@ -110,6 +132,7 @@
 <section id="meetings" class="page"><div class="section"><div class="section-head"><h3>SASTANCI</h3><span>INTERNO · SAMO ADMINISTRATORI</span></div><div id="meetingForm" class="formbox"><h3>Objavi novi sastanak</h3><label>Naziv sastanka</label><input class="field" id="meetingTitle" value="SASTANAK" placeholder="SASTANAK"><label>Opis / dnevni red</label><textarea class="field" id="meetingDescription" rows="4" placeholder="Unesi informacije o sastanku…"></textarea><label>Datum sastanka</label><input class="field" id="meetingDate" type="date"><label>Vreme sastanka</label><input class="field" id="meetingTime" type="text" placeholder="Npr. 19:00"><label>Mesto / lokacija</label><input class="field" id="meetingLocation" value="Klub Haus" placeholder="Klub Haus"><label>Fotografija (opciono)</label><input class="field" id="meetingImage" type="file" accept="image/jpeg,image/png,image/webp"><button class="btn" style="width:100%" onclick="publishMeeting()">OBJAVI SASTANAK</button></div><div id="meetingsList" class="empty">Učitavanje sastanaka…</div></div></section>
 <section id="activity-log" class="page"><div class="activity-log-shell"><div class="activity-log-header"><button class="btn secondary" onclick="showPage('home')">← NAZAD</button><div><h2>EVIDENCIJA AKTIVNOSTI</h2><span>INTERNO · SAMO ADMINISTRATORI</span></div></div><div id="activityLogContent" class="empty">Učitavanje evidencije…</div></div></section>
 <section id="news" class="page"><div class="section"><div class="section-head"><h3>OBAVEŠTENJA</h3><span>KLUPSKE VESTI</span></div><div id="publisherAnnouncementForm" class="formbox" style="display:none"><h3>Objavi novo obaveštenje</h3><label>Naziv</label><input class="field" id="publisherAnnouncementTitle"><label>Tekst obaveštenja</label><textarea class="field" id="publisherAnnouncementDescription" rows="4"></textarea><label>Datum i vreme (opciono)</label><input class="field" id="publisherAnnouncementDate" type="datetime-local"><label>Mesto / lokacija (opciono)</label><input class="field" id="publisherAnnouncementLocation"><label>Fotografija (opciono)</label><input class="field" id="publisherAnnouncementImage" type="file" accept="image/jpeg,image/png,image/webp"><button class="btn" onclick="publishMemberAnnouncement()">OBJAVI OBAVEŠTENJE</button></div><div id="newsList" class="empty">Učitavanje obaveštenja…</div></div></section>
+<section id="finance" class="page"><div class="section"><div class="section-head"><h3>ČLANARINA I BLAGAJNA</h3><span id="financeYearHeading">FINANSIJE</span></div><div id="financeContent" class="empty">Učitavanje blagajne…</div></div></section>
 <section id="members" class="page"><div class="section"><div class="section-head"><h3>ČLANOVI KLUBA</h3><button id="manageClubRanksButton" class="btn secondary" style="display:none;padding:7px 10px;font-size:11px" onclick="openClubRankManager()">⚙ ČINOVI</button></div><div id="membersList" class="empty">Prijavite se da biste videli spisak članova.</div></div></section>
 <section id="messages" class="page"><div class="section"><div class="section-head"><h3>PRIVATNE PORUKE</h3><span>ČARAPANI</span></div><p class="muted">Privatni razgovori sa članovima kluba.</p><button class="btn" style="width:100%" onclick="openPrivateInbox()">OTVORI PORUKE</button></div></section><section id="chat" class="page"><div class="section"><div class="section-head"><h3>ČLANSKI CHAT</h3><span>ČARAPANI</span></div><div id="chatAdminToggle" style="display:none;margin:10px 0;text-align:right"><button class="btn secondary" style="width:42px;height:42px;min-width:42px;padding:0;font-size:20px" title="Administracija chata" aria-label="Administracija chata" onclick="toggleChatAdminMenu()">⚙️</button></div><div id="chatAdminMenu" class="formbox" style="display:none;margin:0 0 12px"><h3>ADMINISTRACIJA CHATA</h3><div id="chatAdminMembers" style="display:none"><h4>ČLANOVI I DOZVOLE PISANJA</h4><div id="chatAdminMemberList" class="muted">Učitavanje članova…</div></div><div style="margin-top:12px;padding-top:12px;border-top:1px solid #30343a"><button class="btn danger" style="width:100%" onclick="deleteEntireChat()">OBRIŠI CEO CHAT</button><small class="muted">Trajno briše sve poruke iz razgovora.</small></div></div><div id="chatNotice" class="notice">Chat je dostupan samo prijavljenim i odobrenim članovima kluba.</div><div id="chatMessages" class="chat-messages"><div class="empty">Učitavanje poruka…</div></div><div id="chatComposer" class="chat-composer" style="display:none"><textarea id="chatMessageInput" class="field" rows="2" maxlength="1000" placeholder="Napiši poruku…"></textarea><button class="btn" id="chatSendButton" onclick="sendChatMessage()">POŠALJI</button></div></div></section>
   
@@ -132,6 +155,7 @@ const SUPABASE_KEY='sb_publishable_9GrOIhDzus7HQYGfTXpJqw_3GobgKaI';
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let session=null, profile=null, isAdmin=false, canPublishAnnouncements=false;
 let editPostMode=null;
+let financeYear=new Date().getFullYear(),financeTransactions=[],financeMembers=[],financeMonthlyFee=1000;
 const PUSH_VAPID_PUBLIC_KEY='BOlA_LxT67z8xE6S-tKuXswZ50ThqLXj_JYskySJO_hC2u7WbADlOJTxjQR5a54t5gh4gqC1l1TrgS8RRrHK8Oo';
 const $=id=>document.getElementById(id);
 
@@ -165,7 +189,7 @@ function applyMemberAccessGate(){const allowed=!!(session&&profile?.approved);do
 function updateMainMenuOptions(){
  const panel=$('mainMenuPanel');if(!panel)return;
  if(!session||!profile?.approved){panel.innerHTML='';return;}
- const options=[{label:'Dodaj Moto vožnju',icon:'🏍️',action:'ride'}];
+ const options=[{label:'Dodaj Moto vožnju',icon:'🏍️',action:'ride'},{label:'Članarina i blagajna',icon:'💰',action:'finance'}];
  if(isAdmin){
   options.push({label:'Dodaj Događaj',icon:'📅',action:'event'});
   options.push({label:'Dodaj Obaveštenje',icon:'📢',action:'announcement'});
@@ -183,7 +207,7 @@ function openMainMenuAction(action){
  if(action==='announcement'&&!isAdmin){alert('Samo administrator može dodavati obaveštenja iz ovog menija.');return;}
  if(action==='meetings'&&!isAdmin){alert('Sastanke mogu da vide i objavljuju samo administratori.');return;}
  if(action==='activity-log'&&!isAdmin){alert('Evidenciju aktivnosti mogu da vide samo administratori.');return;}
- const page=action==='ride'?'rides':action==='event'?'events':action==='meetings'?'meetings':action==='activity-log'?'activity-log':'news';
+ const page=action==='finance'?'finance':action==='ride'?'rides':action==='event'?'events':action==='meetings'?'meetings':action==='activity-log'?'activity-log':'news';
  showPage(page);
  if(action==='ride')toggleMemberRideForm();
  else if(action==='event')toggleMemberEventForm();
@@ -191,7 +215,7 @@ function openMainMenuAction(action){
  setTimeout(()=>{const id=action==='ride'?'memberRideForm':action==='event'?'memberEventForm':action==='meetings'?'meetingForm':'publisherAnnouncementForm';$(id)?.scrollIntoView({behavior:'smooth',block:'start'});},50);
 }
 document.addEventListener('click',event=>{const panel=$('mainMenuPanel'),button=$('mainMenuButton');if(panel&&panel.style.display!=='none'&&!panel.contains(event.target)&&!button?.contains(event.target)){panel.style.display='none';button?.setAttribute('aria-expanded','false');}});
-function showPage(name){const allowed=applyMemberAccessGate();if((name==='meetings'||name==='activity-log')&&!isAdmin){alert('Ovu stranicu mogu da vide samo administratori.');name='home';}if(!allowed&&name!=='account'){name='account';}const appRoot=document.querySelector('.app');if(appRoot)appRoot.classList.toggle('activity-log-mode',name==='activity-log'&&isAdmin);const modalBack=$('modalBack');if(modalBack?.classList.contains('show')&&name!=='messages'){modalBack.classList.remove('show');privatePeerId=null;if(privateChannel){db.removeChannel(privateChannel);privateChannel=null;}}document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===name));document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.page===name));if(name==='account')renderAccount();if(name==='admin')renderAdmin();if(name==='members'&&allowed)loadMembers();if(name==='meetings'&&isAdmin)loadMeetings();if(name==='activity-log'&&isAdmin)loadActivityLog();if(name==='chat'&&allowed)loadChatMessages();if(name==='messages'&&allowed)openPrivateInbox();window.scrollTo(0,0)}
+function showPage(name){const allowed=applyMemberAccessGate();if((name==='meetings'||name==='activity-log')&&!isAdmin){alert('Ovu stranicu mogu da vide samo administratori.');name='home';}if(!allowed&&name!=='account'){name='account';}const appRoot=document.querySelector('.app');if(appRoot)appRoot.classList.toggle('activity-log-mode',name==='activity-log'&&isAdmin);const modalBack=$('modalBack');if(modalBack?.classList.contains('show')&&name!=='messages'){modalBack.classList.remove('show');privatePeerId=null;if(privateChannel){db.removeChannel(privateChannel);privateChannel=null;}}document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===name));document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.page===name));if(name==='finance')loadClubFinance();if(name==='account')renderAccount();if(name==='admin')renderAdmin();if(name==='members'&&allowed)loadMembers();if(name==='meetings'&&isAdmin)loadMeetings();if(name==='activity-log'&&isAdmin)loadActivityLog();if(name==='chat'&&allowed)loadChatMessages();if(name==='messages'&&allowed)openPrivateInbox();window.scrollTo(0,0)}
 function modal(html,returnHome=false){const back=$('modalBack');back.classList.toggle('private-fullscreen',returnHome);back.classList.toggle('attendance-fullscreen',html.includes('id="attendanceEditor"'));back.classList.toggle('private-delete-confirm',html.includes('Da li želiš obrisati poruke?'));back.classList.toggle('member-profile-fullscreen',html.includes('member-profile-fullscreen-content'));back.classList.toggle('club-rank-modal',html.includes('club-rank-modal-content'));back.querySelector('.modal').classList.toggle('private-conversation',html.includes('id="privateConversationMessages"'));$('modalContent').innerHTML=html;const closeButton=back.querySelector('.modal>.close');if(closeButton){closeButton.textContent=returnHome?'Zatvori':'Zatvori ✕';closeButton.onclick=returnHome?closePrivateMessagesToHome:null;}if(!back.dataset.closeHandler){back.addEventListener('click',event=>{if(event.target===back||event.target.closest('[data-modal-close="true"]')){event.preventDefault();back.classList.remove('show');}});back.dataset.closeHandler='1';}back.querySelectorAll('[data-modal-close="true"]').forEach(button=>{button.type='button';});back.classList.add('show')}
 function closeModal(){$('modalBack').classList.remove('show')}
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -489,6 +513,186 @@ async function sendChatMessage(){
  const pushResult=await sendClubPush('Nova poruka u Članskom chatu',(profile.full_name||'Član kluba')+': '+message,'chat');
  if(!pushResult.ok)console.warn('Poruka je poslata, ali push obaveštenje nije isporučeno:',pushResult.error);
 }
+
+function financeMoney(value){return new Intl.NumberFormat('sr-RS',{maximumFractionDigits:0}).format(Number(value||0))+' RSD';}
+function financeTypeName(type){return type==='membership'?'Članarina':type==='donation'?'Donacija':type==='expense'?'Trošak':'Ostali prihod';}
+function financeMonthName(month){return ['','Januar','Februar','Mart','April','Maj','Jun','Jul','Avgust','Septembar','Oktobar','Novembar','Decembar'][Number(month)]||'';}
+function financeYearRows(){return financeTransactions.filter(t=>t.transaction_type==='membership'?Number(t.membership_year)===Number(financeYear):String(t.transaction_date||'').slice(0,4)===String(financeYear));}
+async function loadClubFinance(){
+ const el=$('financeContent');if(!el)return;
+ if(!session||!profile?.approved){el.innerHTML='<div class="notice">Blagajna je dostupna samo odobrenim članovima kluba.</div>';return;}
+ el.innerHTML='<div class="empty">Učitavanje finansijskih podataka…</div>';
+ const results=await Promise.all([
+  db.from('club_finance_settings').select('monthly_fee').eq('id',true).maybeSingle(),
+  db.from('club_finance_transactions').select('*').order('transaction_date',{ascending:false}).limit(2000),
+  db.from('profiles').select('id,full_name,created_at').eq('approved',true).order('full_name')
+ ]);
+ const setting=results[0],transactions=results[1],members=results[2];
+ const error=setting.error||transactions.error||members.error;
+ if(error){el.innerHTML='<div class="notice">Ne mogu da učitam blagajnu: '+esc(error.message)+'</div>';return;}
+ financeMonthlyFee=Number(setting.data?.monthly_fee||1000);
+ financeTransactions=transactions.data||[];
+ financeMembers=members.data||[];
+ renderClubFinance();
+}
+function renderClubFinance(){
+ const el=$('financeContent');if(!el)return;
+ const rows=financeYearRows();
+ const income=rows.filter(t=>t.transaction_type!=='expense').reduce((s,t)=>s+Number(t.amount||0),0);
+ const expense=rows.filter(t=>t.transaction_type==='expense').reduce((s,t)=>s+Number(t.amount||0),0);
+ const membership=rows.filter(t=>t.transaction_type==='membership').reduce((s,t)=>s+Number(t.amount||0),0);
+ const donations=rows.filter(t=>t.transaction_type==='donation').reduce((s,t)=>s+Number(t.amount||0),0);
+ const otherIncome=rows.filter(t=>t.transaction_type==='other_income').reduce((s,t)=>s+Number(t.amount||0),0);
+ const currentYear=new Date().getFullYear(),currentMonth=new Date().getMonth()+1;
+ const lastMonth=financeYear<currentYear?12:financeYear===currentYear?currentMonth:0;
+ let applicableMonths=0,paidMonths=0;
+ const monthNames=['Jan','Feb','Mar','Apr','Maj','Jun','Jul','Avg','Sep','Okt','Nov','Dec'];
+ const duesRows=financeMembers.map(m=>{
+  const created=new Date(m.created_at||String(financeYear)+'-01-01');
+  const first=created.getFullYear()>financeYear?13:created.getFullYear()===financeYear?created.getMonth()+1:1;
+  const activeMonths=[];for(let month=first;month<=lastMonth;month++)activeMonths.push(month);
+  const payments=rows.filter(t=>t.transaction_type==='membership'&&t.member_id===m.id);
+  const annual=payments.some(t=>t.membership_period==='annual');
+  const paid=new Set(annual?activeMonths:payments.filter(t=>t.membership_period==='monthly').map(t=>Number(t.membership_month)));
+  applicableMonths+=activeMonths.length;
+  paidMonths+=activeMonths.filter(month=>paid.has(month)).length;
+  const cells=monthNames.map((name,i)=>{
+   const month=i+1;
+   if(month<first||month>lastMonth)return '<span class="finance-month na" title="'+name+' – van perioda">–</span>';
+   return paid.has(month)?'<span class="finance-month paid" title="'+name+' – plaćeno">✓</span>':'<span class="finance-month unpaid" title="'+name+' – nije plaćeno">×</span>';
+  }).join('');
+  return '<tr><td>'+esc(m.full_name||'Član kluba')+'</td><td><div class="finance-months">'+cells+'</div></td><td>'+(activeMonths.length?paid.size+'/'+activeMonths.length:'—')+'</td></tr>';
+ }).join('');
+ const unpaid=applicableMonths-paidMonths;
+ const years=[];for(let y=currentYear-3;y<=currentYear+1;y++)years.push('<option value="'+y+'" '+(y===Number(financeYear)?'selected':'')+'>'+y+'</option>');
+ const transactionRows=rows.slice().sort((a,b)=>String(b.transaction_date).localeCompare(String(a.transaction_date))).map(t=>{
+  const member=financeMembers.find(m=>m.id===t.member_id);const memberName=member?.full_name||t.member_name_snapshot||'Član';
+  let details=t.description||'';
+  if(t.transaction_type==='membership')details=memberName+' · '+(t.membership_period==='annual'?'Godišnja članarina '+t.membership_year:financeMonthName(t.membership_month)+' '+t.membership_year)+(details?' · '+details:'');
+  if(t.transaction_type==='donation')details=(t.is_anonymous?'Anonimna donacija':(t.donor_name?'Donator: '+t.donor_name:'Donacija'))+(details?' · '+details:'');
+  if(t.category)details=t.category+(details?' · '+details:'');
+  const amountClass=t.transaction_type==='expense'?'finance-negative':'finance-positive';
+  const actions=isAdmin?'<div class="finance-row-actions"><button class="btn secondary" onclick="openFinanceEdit(\''+t.id+'\')">IZMENI</button><button class="btn danger" onclick="deleteFinanceTransaction(\''+t.id+'\')">✕</button></div>':'';
+  return '<tr><td>'+esc(dateOnly(t.transaction_date))+'</td><td>'+esc(financeTypeName(t.transaction_type))+'</td><td>'+esc(details)+'</td><td class="'+amountClass+'">'+(t.transaction_type==='expense'?'−':'+')+financeMoney(t.amount)+'</td>'+(isAdmin?'<td>'+actions+'</td>':'')+'</tr>';
+ }).join('');
+ const today=new Date().toISOString().slice(0,10);
+ const memberOptions=financeMembers.map(m=>'<option value="'+esc(m.id)+'">'+esc(m.full_name||'Član kluba')+'</option>').join('');
+ const adminForm=isAdmin?'<div class="actions"><button class="btn" onclick="toggleFinanceEntry()">＋ DODAJ STAVKU</button><button class="btn secondary" onclick="loadFinanceAuditLog()">ISTORIJA IZMENA</button><button class="btn secondary" onclick="exportFinanceCsv()">IZVEZI CSV</button></div>'+
+ '<div id="financeEntryBox" class="formbox" style="display:none"><h3>NOVA STAVKA BLAGAJNE</h3>'+
+ '<label>VRSTA STAVKE</label><select class="field" id="financeType" onchange="updateFinanceForm()"><option value="membership">Članarina</option><option value="donation">Donacija</option><option value="other_income">Ostali prihod</option><option value="expense">Trošak kluba</option></select>'+
+ '<div id="financeMemberFields"><label>ČLAN</label><select class="field" id="financeMember">'+memberOptions+'</select><label>NAČIN UPLATE</label><select class="field" id="financePeriod" onchange="updateFinanceForm()"><option value="monthly">Mesečno – 1.000 RSD</option><option value="annual">Godišnje unapred – 12.000 RSD</option></select><label>GODINA ČLANARINE</label><input class="field" id="financeMembershipYear" type="number" min="2000" max="2200" value="'+financeYear+'"><div id="financeMonthField"><label>MESEC</label><select class="field" id="financeMonth">'+monthNames.map((m,i)=>'<option value="'+(i+1)+'" '+((i+1)===currentMonth?'selected':'')+'>'+m+'</option>').join('')+'</select></div></div>'+
+ '<div id="financeDonationFields" style="display:none"><label>IME DONATORA (OPCIONO)</label><input class="field" id="financeDonor" placeholder="Ime donatora"><label><input type="checkbox" id="financeAnonymous"> Prikaži kao anonimnu donaciju</label></div>'+
+ '<div id="financeCategoryField" style="display:none"><label>KATEGORIJA</label><select class="field" id="financeCategory"><option value="Organizacija događaja">Organizacija događaja</option><option value="Gorivo i putni troškovi">Gorivo i putni troškovi</option><option value="Hrana i piće">Hrana i piće</option><option value="Klupska oprema">Klupska oprema</option><option value="Održavanje kluba">Održavanje kluba</option><option value="Ostalo">Ostalo</option></select></div>'+
+ '<label>IZNOS (RSD)</label><input class="field" id="financeAmount" type="number" min="1" step="1" value="'+financeMonthlyFee+'" required>'+
+ '<label>DATUM UPLATE / TROŠKA</label><input class="field" id="financeDate" type="date" value="'+today+'">'+
+ '<label>OPIS / NAPOMENA</label><textarea class="field" id="financeDescription" rows="2" placeholder="Dodatne informacije (opciono)"></textarea>'+
+ '<div class="actions"><button class="btn" onclick="saveFinanceTransaction()">SAČUVAJ STAVKU</button><button class="btn secondary" onclick="toggleFinanceEntry()">OTKAŽI</button></div></div><div id="financeAuditLog"></div>':'<p class="finance-note">Pregled je dostupan svim odobrenim članovima. Unos i izmene su dozvoljeni samo administratorima i ovlašćenim blagajnicima.</p>';
+ el.innerHTML='<div class="finance-toolbar"><span class="muted">Pregled klupske blagajne</span><select class="field" aria-label="Izbor godine" onchange="changeFinanceYear(this.value)">'+years.join('')+'</select></div>'+
+ '<div class="finance-kpis"><div class="finance-kpi"><small>STANJE BLAGAJNE · '+financeYear+'</small><strong class="'+(income-expense>=0?'finance-positive':'finance-negative')+'">'+financeMoney(income-expense)+'</strong></div><div class="finance-kpi"><small>UKUPNI PRIHODI</small><strong class="finance-positive">'+financeMoney(income)+'</strong></div><div class="finance-kpi"><small>UKUPNI RASHODI</small><strong class="finance-negative">'+financeMoney(expense)+'</strong></div><div class="finance-kpi"><small>ČLANARINE</small><strong>'+financeMoney(membership)+'</strong></div><div class="finance-kpi"><small>DONACIJE</small><strong>'+financeMoney(donations)+'</strong></div><div class="finance-kpi"><small>OSTALI PRIHODI</small><strong>'+financeMoney(otherIncome)+'</strong></div></div>'+
+ '<div class="finance-note">Početno stanje je 0 RSD. Stanje se računa iz svih evidentiranih prihoda i rashoda za izabranu godinu.</div>'+
+ '<h4 class="finance-section-title">EVIDENCIJA ČLANARINA</h4><div class="finance-note">Mesečna članarina: '+financeMoney(financeMonthlyFee)+' · Godišnja uplata: '+financeMoney(financeMonthlyFee*12)+'. ✓ plaćeno · × nije plaćeno · – nije u obračunskom periodu.</div>'+
+ '<div class="finance-scroll"><table class="finance-table"><thead><tr><th>ČLAN</th><th>JAN–DEC</th><th>PLAĆENO</th></tr></thead><tbody>'+(duesRows||'<tr><td colspan="3">Nema odobrenih članova.</td></tr>')+'</tbody></table></div>'+
+ '<div class="finance-note">Pokriveno '+paidMonths+' od '+applicableMonths+' dospelih mesečnih članarina. Nepokriveno: '+unpaid+' meseci ('+financeMoney(unpaid*financeMonthlyFee)+'). Broj meseci se računa od meseca registracije člana do izabranog perioda.</div>'+
+ '<h4 class="finance-section-title">PROMET BLAGAJNE</h4><div class="finance-scroll"><table class="finance-table"><thead><tr><th>DATUM</th><th>VRSTA</th><th>OPIS</th><th>IZNOS</th>'+(isAdmin?'<th>IZMENE</th>':'')+'</tr></thead><tbody>'+(transactionRows||'<tr><td colspan="'+(isAdmin?5:4)+'">Nema evidentiranih stavki za izabranu godinu.</td></tr>')+'</tbody></table></div>'+
+ adminForm;
+ const heading=$('financeYearHeading');if(heading)heading.textContent=String(financeYear);
+}
+function changeFinanceYear(value){const year=Number(value);if(!Number.isInteger(year)||year<2000||year>2200)return;financeYear=year;renderClubFinance();}
+function toggleFinanceEntry(){const box=$('financeEntryBox');if(!box)return;box.style.display=box.style.display==='none'?'block':'none';updateFinanceForm();}
+function updateFinanceForm(){
+ const type=$('financeType')?.value||'membership';
+ const memberFields=$('financeMemberFields'),donationFields=$('financeDonationFields'),categoryField=$('financeCategoryField'),monthField=$('financeMonthField');
+ if(memberFields)memberFields.style.display=type==='membership'?'':'none';
+ if(donationFields)donationFields.style.display=type==='donation'?'':'none';
+ if(categoryField)categoryField.style.display=(type==='expense'||type==='other_income')?'':'none';
+ const period=$('financePeriod')?.value||'monthly';
+ if(monthField)monthField.style.display=type==='membership'&&period==='monthly'?'':'none';
+ const amount=$('financeAmount');
+ if(amount){if(type==='membership'){amount.value=String(period==='annual'?financeMonthlyFee*12:financeMonthlyFee);amount.readOnly=true;}else{amount.readOnly=false;}}
+}
+async function saveFinanceTransaction(){
+ if(!isAdmin||!session){alert('Samo administrator može da evidentira stavke blagajne.');return;}
+ const type=$('financeType')?.value,transactionDate=$('financeDate')?.value,description=$('financeDescription')?.value?.trim()||'';
+ const payload={transaction_type:type,transaction_date:transactionDate,description,amount:Number($('financeAmount')?.value||0)};
+ if(!transactionDate||!payload.amount||payload.amount<=0){alert('Unesi ispravan datum i iznos.');return;}
+ if(type==='membership'){
+  const period=$('financePeriod').value;
+  payload.member_id=$('financeMember').value;
+  payload.membership_year=Number($('financeMembershipYear').value);
+  payload.membership_period=period;
+  payload.membership_month=period==='monthly'?Number($('financeMonth').value):null;
+  payload.amount=period==='annual'?financeMonthlyFee*12:financeMonthlyFee;
+  if(!payload.member_id||!payload.membership_year){alert('Izaberi člana i godinu članarine.');return;}
+  if(!description)payload.description=period==='annual'?'Godišnja članarina za '+payload.membership_year: 'Mesečna članarina – '+financeMonthName(payload.membership_month)+' '+payload.membership_year;
+ }else if(type==='donation'){
+  payload.donor_name=$('financeDonor')?.value?.trim()||null;
+  payload.is_anonymous=!!$('financeAnonymous')?.checked;
+  if(payload.is_anonymous)payload.donor_name=null;
+ }else if(type==='expense'||type==='other_income'){payload.category=$('financeCategory')?.value||'Ostalo';}
+ const {error}=await db.from('club_finance_transactions').insert(payload);
+ if(error){alert('Stavka nije sačuvana: '+error.message);return;}
+ alert('Stavka je uspešno evidentirana.');
+ await loadClubFinance();
+}
+function openFinanceEdit(id){
+ if(!isAdmin)return;
+ const t=financeTransactions.find(x=>x.id===id);if(!t)return;
+ const isMembership=t.transaction_type==='membership';
+ modal('<h3>IZMENA STAVKE BLAGAJNE</h3><p class="muted">'+esc(financeTypeName(t.transaction_type))+'</p>'+
+ '<label>IZNOS (RSD)</label><input class="field" id="financeEditAmount" type="number" min="1" step="1" value="'+Number(t.amount)+'" '+(isMembership?'readonly':'')+'>'+
+ '<label>DATUM</label><input class="field" id="financeEditDate" type="date" value="'+esc(t.transaction_date)+'">'+
+ '<label>OPIS</label><textarea class="field" id="financeEditDescription" rows="3">'+esc(t.description||'')+'</textarea>'+
+ '<label>KATEGORIJA (OPCIONO)</label><input class="field" id="financeEditCategory" value="'+esc(t.category||'')+'">'+
+ (t.transaction_type==='donation'?'<label>DONATOR</label><input class="field" id="financeEditDonor" value="'+esc(t.donor_name||'')+'"><label><input type="checkbox" id="financeEditAnonymous" '+(t.is_anonymous?'checked':'')+'> Anonimna donacija</label>':'')+
+ '<div class="actions"><button class="btn" onclick="saveFinanceEdit(\''+id+'\')">SAČUVAJ IZMENE</button><button class="btn secondary" onclick="closeModal()">OTKAŽI</button></div>');
+}
+async function saveFinanceEdit(id){
+ if(!isAdmin)return;
+ const t=financeTransactions.find(x=>x.id===id);if(!t)return;
+ const payload={transaction_date:$('financeEditDate').value,description:$('financeEditDescription').value.trim(),category:$('financeEditCategory').value.trim()||null};
+ if(t.transaction_type!=='membership')payload.amount=Number($('financeEditAmount').value);
+ if(t.transaction_type==='donation'){payload.donor_name=$('financeEditDonor').value.trim()||null;payload.is_anonymous=$('financeEditAnonymous').checked;if(payload.is_anonymous)payload.donor_name=null;}
+ if(!payload.transaction_date||(payload.amount!==undefined&&(!payload.amount||payload.amount<=0))){alert('Proveri datum i iznos.');return;}
+ const {error}=await db.from('club_finance_transactions').update(payload).eq('id',id);
+ if(error){alert('Izmena nije sačuvana: '+error.message);return;}
+ closeModal();await loadClubFinance();
+}
+async function deleteFinanceTransaction(id){
+ if(!isAdmin)return;
+ if(!confirm('Da li sigurno želiš da obrišeš ovu stavku? Brisanje će ostati zabeleženo u istoriji izmena.'))return;
+ const {error}=await db.from('club_finance_transactions').delete().eq('id',id);
+ if(error){alert('Brisanje nije uspelo: '+error.message);return;}
+ await loadClubFinance();
+}
+async function loadFinanceAuditLog(){
+ if(!isAdmin)return;
+ const box=$('financeAuditLog');if(!box)return;
+ box.innerHTML='<div class="empty">Učitavanje istorije izmena…</div>';
+ const {data,error}=await db.from('club_finance_audit_log').select('*').order('changed_at',{ascending:false}).limit(50);
+ if(error){box.innerHTML='<div class="notice">Istorija nije dostupna: '+esc(error.message)+'</div>';return;}
+ const ids=[...new Set((data||[]).map(x=>x.actor_id).filter(Boolean))];
+ let names={};
+ if(ids.length){const result=await db.from('profiles').select('id,full_name').in('id',ids);(result.data||[]).forEach(p=>names[p.id]=p.full_name||'Administrator');}
+ box.innerHTML='<h4 class="finance-section-title">ISTORIJA IZMENA</h4><div class="finance-scroll"><table class="finance-table"><thead><tr><th>VREME</th><th>AKCIJA</th><th>IZVRŠIO</th><th>STAVKA</th></tr></thead><tbody>'+
+ (data||[]).map(x=>'<tr><td>'+esc(new Date(x.changed_at).toLocaleString('sr-RS'))+'</td><td>'+esc(x.action==='INSERT'?'UNOS':x.action==='UPDATE'?'IZMENA':'BRISANJE')+'</td><td>'+esc(names[x.actor_id]||'Nepoznato')+'</td><td>'+esc(String(x.transaction_id||'').slice(0,8))+'</td></tr>').join('')+
+ '</tbody></table></div>';
+}
+function exportFinanceCsv(){
+ if(!session||!profile?.approved)return;
+ const rows=financeYearRows();
+ const values=[['Datum','Vrsta','Opis','Iznos RSD']];
+ rows.forEach(t=>{
+  const member=financeMembers.find(m=>m.id===t.member_id);const memberName=member?.full_name||t.member_name_snapshot||'Član';
+  let desc=t.description||'';
+  if(t.transaction_type==='membership')desc=memberName+' – '+(t.membership_period==='annual'?'Godišnja članarina '+t.membership_year:financeMonthName(t.membership_month)+' '+t.membership_year);
+  if(t.transaction_type==='donation')desc=(t.is_anonymous?'Anonimna donacija':(t.donor_name||'Donacija'))+' '+desc;
+  values.push([t.transaction_date,financeTypeName(t.transaction_type),desc,(t.transaction_type==='expense'?-1:1)*Number(t.amount)]);
+ });
+ const csv='\uFEFF'+values.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');
+ const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+ const a=document.createElement('a');a.href=url;a.download='Carapani-blagajna-'+financeYear+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
 async function refresh(){const {data:{session:s}}=await db.auth.getSession();session=s;profile=null;isAdmin=false;canPublishAnnouncements=false;if(session){const {data}=await db.from('profiles').select('*').eq('id',session.user.id).maybeSingle();profile=data;isAdmin=!!data?.is_admin;canPublishAnnouncements=canPublishClubEvents();}await updatePrivateUnreadBadge();
 $('authStatus').textContent=session?(profile?.approved?'ČLAN':'NA ČEKANJU'):'GOST';updateMainMenuOptions();const eventPublishButton=$('memberEventPublishButton');if(eventPublishButton)eventPublishButton.style.display=canPublishClubEvents()?'':'none';renderAccount();const allowed=applyMemberAccessGate();if(!allowed){showPage('account');return;}const feedPromise=renderHomeFeed();const notificationsPromise=loadClubNotifications();await Promise.all([feedPromise,notificationsPromise]);if($('announcementPublishControls'))$('announcementPublishControls').style.display=canPublishAnnouncements?'block':'none';if($('publisherAnnouncementForm'))$('publisherAnnouncementForm').style.display='none';if($('gallery')?.classList.contains('active'))await loadGallery();const requestedPage=new URLSearchParams(location.search).get('open');if(requestedPage==='chat')showPage('chat');else if(requestedPage==='messages')showPage('messages');else if(isAdmin&&requestedPage==='admin')showPage('admin')}
 
