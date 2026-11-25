@@ -790,7 +790,7 @@ async function openMemberActivityHistory(userId){
 }
 async function openMemberActivityItems(type,userId,fullName){
  if(!isAdmin)return;
- const {data:attendance,error}=await db.from('club_activity_attendance').select('activity_id,created_at').eq('user_id',userId).eq('activity_type',type).order('created_at',{ascending:false});
+ const {data:attendance,error}=await db.from('club_activity_attendance').select('activity_id,created_at,activity_title,activity_date').eq('user_id',userId).eq('activity_type',type).order('created_at',{ascending:false});
  if(error){alert('Ne mogu da učitam spisak aktivnosti: '+error.message);return;}
  const ids=[...new Set((attendance||[]).map(x=>String(x.activity_id)))];
  if(!ids.length)return;
@@ -798,11 +798,12 @@ async function openMemberActivityItems(type,userId,fullName){
  const {data:items,error:itemError}=await db.from(config.table).select('id,title,'+config.dateField).in('id',ids);
  if(itemError){alert('Ne mogu da učitam nazive aktivnosti: '+itemError.message);return;}
  const byId=new Map((items||[]).map(x=>[String(x.id),x]));
- const list=(attendance||[]).map(row=>({row,item:byId.get(String(row.activity_id))})).map(({row,item})=>{
-  if(!item)return '<div class="activity-history-card"><small>OBJAVA VIŠE NIJE DOSTUPNA</small><strong style="font-size:17px">Sačuvano prisustvo</strong></div>';
-  const dateValue=item[config.dateField];
+ const list=(attendance||[]).map(row=>{
+  const item=byId.get(String(row.activity_id));
+  const title=row.activity_title||item?.title||'Objava više nije dostupna';
+  const dateValue=row.activity_date||item?.[config.dateField]||'';
   const dateText=dateValue?(type==='ride'?dateOnly(dateValue):new Date(dateValue).toLocaleDateString('sr-RS')):'';
-  return '<div class="activity-history-card"><small>'+esc(config.label)+(dateText?' · '+esc(dateText):'')+'</small><strong style="font-size:20px">'+esc(item.title||config.label)+'</strong></div>';
+  return '<div class="activity-history-card"><small>'+esc(config.label)+(dateText?' · '+esc(dateText):'')+'</small><strong style="font-size:20px">'+esc(title)+'</strong></div>';
  }).join('');
  const el=$('modalContent');
  modal('<h3>'+config.label+'</h3><p class="muted">'+esc(fullName)+' · '+(attendance||[]).length+' evidentiranih prisustava</p>'+list);
@@ -842,7 +843,13 @@ async function toggleActivityAttendance(input){
  input.disabled=true;if(status){status.textContent='ČUVAM...';status.style.color='#d4ad62';}
  try{
   if(shouldMark){
-   const {error}=await db.from('club_activity_attendance').upsert({activity_type:type,activity_id:String(id),user_id:userId,marked_by:session.user.id},{onConflict:'activity_type,activity_id,user_id'});
+   const config={event:{table:'club_events',dateField:'starts_at'},meeting:{table:'club_meetings',dateField:'starts_at'},ride:{table:'rides',dateField:'ride_date'}}[type];
+   if(!config)throw new Error('Nepoznata vrsta aktivnosti.');
+   const {data:activity,error:activityError}=await db.from(config.table).select('title,'+config.dateField).eq('id',id).maybeSingle();
+   if(activityError)throw activityError;
+   const rawDate=activity?.[config.dateField]||null;
+   const activityDate=rawDate?(type==='ride'?String(rawDate).slice(0,10):String(rawDate).slice(0,10)):null;
+   const {error}=await db.from('club_activity_attendance').upsert({activity_type:type,activity_id:String(id),user_id:userId,marked_by:session.user.id,activity_title:activity?.title||root.dataset.title||'Aktivnost',activity_date:activityDate},{onConflict:'activity_type,activity_id,user_id'});
    if(error)throw error;
   }else{
    const {error}=await db.from('club_activity_attendance').delete().eq('activity_type',type).eq('activity_id',String(id)).eq('user_id',userId);
