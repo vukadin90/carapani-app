@@ -854,7 +854,7 @@ async function toggleActivityAttendance(input){
    const {data:activity,error:activityError}=await db.from(config.table).select('title,'+config.dateField).eq('id',id).maybeSingle();
    if(activityError)throw activityError;
    const rawDate=activity?.[config.dateField]||null;
-   const activityDate=rawDate?(type==='ride'?dateOnly(rawDate):new Date(rawDate).toLocaleDateString('sr-RS')):null;
+   const activityDate=rawDate?(type==='ride'?dateOnly(rawDate):new Intl.DateTimeFormat('sr-RS',{timeZone:'Europe/Belgrade',day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(rawDate))):null;
    const {error}=await db.from('club_activity_attendance').upsert({activity_type:type,activity_id:String(id),user_id:userId,marked_by:session.user.id,activity_title:activity?.title||root.dataset.title||'Aktivnost',activity_date:activityDate},{onConflict:'activity_type,activity_id,user_id'});
    if(error)throw error;
   }else{
