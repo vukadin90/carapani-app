@@ -777,16 +777,37 @@ async function loadActivityLog(){
 }
 async function openMemberActivityHistory(userId){
  if(!isAdmin){alert('Samo administrator može da vidi istoriju aktivnosti.');return;}
- const [{data,error},{data:member,error:memberError}]=await Promise.all([db.from('club_activity_attendance').select('activity_type').eq('user_id',userId),db.from('profiles').select('full_name').eq('id',userId).maybeSingle()]);
+ const [{data,error},{data:member,error:memberError}]=await Promise.all([db.from('club_activity_attendance').select('activity_type,activity_id,created_at').eq('user_id',userId),db.from('profiles').select('full_name').eq('id',userId).maybeSingle()]);
  const fullName=member?.full_name||'Član kluba';
  if(error){alert('Ne mogu da učitam istoriju člana: '+error.message);return;}
- const counts={meeting:0,event:0,ride:0};
- (data||[]).forEach(row=>{if(counts[row.activity_type]!==undefined)counts[row.activity_type]++;});
+ const rows=data||[],counts={meeting:0,event:0,ride:0};
+ rows.forEach(row=>{if(counts[row.activity_type]!==undefined)counts[row.activity_type]++;});
  const total=counts.meeting+counts.event+counts.ride;
  const el=$('activityLogContent');if(!el)return;
- el.innerHTML='<button class="btn secondary activity-history-back" onclick="loadActivityLog()">← NAZAD NA LISTU ČLANOVA</button><div class="activity-history-card"><small>ISTORIJA AKTIVNOSTI ČLANA</small><h2 style="font:800 26px \'Barlow Condensed\',sans-serif;margin:0">'+esc(fullName)+'</h2></div><div class="activity-history-grid"><div class="activity-history-card"><small>DOGAĐAJI</small><strong>'+counts.event+'</strong></div><div class="activity-history-card"><small>SASTANCI</small><strong>'+counts.meeting+'</strong></div><div class="activity-history-card"><small>MOTO TURE</small><strong>'+counts.ride+'</strong></div><div class="activity-history-card total"><small>UKUPNO PRISUSTAVA</small><strong>'+total+'</strong></div></div>';
+ const card=(type,label,count)=>'<button type="button" class="activity-history-card" style="width:100%;text-align:left;color:inherit;cursor:pointer" onclick="openMemberActivityItems(\''+type+'\',\''+esc(userId)+'\',\''+esc(fullName)+'\')"><small>'+label+' · KLIKNI ZA SPISAK</small><strong>'+count+'</strong></button>';
+ el.innerHTML='<button class="btn secondary activity-history-back" onclick="loadActivityLog()">← NAZAD NA LISTU ČLANOVA</button><div class="activity-history-card"><small>ISTORIJA AKTIVNOSTI ČLANA</small><h2 style="font:800 26px \'Barlow Condensed\',sans-serif;margin:0">'+esc(fullName)+'</h2></div><div class="activity-history-grid">'+card('event','DOGAĐAJI',counts.event)+card('meeting','SASTANCI',counts.meeting)+card('ride','MOTO TURE',counts.ride)+'<div class="activity-history-card total"><small>UKUPNO PRISUSTAVA</small><strong>'+total+'</strong></div></div>';
  window.scrollTo(0,0);
 }
+async function openMemberActivityItems(type,userId,fullName){
+ if(!isAdmin)return;
+ const {data:attendance,error}=await db.from('club_activity_attendance').select('activity_id,created_at').eq('user_id',userId).eq('activity_type',type).order('created_at',{ascending:false});
+ if(error){alert('Ne mogu da učitam spisak aktivnosti: '+error.message);return;}
+ const ids=[...new Set((attendance||[]).map(x=>String(x.activity_id)))];
+ if(!ids.length)return;
+ const config={event:{table:'club_events',label:'DOGAĐAJI',dateField:'starts_at'},meeting:{table:'club_meetings',label:'SASTANCI',dateField:'starts_at'},ride:{table:'rides',label:'MOTO TURE',dateField:'ride_date'}}[type];
+ const {data:items,error:itemError}=await db.from(config.table).select('id,title,'+config.dateField).in('id',ids);
+ if(itemError){alert('Ne mogu da učitam nazive aktivnosti: '+itemError.message);return;}
+ const byId=new Map((items||[]).map(x=>[String(x.id),x]));
+ const list=(attendance||[]).map(row=>({row,item:byId.get(String(row.activity_id))})).map(({row,item})=>{
+  if(!item)return '<div class="activity-history-card"><small>OBJAVA VIŠE NIJE DOSTUPNA</small><strong style="font-size:17px">Sačuvano prisustvo</strong></div>';
+  const dateValue=item[config.dateField];
+  const dateText=dateValue?(type==='ride'?dateOnly(dateValue):new Date(dateValue).toLocaleDateString('sr-RS')):'';
+  return '<div class="activity-history-card"><small>'+esc(config.label)+(dateText?' · '+esc(dateText):'')+'</small><strong style="font-size:20px">'+esc(item.title||config.label)+'</strong></div>';
+ }).join('');
+ const el=$('modalContent');
+ modal('<h3>'+config.label+'</h3><p class="muted">'+esc(fullName)+' · '+(attendance||[]).length+' evidentiranih prisustava</p>'+list);
+}
+
 
 async function openAttendanceEditor(type,id,title){
  if(!isAdmin){alert('Samo administrator može evidentirati prisustvo.');return;}
