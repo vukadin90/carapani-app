@@ -697,7 +697,7 @@ async function saveFinanceEdit(id){
  if(!payload.transaction_date||(payload.amount!==undefined&&(!payload.amount||payload.amount<=0))||(t.transaction_type==='membership'&&(!payload.member_id||payload.membership_year<2000||payload.membership_year>2200||payload.membership_month<1||payload.membership_month>12))){alert('Proveri unete podatke.');return;}
  const {error}=await db.from('club_finance_transactions').update(payload).eq('id',id);
  if(error){alert('Izmena nije sačuvana: '+error.message);return;}
- closeModal();await loadClubFinance();
+ closeModal();await loadClubFinance();if(t.transaction_type==='expense')openFinanceExpenses();
 }
 async function deleteFinanceTransaction(id){
  if(!isAdmin)return;
