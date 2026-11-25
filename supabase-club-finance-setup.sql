@@ -39,6 +39,19 @@ create table if not exists public.club_finance_transactions (
     transaction_type = 'donation' or (donor_name is null and is_anonymous = false)
   )
 );
+alter table public.club_finance_transactions add column if not exists member_name_snapshot text;
+alter table public.club_finance_transactions drop constraint if exists club_finance_membership_fields;
+alter table public.club_finance_transactions add constraint club_finance_membership_fields check (
+  (transaction_type = 'membership' and (member_id is not null or nullif(btrim(member_name_snapshot),'') is not null) and membership_year between 2000 and 2200
+    and ((membership_period = 'monthly' and membership_month between 1 and 12 and amount = 1000)
+      or (membership_period = 'annual' and membership_month is null and amount = 12000)))
+  or (transaction_type <> 'membership' and member_id is null and member_name_snapshot is null
+    and membership_year is null and membership_month is null and membership_period is null)
+);
+alter table public.club_finance_transactions drop constraint if exists club_finance_transactions_member_id_fkey;
+alter table public.club_finance_transactions add constraint club_finance_transactions_member_id_fkey
+  foreign key (member_id) references public.profiles(id) on delete set null;
+
 create unique index if not exists club_finance_monthly_membership_unique on public.club_finance_transactions(member_id,membership_year,membership_month) where transaction_type='membership' and membership_period='monthly';
 create unique index if not exists club_finance_annual_membership_unique on public.club_finance_transactions(member_id,membership_year) where transaction_type='membership' and membership_period='annual';
 create index if not exists club_finance_transactions_date_idx on public.club_finance_transactions(transaction_date desc,created_at desc);
