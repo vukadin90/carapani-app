@@ -784,7 +784,7 @@ async function openMemberActivityHistory(userId){
  (data||[]).forEach(row=>{if(counts[row.activity_type]!==undefined)counts[row.activity_type]++;});
  const total=counts.meeting+counts.event+counts.ride;
  const el=$('activityLogContent');if(!el)return;
- el.innerHTML='<button class="btn secondary activity-history-back" onclick="loadActivityLog()">← NAZAD NA LISTU ČLANOVA</button><div class="activity-history-card"><small>ISTORIJA AKTIVNOSTI ČLANA</small><h2 style="font:800 26px \'Barlow Condensed\',sans-serif;margin:0">'+esc(fullName)+'</h2></div><div class="activity-history-grid"><div class="activity-history-card"><small>MOTO TURE</small><strong>'+counts.ride+'</strong></div><div class="activity-history-card"><small>DOGAĐAJI</small><strong>'+counts.event+'</strong></div><div class="activity-history-card"><small>SASTANCI</small><strong>'+counts.meeting+'</strong></div><div class="activity-history-card total"><small>UKUPNO PRISUSTAVA</small><strong>'+total+'</strong></div></div>';
+ el.innerHTML='<button class="btn secondary activity-history-back" onclick="loadActivityLog()">← NAZAD NA LISTU ČLANOVA</button><div class="activity-history-card"><small>ISTORIJA AKTIVNOSTI ČLANA</small><h2 style="font:800 26px \'Barlow Condensed\',sans-serif;margin:0">'+esc(fullName)+'</h2></div><div class="activity-history-grid"><div class="activity-history-card"><small>DOGAĐAJI</small><strong>'+counts.event+'</strong></div><div class="activity-history-card"><small>SASTANCI</small><strong>'+counts.meeting+'</strong></div><div class="activity-history-card"><small>MOTO TURE</small><strong>'+counts.ride+'</strong></div><div class="activity-history-card total"><small>UKUPNO PRISUSTAVA</small><strong>'+total+'</strong></div></div>';
  window.scrollTo(0,0);
 }
 
