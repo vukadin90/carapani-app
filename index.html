@@ -637,17 +637,37 @@ async function openFinanceViewersManager(){
  if(membersResult.error||viewersResult.error){alert('Ne mogu da učitam izbor članova: '+(membersResult.error||viewersResult.error).message);return;}
  const current=(viewersResult.data||[]).map(x=>x.member_id);
  const options=(membersResult.data||[]).filter(m=>m.id!==session.user.id).map(member=>'<label style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid #3a3f46;border-radius:8px;background:#202328;margin:6px 0"><input type="checkbox" class="financeViewerCheck" value="'+esc(member.id)+'" '+(current.includes(member.id)?'checked':'')+' style="width:18px;height:18px;accent-color:#22a06b"><span style="font-weight:700">'+esc(member.full_name||'Član kluba')+'</span></label>').join('');
- modal('<h3>PRISTUP BLAGAJNI I ČLANARINAMA</h3><p class="muted">Označeni članovi mogu da vide stanje blagajne, prihode, troškove i evidenciju članarina. Ne mogu ništa da dodaju, menjaju ili brišu.</p><div style="max-height:55vh;overflow:auto;padding-right:3px">'+(options||'<p class="muted">Nema drugih odobrenih članova.</p>')+'</div><div class="actions"><button type="button" class="btn" onclick="saveFinanceViewers()">SAČUVAJ DOZVOLE</button><button type="button" class="btn secondary" onclick="closeModal()">OTKAŽI</button></div>');
+ modal('<h3>PRISTUP BLAGAJNI I ČLANARINAMA</h3><p class="muted">Označi članove kojima dozvoljavaš pregled blagajne i članarina. Izbor potvrdi dugmetom SAČUVAJ IZBOR na dnu.</p><div style="max-height:calc(100dvh - 260px);overflow-y:auto;overflow-x:hidden;padding:2px 3px 12px;overscroll-behavior:contain">'+(options||'<p class="muted">Nema drugih odobrenih članova.</p>')+'</div><div style="position:sticky;bottom:0;background:#111418;padding:12px 0 calc(env(safe-area-inset-bottom) + 8px);border-top:1px solid #3a3f46;display:flex;gap:8px;z-index:2"><button id="saveFinanceViewersButton" type="button" class="btn" style="flex:1" onclick="saveFinanceViewers()">SAČUVAJ IZBOR</button><button type="button" class="btn secondary" onclick="closeModal()">OTKAŽI</button></div>');
 }
 async function saveFinanceViewers(){
- if(!isAdmin||!session)return;
- const selected=[...document.querySelectorAll('.financeViewerCheck:checked')].map(el=>el.value);
- const {data:existing,error:readError}=await db.from('club_finance_viewers').select('member_id');
- if(readError){alert('Ne mogu da proverim postojeće dozvole: '+readError.message);return;}
- const current=(existing||[]).map(x=>x.member_id),toAdd=selected.filter(id=>!current.includes(id)),toRemove=current.filter(id=>!selected.includes(id));
- if(toAdd.length){const {error}=await db.from('club_finance_viewers').insert(toAdd.map(member_id=>({member_id,created_by:session.user.id})));if(error){alert('Dozvole nisu sačuvane: '+error.message);return;}}
- if(toRemove.length){const {error}=await db.from('club_finance_viewers').delete().in('member_id',toRemove);if(error){alert('Dodavanje je sačuvano, ali uklanjanje nekih dozvola nije uspelo: '+error.message);return;}}
- closeModal();alert('Dozvole za pregled blagajne su sačuvane.');
+ if(!isAdmin||!session){alert('Samo administrator može da sačuva ove dozvole.');return;}
+ const button=$('saveFinanceViewersButton');
+ if(button){button.disabled=true;button.textContent='ČUVANJE…';}
+ try{
+  const selected=[...document.querySelectorAll('.financeViewerCheck:checked')].map(el=>el.value);
+  const {data:existing,error:readError}=await db.from('club_finance_viewers').select('member_id');
+  if(readError)throw readError;
+  const current=(existing||[]).map(x=>x.member_id);
+  const toAdd=selected.filter(id=>!current.includes(id));
+  const toRemove=current.filter(id=>!selected.includes(id));
+  if(toAdd.length){
+   const {error}=await db.from('club_finance_viewers').insert(toAdd.map(member_id=>({member_id,created_by:session.user.id})));
+   if(error)throw error;
+  }
+  if(toRemove.length){
+   const {error}=await db.from('club_finance_viewers').delete().in('member_id',toRemove);
+   if(error)throw error;
+  }
+  const {data:verified,error:verifyError}=await db.from('club_finance_viewers').select('member_id');
+  if(verifyError)throw verifyError;
+  const saved=(verified||[]).map(x=>x.member_id);
+  if(selected.length!==saved.filter(id=>selected.includes(id)).length||selected.some(id=>!saved.includes(id)))throw new Error('Provera nije potvrdila sve izabrane članove.');
+  closeModal();
+  alert('Uspešno sačuvano! Pristup blagajni imaju '+selected.length+' izabranih članova.');
+ }catch(error){
+  alert('Izbor nije sačuvan: '+(error?.message||'Nepoznata greška')+'. Pokušaj ponovo.');
+  if(button){button.disabled=false;button.textContent='SAČUVAJ IZBOR';}
+ }
 }
 function openFinanceRosterManager(){
  if(!isAdmin)return;
