@@ -807,7 +807,7 @@ async function openMemberActivityItems(type,userId,fullName){
   const item=byId.get(String(row.activity_id));
   const title=row.activity_title||item?.title||'Objava više nije dostupna';
   const dateValue=row.activity_date||item?.[config.dateField]||'';
-  const dateText=dateValue?(type==='ride'?dateOnly(dateValue):new Date(dateValue).toLocaleDateString('sr-RS')):'';
+  const dateText=dateValue?(String(dateValue).includes('.')?String(dateValue):(type==='ride'?dateOnly(dateValue):new Date(dateValue).toLocaleDateString('sr-RS'))):'';
   return '<div class="activity-history-card"><small>'+esc(config.label)+(dateText?' · '+esc(dateText):'')+'</small><strong style="font-size:20px">'+esc(title)+'</strong></div>';
  }).join('');
  const el=$('activityLogContent');if(!el)return;
@@ -854,7 +854,7 @@ async function toggleActivityAttendance(input){
    const {data:activity,error:activityError}=await db.from(config.table).select('title,'+config.dateField).eq('id',id).maybeSingle();
    if(activityError)throw activityError;
    const rawDate=activity?.[config.dateField]||null;
-   const activityDate=rawDate?(type==='ride'?String(rawDate).slice(0,10):String(rawDate).slice(0,10)):null;
+   const activityDate=rawDate?(type==='ride'?dateOnly(rawDate):new Date(rawDate).toLocaleDateString('sr-RS')):null;
    const {error}=await db.from('club_activity_attendance').upsert({activity_type:type,activity_id:String(id),user_id:userId,marked_by:session.user.id,activity_title:activity?.title||root.dataset.title||'Aktivnost',activity_date:activityDate},{onConflict:'activity_type,activity_id,user_id'});
    if(error)throw error;
   }else{
