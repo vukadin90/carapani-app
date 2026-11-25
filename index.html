@@ -805,8 +805,9 @@ async function openMemberActivityItems(type,userId,fullName){
   const dateText=dateValue?(type==='ride'?dateOnly(dateValue):new Date(dateValue).toLocaleDateString('sr-RS')):'';
   return '<div class="activity-history-card"><small>'+esc(config.label)+(dateText?' · '+esc(dateText):'')+'</small><strong style="font-size:20px">'+esc(title)+'</strong></div>';
  }).join('');
- const el=$('modalContent');
- modal('<h3>'+config.label+'</h3><p class="muted">'+esc(fullName)+' · '+(attendance||[]).length+' evidentiranih prisustava</p>'+list);
+ const el=$('activityLogContent');if(!el)return;
+ el.innerHTML='<button class="btn secondary activity-history-back" onclick="openMemberActivityHistory(\''+esc(userId)+'\')">← NAZAD NA ISTORIJU ČLANA</button><div class="activity-history-card"><small>ISTORIJA AKTIVNOSTI · '+esc(config.label)+'</small><h2 style="font:800 25px \'Barlow Condensed\',sans-serif;margin:0">'+esc(fullName)+'</h2><p class="muted" style="margin:6px 0 0">'+(attendance||[]).length+' evidentiranih prisustava</p></div><div class="activity-history-grid" style="grid-template-columns:1fr">'+list+'</div>';
+ window.scrollTo(0,0);
 }
 
 
