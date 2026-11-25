@@ -1202,7 +1202,7 @@ async function renderHomeFeed(){
  const errors=[ridesResult.error,eventsResult.error,newsResult.error].filter(Boolean);
  if(errors.length&&!ridesResult.data&&!eventsResult.data&&!newsResult.data){el.innerHTML='<div class="empty">Nije moguće učitati klupske objave. Pokušaj ponovo.</div>';return;}
  const rides=ridesResult.data||[],events=eventsResult.data||[],news=newsResult.data||[];
- const posts=[...rides.map(x=>({...x,_kind:'ride',_created:x.created_at||x.ride_date||''})),...events.map(x=>({...x,_kind:'event',_created:x.created_at||x.starts_at||''})),...news.map(x=>({...x,_kind:'news',_created:x.created_at||x.starts_at||''}))].sort((a,b)=>new Date(b._created||0)-new Date(a._created||0));
+ const posts=[...rides.map(x=>({...x,_kind:'ride',_schedule:x.ride_date||null,_created:x.created_at||''})),...events.map(x=>({...x,_kind:'event',_schedule:x.starts_at||null,_created:x.created_at||''})),...news.map(x=>({...x,_kind:'news',_schedule:x.starts_at||null,_created:x.created_at||''}))].sort((a,b)=>{const ad=a._schedule?new Date(a._schedule).getTime():Number.POSITIVE_INFINITY;const bd=b._schedule?new Date(b._schedule).getTime():Number.POSITIVE_INFINITY;if(ad!==bd)return ad-bd;return new Date(b._created||0)-new Date(a._created||0);});
  if(!posts.length){el.innerHTML='<div class="empty">Još nema objava u klubu. Čim neko objavi vožnju, događaj ili obaveštenje, pojaviće se ovde.</div>';return;}
  const renderPosts=(rv,ev,authors)=>{
   if(renderToken!==homeFeedRenderToken)return;
