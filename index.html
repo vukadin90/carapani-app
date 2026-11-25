@@ -56,7 +56,7 @@
 
 /* Member profiles use the full screen while keeping the fixed bottom navigation visible */
 .modalback.member-profile-fullscreen{align-items:stretch;padding:0}
-.modalback.finance-edit-fullscreen{align-items:stretch}.modalback.finance-edit-fullscreen>.modal{width:100%;max-width:none;height:100dvh;min-height:100dvh;max-height:100dvh;border:0;border-radius:0;padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 24px);overflow-y:auto;overscroll-behavior:contain}.modalback.member-profile-fullscreen>.modal{width:100%;max-width:none;height:100dvh;min-height:100dvh;max-height:100dvh;border:0;border-radius:0;padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 92px);overflow-y:auto;overscroll-behavior:contain}
+.modalback.finance-edit-fullscreen{align-items:stretch}.modalback.finance-edit-fullscreen>.modal{width:100%;max-width:none;height:100dvh;min-height:100dvh;max-height:100dvh;border:0;border-radius:0;padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 24px);overflow-y:auto;overscroll-behavior:contain}.modalback.finance-edit-fullscreen>.modal{display:flex;flex-direction:column;overflow:hidden}.modalback.finance-edit-fullscreen #modalContent{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-bottom:8px}.modalback.finance-edit-fullscreen #modalContent .field{padding:9px 11px;margin:3px 0 7px;font-size:16px;min-height:42px}.modalback.finance-edit-fullscreen #modalContent textarea.field{min-height:76px}.modalback.finance-edit-fullscreen #modalContent h3{font-size:23px;margin-bottom:7px}.modalback.finance-edit-fullscreen #modalContent .muted{margin:0 0 8px}.modalback.finance-edit-fullscreen #modalContent label{margin-top:5px;font-size:13px}.modalback.finance-edit-fullscreen #modalContent .actions{position:sticky;bottom:0;padding:10px 0 calc(env(safe-area-inset-bottom) + 8px);margin-top:8px;background:#15181c;z-index:5}.modalback.finance-edit-fullscreen #modalContent .actions .btn{flex:1;min-height:44px}.modalback.member-profile-fullscreen>.modal{width:100%;max-width:none;height:100dvh;min-height:100dvh;max-height:100dvh;border:0;border-radius:0;padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 92px);overflow-y:auto;overscroll-behavior:contain}
 .modalback.member-profile-fullscreen .modal>.close{position:sticky;top:0;z-index:2;float:right;margin:0 0 8px 12px}
 .member-profile-fullscreen-content{clear:both}
 
@@ -657,14 +657,13 @@ function openFinanceEdit(id){
  '<label>IZNOS (RSD)</label><input class="field" id="financeEditAmount" type="number" min="1" step="1" value="'+Number(t.amount)+'" '+(isMembership?'readonly':'')+'>'+
  '<label>DATUM</label><input class="field" id="financeEditDate" type="date" value="'+esc(t.transaction_date)+'">'+
  '<label>OPIS</label><textarea class="field" id="financeEditDescription" rows="3">'+esc(t.description||'')+'</textarea>'+
- '<label>KATEGORIJA (OPCIONO)</label><input class="field" id="financeEditCategory" value="'+esc(t.category||'')+'">'+
  (t.transaction_type==='donation'?'<label>DONATOR</label><input class="field" id="financeEditDonor" value="'+esc(t.donor_name||'')+'"><label><input type="checkbox" id="financeEditAnonymous" '+(t.is_anonymous?'checked':'')+'> Anonimna donacija</label>':'')+
  '<div class="actions"><button class="btn" onclick="saveFinanceEdit(\''+id+'\')">SAČUVAJ IZMENE</button><button class="btn secondary" onclick="closeModal()">OTKAŽI</button></div>');
 }
 async function saveFinanceEdit(id){
  if(!isAdmin)return;
  const t=financeTransactions.find(x=>x.id===id);if(!t)return;
- const payload={transaction_date:$('financeEditDate').value,description:$('financeEditDescription').value.trim(),category:$('financeEditCategory').value.trim()||null};
+ const payload={transaction_date:$('financeEditDate').value,description:$('financeEditDescription').value.trim()};
  if(t.transaction_type!=='membership')payload.amount=Number($('financeEditAmount').value);
  if(t.transaction_type==='membership'){
   payload.member_id=$('financeEditMember').value;
