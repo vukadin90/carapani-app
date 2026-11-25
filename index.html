@@ -676,6 +676,31 @@ async function deleteFinanceTransaction(id){
  if(error){alert('Brisanje nije uspelo: '+error.message);return;}
  await loadClubFinance();
 }
+function financeAuditItemDescription(x){
+ const d=x.new_data||x.old_data||{};
+ const type=d.transaction_type||'other_income';
+ const amount=Number(d.amount||0);
+ let subject='';
+ if(type==='membership'){
+  subject=(d.member_name_snapshot||'Član')+' – '+(d.membership_period==='annual'?'godišnja članarina '+(d.membership_year||''):(financeMonthName(d.membership_month)+' '+(d.membership_year||'')));
+ }else if(type==='donation'){
+  subject=(d.is_anonymous?'Anonimna donacija':(d.donor_name||'Donacija'))+(d.description?' – '+d.description:'');
+ }else{
+  subject=(d.category||financeTypeName(type))+(d.description?' – '+d.description:'');
+ }
+ const action=x.action==='INSERT'?'Evidentirano':x.action==='DELETE'?'Obrisano':'Izmenjeno';
+ if(x.action==='UPDATE'&&x.old_data&&x.new_data){
+  const changes=[];
+  ['amount','transaction_date','description','category','donor_name'].forEach(key=>{
+   if(String(x.old_data[key]??'')!==String(x.new_data[key]??'')){
+    const labels={amount:'iznos',transaction_date:'datum',description:'opis',category:'kategorija',donor_name:'donator'};
+    changes.push(labels[key]+': '+String(x.old_data[key]??'—')+' → '+String(x.new_data[key]??'—'));
+   }
+  });
+  return action+': '+subject+(changes.length?' · '+changes.join('; '):'');
+ }
+ return action+': '+subject+(amount?' · '+financeMoney(amount):'');
+}
 async function loadFinanceAuditLog(){
  if(!isAdmin)return;
  const box=$('financeAuditLog');if(!box)return;
@@ -685,8 +710,8 @@ async function loadFinanceAuditLog(){
  const ids=[...new Set((data||[]).map(x=>x.actor_id).filter(Boolean))];
  let names={};
  if(ids.length){const result=await db.from('profiles').select('id,full_name').in('id',ids);(result.data||[]).forEach(p=>names[p.id]=p.full_name||'Administrator');}
- box.innerHTML='<h4 class="finance-section-title">ISTORIJA IZMENA</h4><div class="finance-scroll"><table class="finance-table"><thead><tr><th>VREME</th><th>AKCIJA</th><th>IZVRŠIO</th><th>STAVKA</th></tr></thead><tbody>'+
- (data||[]).map(x=>'<tr><td>'+esc(new Date(x.changed_at).toLocaleString('sr-RS'))+'</td><td>'+esc(x.action==='INSERT'?'UNOS':x.action==='UPDATE'?'IZMENA':'BRISANJE')+'</td><td>'+esc(names[x.actor_id]||'Nepoznato')+'</td><td>'+esc(String(x.transaction_id||'').slice(0,8))+'</td></tr>').join('')+
+ box.innerHTML='<h4 class="finance-section-title">ISTORIJA IZMENA</h4><div class="finance-scroll"><table class="finance-table"><thead><tr><th>VREME</th><th>IZVRŠIO</th><th>ŠTA JE URAĐENO</th></tr></thead><tbody>'+
+ (data||[]).map(x=>'<tr><td>'+esc(new Date(x.changed_at).toLocaleString('sr-RS'))+'</td><td>'+esc(names[x.actor_id]||'Nepoznato')+'</td><td>'+esc(financeAuditItemDescription(x))+'</td></tr>').join('')+
  '</tbody></table></div>';
 }
 function exportFinanceCsv(){
