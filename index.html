@@ -1937,7 +1937,15 @@ el.innerHTML=`<div class="formbox"><h3>💰 PRISTUP BLAGAJNI I ČLANARINAMA</h3>
 loadAdminMemberStats();loadPendingRides();loadPending();loadAdminMembers()}
 function openAdminMemberRegistration(){
  if(!isAdmin){alert('Samo administrator može registrovati članove.');return;}
- modal(`<div id="adminMemberRegistrationForm" class="formbox"><h3>➕ REGISTRACIJA ČLANA</h3><p class="muted">Unesi podatke člana i odredi mu lozinku koju će koristiti za prijavu. Pozivni e-mail se ne šalje. Lozinka ostaje njegova i može je kasnije promeniti.</p><label>Ime i prezime</label><input class="field" id="adminNewMemberName" maxlength="120" autocomplete="name" placeholder="Ime i prezime člana"><label>E-mail adresa</label><input class="field" id="adminNewMemberEmail" type="email" maxlength="254" autocomplete="email" placeholder="ime@primer.com"><label>Lozinka za prijavu (najmanje 8 karaktera)</label><input class="field" id="adminNewMemberPassword" type="password" minlength="8" maxlength="72" autocomplete="new-password" placeholder="Unesi stalnu lozinku"><label>Broj telefona (opciono)</label><input class="field" id="adminNewMemberPhone" type="tel" maxlength="30" placeholder="Broj telefona"><button class="btn" id="adminCreateMemberButton" type="button" style="width:100%" onclick="adminCreateMember()">KREIRAJ NALOG</button><div id="adminNewMemberResult" style="display:none;margin-top:12px"></div></div>`);
+ modal(`<div id="adminMemberRegistrationForm" class="formbox"><h3>➕ REGISTRACIJA ČLANA</h3><p class="muted">Unesi podatke člana i odredi mu lozinku koju će koristiti za prijavu. Pozivni e-mail se ne šalje. Lozinka ostaje njegova i može je kasnije promeniti.</p><label>Ime i prezime</label><input class="field" id="adminNewMemberName" maxlength="120" autocomplete="name" placeholder="Ime i prezime člana"><label>E-mail adresa</label><input class="field" id="adminNewMemberEmail" type="email" maxlength="254" autocomplete="email" placeholder="ime@primer.com"><label>Lozinka za prijavu (najmanje 8 karaktera)</label><div style="display:flex;align-items:center;gap:7px"><input class="field" id="adminNewMemberPassword" type="password" minlength="8" maxlength="72" autocomplete="new-password" placeholder="Unesi stalnu lozinku" style="flex:1;min-width:0;margin-bottom:11px"><button class="btn secondary" type="button" aria-label="Prikaži lozinku" title="Prikaži lozinku" onclick="toggleAdminMemberPasswordVisibility(this)" style="flex:0 0 48px;height:44px;padding:8px;font-size:20px">👁</button></div><label>Broj telefona (opciono)</label><input class="field" id="adminNewMemberPhone" type="tel" maxlength="30" placeholder="Broj telefona"><button class="btn" id="adminCreateMemberButton" type="button" style="width:100%" onclick="adminCreateMember()">KREIRAJ NALOG</button><div id="adminNewMemberResult" style="display:none;margin-top:12px"></div></div>`);
+}
+function toggleAdminMemberPasswordVisibility(button){
+ const field=$('adminNewMemberPassword');if(!field||!button)return;
+ const show=field.type==='password';
+ field.type=show?'text':'password';
+ button.textContent=show?'🙈':'👁';
+ button.setAttribute('aria-label',show?'Sakrij lozinku':'Prikaži lozinku');
+ button.title=show?'Sakrij lozinku':'Prikaži lozinku';
 }
 async function adminCreateMember(){
  if(!isAdmin||!session){alert('Samo administrator može registrovati novog člana.');return;}
