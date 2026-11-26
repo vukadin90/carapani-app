@@ -1074,7 +1074,7 @@ window.castVote = async function(type,id,choice,button){
   if(button)button.disabled=true;
   try{
     if(!session||!profile?.approved){alert('Glasanje je dostupno samo prijavljenim i odobrenim članovima.');return;}
-    if(!['ride','event'].includes(type)||!['yes','no'].includes(choice)){alert('Neispravan izbor glasanja.');return;}
+    if(!['ride','event','meeting'].includes(type)||!['yes','no'].includes(choice)){alert('Neispravan izbor glasanja.');return;}
     const {data:existingVote,error:lookupError}=await db.from('post_votes')
       .select('choice')
       .eq('post_type',type)
@@ -1103,7 +1103,7 @@ window.castVote = async function(type,id,choice,button){
       ));
     }
     if(error){console.error('Vote error:',error);alert('Greška pri glasanju: '+error.message);return;}
-    if(type==='ride')await loadRides();else await loadEvents();await renderHomeFeed();await loadClubNotifications();
+    if(type==='ride')await loadRides();else if(type==='event')await loadEvents();else await loadMeetings();await renderHomeFeed();await loadClubNotifications();
   }catch(e){
     console.error('Vote exception:',e);
     alert('Greška pri glasanju: '+(e.message||String(e)));
@@ -1141,8 +1141,9 @@ async function deleteHomeFeedPost(kind,id){
 function homeFeedEditButton(post,kind){
  const allowed=kind==='ride'?(isAdmin||post.user_id===session?.user?.id):kind==='event'?(isAdmin||post.created_by===session?.user?.id):isAdmin;
  if(!allowed)return '';
- const label=kind==='ride'?'IZMENI MOTO VOŽNJU':kind==='event'?'IZMENI DOGAĐAJ':'IZMENI OBAVEŠTENJE';
- return '<div style="margin-top:10px"><button type="button" style="display:inline;background:none;border:0;box-shadow:none;padding:0;color:#aeb7c2;font-size:11px;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer" onclick="openFeedPostEditor(\''+kind+'\',\''+esc(post.id)+'\')">'+label+'</button></div>';
+ const label=kind==='ride'?'IZMENI MOTO VOŽNJU':kind==='event'?'IZMENI DOGAĐAJ':kind==='meeting'?'IZMENI SASTANAK':'IZMENI OBAVEŠTENJE';
+ const action=kind==='meeting'?'editMeeting(\''+esc(post.id)+'\')':'openFeedPostEditor(\''+kind+'\',\''+esc(post.id)+'\')';
+ return '<div style="margin-top:10px"><button type="button" style="display:inline;background:none;border:0;box-shadow:none;padding:0;color:#aeb7c2;font-size:11px;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer" onclick="'+action+'">'+label+'</button></div>';
 }
 function setCurrentEditImagePreview(formId,imageUrl){
  const form=$(formId);if(!form)return;
@@ -1196,28 +1197,30 @@ async function renderHomeFeed(){
  if(!session||!profile?.approved){el.innerHTML='<div class="notice">Klupske objave su dostupne samo prijavljenim i odobrenim članovima kluba.</div>';return;}
  const renderToken=++homeFeedRenderToken;
  if(!el.children.length)el.innerHTML='<div class="empty">Učitavanje objava…</div>';
- const [ridesResult,eventsResult,newsResult]=await Promise.all([
+ const [ridesResult,eventsResult,newsResult,meetingsResult]=await Promise.all([
   db.from('rides').select('id,user_id,title,description,start_location,end_location,ride_date,departure_time,departure_time_text,route_url,image_url,created_at').eq('is_approved',true).order('created_at',{ascending:false}).limit(30),
   db.from('club_events').select('id,created_by,title,description,location,starts_at,event_time_text,image_url,created_at').order('created_at',{ascending:false}).limit(30),
-  db.from('club_announcements').select('id,title,description,location,starts_at,image_url,created_at').order('created_at',{ascending:false}).limit(30)
+  db.from('club_announcements').select('id,title,description,location,starts_at,image_url,created_at').order('created_at',{ascending:false}).limit(30),
+  db.from('club_meetings').select('id,created_by,title,description,location,starts_at,event_time_text,image_url,created_at').order('created_at',{ascending:false}).limit(30)
  ]);
  if(renderToken!==homeFeedRenderToken)return;
- const errors=[ridesResult.error,eventsResult.error,newsResult.error].filter(Boolean);
- if(errors.length&&!ridesResult.data&&!eventsResult.data&&!newsResult.data){el.innerHTML='<div class="empty">Nije moguće učitati klupske objave. Pokušaj ponovo.</div>';return;}
- const rides=ridesResult.data||[],events=eventsResult.data||[],news=newsResult.data||[];
- const posts=[...rides.map(x=>({...x,_kind:'ride',_schedule:x.ride_date||null,_created:x.created_at||''})),...events.map(x=>({...x,_kind:'event',_schedule:x.starts_at||null,_created:x.created_at||''})),...news.map(x=>({...x,_kind:'news',_schedule:x.starts_at||null,_created:x.created_at||''}))].sort((a,b)=>{const ad=a._schedule?new Date(a._schedule).getTime():Number.POSITIVE_INFINITY;const bd=b._schedule?new Date(b._schedule).getTime():Number.POSITIVE_INFINITY;if(ad!==bd)return ad-bd;return new Date(b._created||0)-new Date(a._created||0);});
+ const errors=[ridesResult.error,eventsResult.error,newsResult.error,meetingsResult.error].filter(Boolean);
+ if(errors.length&&!ridesResult.data&&!eventsResult.data&&!newsResult.data&&!meetingsResult.data){el.innerHTML='<div class="empty">Nije moguće učitati klupske objave. Pokušaj ponovo.</div>';return;}
+ const rides=ridesResult.data||[],events=eventsResult.data||[],news=newsResult.data||[],meetings=meetingsResult.data||[];
+ const posts=[...rides.map(x=>({...x,_kind:'ride',_schedule:x.ride_date||null,_created:x.created_at||''})),...events.map(x=>({...x,_kind:'event',_schedule:x.starts_at||null,_created:x.created_at||''})),...meetings.map(x=>({...x,_kind:'meeting',_schedule:x.starts_at||null,_created:x.created_at||''})),...news.map(x=>({...x,_kind:'news',_schedule:x.starts_at||null,_created:x.created_at||''}))].sort((a,b)=>{const ad=a._schedule?new Date(a._schedule).getTime():Number.POSITIVE_INFINITY;const bd=b._schedule?new Date(b._schedule).getTime():Number.POSITIVE_INFINITY;if(ad!==bd)return ad-bd;return new Date(b._created||0)-new Date(a._created||0);});
  if(!posts.length){el.innerHTML='<div class="empty">Još nema objava u klubu. Čim neko objavi vožnju, događaj ili obaveštenje, pojaviće se ovde.</div>';return;}
- const renderPosts=(rv,ev,authors)=>{
+ const renderPosts=(rv,ev,mv,authors)=>{
   if(renderToken!==homeFeedRenderToken)return;
   el.innerHTML=posts.map(x=>{
     if(x._kind==='ride')return '<article class="feed-post"><div class="feed-post-head"><span class="tag">🏍️ MOTO VOŽNJA</span><span class="feed-open-label">Objava · '+date(x.created_at)+'</span>'+homeFeedDeleteButton(x,'ride')+'</div>'+postAuthorMarkup(authors[x.user_id])+postImageMarkup(x,true)+'<h4 class="feed-title">'+esc(x.title||'Bez naslova')+'</h4>'+(x.description?feedDescriptionMarkup(x.description):'')+(x.start_location?'<p>📍 Polazna lokacija: '+esc(x.start_location)+'</p>':'')+(x.end_location?'<p>🏁 Krajnja lokacija: '+esc(x.end_location)+'</p>':'')+(x.ride_date?'<p>📅 Datum vožnje: '+dateOnly(x.ride_date)+'</p>':'')+((x.departure_time_text||x.departure_time)?'<p>🕒 Vreme polaska: '+esc(x.departure_time_text||String(x.departure_time).slice(0,5))+'</p>':'')+(x.route_url?'<a class="route-link" href="'+esc(x.route_url)+'" target="_blank" rel="noopener">OTVORI RUTU U GOOGLE MAPS</a>':'')+votePanel('ride',x.id,rv.rows,rv.members)+(isAdmin?`<button class="btn secondary" style="font-size:10px;padding:6px 9px;margin-top:9px" onclick="openAttendanceEditor('ride','${esc(x.id)}','${esc(x.title||'Moto vožnja')}')">EVIDENCIJA PRISUSTVA</button>`:'')+homeFeedEditButton(x,'ride')+'</article>';
     if(x._kind==='event')return '<article class="feed-post"><div class="feed-post-head"><span class="tag">📅 DOGAĐAJ</span><span class="feed-open-label">Objava · '+date(x.created_at)+'</span>'+homeFeedDeleteButton(x,'event')+'</div>'+postImageMarkup(x,true)+'<h4 class="event-title">'+esc(x.title||'Bez naslova')+'</h4>'+(x.starts_at?'<p>📅 Datum: '+new Date(x.starts_at).toLocaleDateString('sr-RS',{day:'2-digit',month:'2-digit',year:'numeric'})+'</p><p>🕒 Vreme: '+esc(x.event_time_text||new Date(x.starts_at).toLocaleTimeString('sr-RS',{hour:'2-digit',minute:'2-digit'}))+'</p>':'')+(x.location?'<p>📍 '+esc(x.location)+'</p>':'')+feedDescriptionMarkup(x.description||'')+votePanel('event',x.id,ev.rows,ev.members)+(isAdmin?`<button class="btn secondary" style="font-size:10px;padding:6px 9px;margin-top:9px" onclick="openAttendanceEditor('event','${esc(x.id)}','${esc(x.title||'Događaj')}')">EVIDENCIJA PRISUSTVA</button>`:'')+homeFeedEditButton(x,'event')+'</article>';
+    if(x._kind==='meeting')return '<article class="feed-post"><div class="feed-post-head"><span class="tag">📝 SASTANAK</span><span class="feed-open-label">Objava · '+date(x.created_at)+'</span>'+homeFeedDeleteButton(x,'meeting')+'</div>'+postImageMarkup(x,true)+'<h4 class="event-title">'+esc(x.title||'SASTANAK')+'</h4>'+(x.starts_at?'<p>📅 Datum: '+new Date(x.starts_at).toLocaleDateString('sr-RS',{day:'2-digit',month:'2-digit',year:'numeric'})+'</p><p>🕒 Vreme: '+esc(x.event_time_text||new Date(x.starts_at).toLocaleTimeString('sr-RS',{hour:'2-digit',minute:'2-digit'}))+'</p>':'')+(x.location?'<p>📍 '+esc(x.location)+'</p>':'')+feedDescriptionMarkup(x.description||'')+votePanel('meeting',x.id,mv.rows,mv.members)+(isAdmin?`<button class="btn secondary" style="font-size:10px;padding:6px 9px;margin-top:9px" onclick="openAttendanceEditor('meeting','${esc(x.id)}','${esc(x.title||'SASTANAK')}')">EVIDENCIJA PRISUSTVA</button>`:'')+homeFeedEditButton(x,'meeting')+'</article>';
     return '<article class="feed-post"><div class="feed-post-head"><span class="tag">📢 OBAVEŠTENJE</span><span class="feed-open-label">Objava · '+date(x.created_at)+'</span>'+homeFeedDeleteButton(x,'news')+'</div>'+postImageMarkup(x,true)+'<h4 class="feed-title">'+esc(x.title||'Bez naslova')+'</h4>'+(x.starts_at?'<p>📅 Datum: '+new Date(x.starts_at).toLocaleDateString('sr-RS',{day:'2-digit',month:'2-digit',year:'numeric'})+'</p>':'')+(x.location?'<p>📍 '+esc(x.location)+'</p>':'')+feedDescriptionMarkup(x.description||'')+homeFeedEditButton(x,'news')+'</article>';
 }).join('');
   el.querySelectorAll('.feed-description-wrap').forEach(wrapper=>{const description=wrapper.querySelector('.feed-description'),button=wrapper.querySelector('.feed-description-toggle');if(description&&button&&description.scrollHeight>description.clientHeight+2)button.style.display='inline-block';});
  };
  const [votesResult,profilesResult]=await Promise.all([
-  db.from('post_votes').select('post_type,post_id,user_id,choice,created_at').in('post_type',['ride','event']),
+  db.from('post_votes').select('post_type,post_id,user_id,choice,created_at').in('post_type',['ride','event','meeting']),
   db.from('profiles').select('id,full_name,avatar_url').eq('approved',true)
  ]);
  if(votesResult.error)console.warn('Glasovi na početnoj strani nisu učitani:',votesResult.error.message);
@@ -1230,7 +1233,8 @@ async function renderHomeFeed(){
  const allVotes=votesResult.data||[];
  const rv={rows:allVotes.filter(v=>v.post_type==='ride'),members:voterNames};
  const ev={rows:allVotes.filter(v=>v.post_type==='event'),members:voterNames};
- renderPosts(rv,ev,authors);
+ const mv={rows:allVotes.filter(v=>v.post_type==='meeting'),members:voterNames};
+ renderPosts(rv,ev,mv,authors);
 }
 async function loadRides(){
   const el=$('ridesList');
@@ -1448,7 +1452,7 @@ async function publishMeeting(){
  ['meetingTitle','meetingDescription','meetingDate','meetingTime','meetingLocation','meetingImage'].forEach(id=>{if($(id))$(id).value='';});
  $('meetingTitle').value='SASTANAK';$('meetingLocation').value='Klub Haus';
  alert('Sastanak je uspešno objavljen i vidljiv svim odobrenim članovima kluba.');
- await loadMeetings();
+ await loadMeetings();await renderHomeFeed();
 }
 async function editMeeting(id){
  if(!isAdmin){alert('Samo administrator može menjati sastanak.');return;}
@@ -1467,7 +1471,7 @@ async function editMeeting(id){
  if(!title.trim()||!/^\d{4}-\d{2}-\d{2}$/.test(dateValue)||!time.trim()||isNaN(parsed.getTime())){alert('Proveri naziv, datum i vreme sastanka.');return;}
  const {error:updateError}=await db.from('club_meetings').update({title:title.trim(),description:description.trim(),location:location.trim()||null,starts_at:parsed.toISOString(),event_time_text:exact?null:time.trim()}).eq('id',id);
  if(updateError){alert('Sastanak nije izmenjen: '+updateError.message);return;}
- alert('Sastanak je izmenjen.');await loadMeetings();
+ alert('Sastanak je izmenjen.');await loadMeetings();await renderHomeFeed();
 }
 async function deleteMeeting(id){
  if(!isAdmin){alert('Samo administrator može brisati sastanak.');return;}
@@ -1478,7 +1482,7 @@ async function deleteMeeting(id){
  if(error||!data?.length){alert('Sastanak nije obrisan: '+(error?.message||'Proveri administratorska prava.'));return;}
  const cleanupError=await removePostImage(item.storage_path);
  alert(cleanupError?'Sastanak je obrisan, ali fotografija nije uklonjena: '+cleanupError.message:'Sastanak je obrisan.');
- await loadMeetings();
+ await loadMeetings();await renderHomeFeed();
 }
 
 async function loadNews(){const el=$('newsList');if(!session||!profile?.approved){const locked='<div class="notice">Obaveštenja su dostupna samo prijavljenim i odobrenim članovima kluba.</div>';if(el)el.innerHTML=locked;return;}const {data,error}=await db.from('club_announcements').select('*').order('created_at',{ascending:false});const html=error?'<div class="empty">Obaveštenja još nisu dostupna.</div>':data?.length?data.map(x=>card(x,'OBAVEŠTENJE','club_announcements')).join(''):'<div class="empty">Nema novih obaveštenja.</div>';el.innerHTML=html}
