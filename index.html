@@ -1993,7 +1993,13 @@ async function loadAdminMembers(){
  const el=$('adminMembersList');if(!el||!isAdmin)return;
  const {data,error}=await db.from('profiles').select('id,full_name,phone,approved,is_admin').eq('approved',true).order('full_name');
  if(error){el.innerHTML='<p class="muted">Ne mogu da učitam članove: '+esc(error.message)+'</p>';return;}
- el.innerHTML=data?.length?data.map(m=>'<div class="member" style="justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #30343a"><div><b>'+esc(m.full_name||'Bez imena')+'</b><div class="muted">'+esc(m.phone||'')+(m.is_admin?' · ADMIN':'')+'</div></div>'+(m.id===session?.user?.id||m.is_admin?'':'<button class="btn danger" style="font-size:10px;padding:5px 8px;min-height:28px" onclick="adminDeleteMember(\''+m.id+'\',\''+esc(m.full_name||'ovog člana')+'\')">OBRIŠI</button>')+'</div>').join(''):'<p class="muted">Nema odobrenih članova.</p>';
+ el.innerHTML=data?.length?data.map(m=>'<div class="member" style="justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #30343a"><div style="min-width:0;flex:1"><b>'+esc(m.full_name||'Bez imena')+'</b><div class="muted">'+esc(m.phone||'')+(m.is_admin?' · ADMIN':'')+'</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn secondary" style="font-size:10px;padding:5px 8px;min-height:28px" onclick="copyMemberProfileLink(\''+m.id+'\')">LINK PROFILA</button>'+(m.id===session?.user?.id||m.is_admin?'':'<button class="btn danger" style="font-size:10px;padding:5px 8px;min-height:28px" onclick="adminDeleteMember(\''+m.id+'\',\''+esc(m.full_name||'ovog člana')+'\')">OBRIŠI</button>')+'</div></div>').join(''):'<p class="muted">Nema odobrenih članova.</p>';
+}
+async function copyMemberProfileLink(userId){
+ if(!isAdmin||!userId)return;
+ const link=location.origin+location.pathname+'?profile='+encodeURIComponent(userId);
+ try{await navigator.clipboard.writeText(link);alert('Link profila je kopiran. Sada možeš da ga pošalješ članu.');}
+ catch(error){prompt('Kopiraj link profila:',link);}
 }
 async function adminDeleteMember(userId,memberName){
  if(!isAdmin||userId===session?.user?.id)return;
