@@ -161,7 +161,7 @@
 <button data-page="account" onclick="showPage('account')"><b>♟</b>Nalog</button>
 </nav>
 <div class="modalback" id="modalBack"><div class="modal"><button class="close" type="button" data-modal-close="true">Zatvori ✕</button><div id="modalContent"></div></div></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js'"></script>
 <script>
 const SUPABASE_URL='https://gbmbnapxvetedlfpgtit.supabase.co';
 const SUPABASE_KEY='sb_publishable_9GrOIhDzus7HQYGfTXpJqw_3GobgKaI';
@@ -1030,8 +1030,42 @@ function exportFinanceCsv(){
  const a=document.createElement('a');a.href=url;a.download='Carapani-blagajna-'+financeYear+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
-async function refresh(){const {data:{session:s}}=await db.auth.getSession();session=s;profile=null;isAdmin=false;canViewFinance=false;canPublishAnnouncements=false;if(session){const {data}=await db.from('profiles').select('*').eq('id',session.user.id).maybeSingle();profile=data;isAdmin=!!data?.is_admin;if(profile?.approved&&!isAdmin){const {data:financeAccess}=await db.from('club_finance_viewers').select('member_id').eq('member_id',session.user.id).maybeSingle();canViewFinance=!!financeAccess;}canPublishAnnouncements=canPublishClubEvents();}await updatePrivateUnreadBadge();
-$('authStatus').textContent=session?(profile?.approved?'ČLAN':'NA ČEKANJU'):'GOST';updateMainMenuOptions();const eventPublishButton=$('memberEventPublishButton');if(eventPublishButton)eventPublishButton.style.display=canPublishClubEvents()?'':'none';renderAccount();const allowed=applyMemberAccessGate();if(!allowed){showPage('account');return;}const feedPromise=renderHomeFeed();const notificationsPromise=loadClubNotifications();await Promise.all([feedPromise,notificationsPromise]);if($('announcementPublishControls'))$('announcementPublishControls').style.display=canPublishAnnouncements?'block':'none';if($('publisherAnnouncementForm'))$('publisherAnnouncementForm').style.display='none';if($('gallery')?.classList.contains('active'))await loadGallery();const requestedPage=new URLSearchParams(location.search).get('open');if(requestedPage==='chat')showPage('chat');else if(requestedPage==='messages')showPage('messages');else if(isAdmin&&requestedPage==='admin')showPage('admin');const requestedProfile=new URLSearchParams(location.search).get('profile');if(requestedProfile&&profile?.approved){await openMemberProfile(requestedProfile);const cleanUrl=new URL(location.href);cleanUrl.searchParams.delete('profile');history.replaceState({},'',cleanUrl);}}
+async function refresh(){
+ const authResult=await Promise.race([
+  db.auth.getSession(),
+  new Promise((_,reject)=>setTimeout(()=>reject(new Error('Prijava na server traje predugo. Proveri internet vezu i pokušaj ponovo.')),12000))
+ ]);
+ session=authResult?.data?.session||null;profile=null;isAdmin=false;canViewFinance=false;canPublishAnnouncements=false;
+ if(session){
+  const profileResult=await Promise.race([
+   db.from('profiles').select('*').eq('id',session.user.id).maybeSingle(),
+   new Promise((_,reject)=>setTimeout(()=>reject(new Error('Učitavanje profila traje predugo.')),12000))
+  ]);
+  profile=profileResult.data;isAdmin=!!profile?.is_admin;
+  if(profile?.approved&&!isAdmin){
+   const financeResult=await db.from('club_finance_viewers').select('member_id').eq('member_id',session.user.id).maybeSingle();
+   canViewFinance=!!financeResult.data;
+  }
+  canPublishAnnouncements=canPublishClubEvents();
+ }
+ $('authStatus').textContent=session?(profile?.approved?'ČLAN':'NA ČEKANJU'):'GOST';
+ updateMainMenuOptions();
+ const eventPublishButton=$('memberEventPublishButton');if(eventPublishButton)eventPublishButton.style.display=canPublishClubEvents()?'':'none';
+ renderAccount();
+ const allowed=applyMemberAccessGate();
+ if(!allowed){showPage('account');return;}
+ updatePrivateUnreadBadge().catch(e=>console.warn('Nepročitane poruke:',e));
+ const feedPromise=renderHomeFeed().catch(e=>{console.error('Početna strana:',e);const el=$('homeNews');if(el)el.innerHTML='<div class="notice">Objave trenutno nisu dostupne. Proveri internet vezu i osveži stranicu.</div>';});
+ loadClubNotifications().catch(e=>console.warn('Obaveštenja:',e));
+ if($('announcementPublishControls'))$('announcementPublishControls').style.display=canPublishAnnouncements?'block':'none';
+ if($('publisherAnnouncementForm'))$('publisherAnnouncementForm').style.display='none';
+ if($('gallery')?.classList.contains('active'))await loadGallery();
+ const requestedPage=new URLSearchParams(location.search).get('open');
+ if(requestedPage==='chat')showPage('chat');else if(requestedPage==='messages')showPage('messages');else if(isAdmin&&requestedPage==='admin')showPage('admin');
+ const requestedProfile=new URLSearchParams(location.search).get('profile');
+ if(requestedProfile&&profile?.approved){await openMemberProfile(requestedProfile);const cleanUrl=new URL(location.href);cleanUrl.searchParams.delete('profile');history.replaceState({},'',cleanUrl);}
+ await feedPromise;
+}
 
 async function getPostVotes(type){
   if(!session||!profile?.approved)return {rows:[],members:{},error:null};
