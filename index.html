@@ -1937,7 +1937,15 @@ el.innerHTML=`<div class="formbox"><h3>💰 PRISTUP BLAGAJNI I ČLANARINAMA</h3>
 loadAdminMemberStats();loadPendingRides();loadPending();loadAdminMembers()}
 function openAdminMemberRegistration(){
  if(!isAdmin){alert('Samo administrator može registrovati članove.');return;}
- modal(`<div id="adminMemberRegistrationForm" class="formbox"><h3>➕ REGISTRACIJA ČLANA</h3><p class="muted">Unesi podatke člana i odredi mu lozinku koju će koristiti za prijavu. Pozivni e-mail se ne šalje. Lozinka ostaje njegova i može je kasnije promeniti.</p><label>Ime i prezime</label><input class="field" id="adminNewMemberName" maxlength="120" autocomplete="name" placeholder="Ime i prezime člana"><label>E-mail adresa</label><input class="field" id="adminNewMemberEmail" type="email" maxlength="254" autocomplete="email" placeholder="ime@primer.com"><label>Lozinka za prijavu (najmanje 8 karaktera)</label><div style="display:flex;align-items:center;gap:7px"><input class="field" id="adminNewMemberPassword" type="password" minlength="8" maxlength="72" autocomplete="new-password" placeholder="Unesi stalnu lozinku" style="flex:1;min-width:0;margin-bottom:11px"><button class="btn secondary" type="button" aria-label="Prikaži lozinku" title="Prikaži lozinku" onclick="toggleAdminMemberPasswordVisibility(this)" style="flex:0 0 48px;height:44px;padding:8px;font-size:20px">👁</button></div><label>Broj telefona (opciono)</label><input class="field" id="adminNewMemberPhone" type="tel" maxlength="30" placeholder="Broj telefona"><button class="btn" id="adminCreateMemberButton" type="button" style="width:100%" onclick="adminCreateMember()">KREIRAJ NALOG</button><div id="adminNewMemberResult" style="display:none;margin-top:12px"></div></div>`);
+ modal(`<div id="adminMemberRegistrationForm" class="formbox"><h3>➕ REGISTRACIJA ČLANA</h3><p class="muted">Unesi podatke člana i odredi mu lozinku koju će koristiti za prijavu. Pozivni e-mail se ne šalje. Lozinka ostaje njegova i može je kasnije promeniti.</p><label>Ime i prezime</label><input class="field" id="adminNewMemberName" maxlength="120" autocomplete="name" placeholder="Ime i prezime člana"><label>E-mail adresa</label><input class="field" id="adminNewMemberEmail" type="email" maxlength="254" autocomplete="email" placeholder="ime@primer.com"><label>Lozinka za prijavu (najmanje 8 karaktera)</label><div style="display:flex;align-items:center;gap:7px"><input class="field" id="adminNewMemberPassword" type="password" minlength="8" maxlength="72" autocomplete="new-password" placeholder="Unesi stalnu lozinku" style="flex:1;min-width:0;margin-bottom:11px"><button class="btn secondary" type="button" aria-label="Prikaži lozinku" title="Prikaži lozinku" onclick="toggleAdminMemberPasswordVisibility(this)" style="flex:0 0 48px;height:44px;padding:8px;font-size:20px">👁</button></div><label>Broj telefona (opciono)</label><input class="field" id="adminNewMemberPhone" type="tel" maxlength="30" placeholder="Broj telefona">
+<label>Profilna fotografija člana (opciono)</label><input class="field" id="adminNewMemberAvatar" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" onchange="previewAdminMemberImage(this,'adminNewMemberAvatarPreview',true)"><div id="adminNewMemberAvatarPreview" class="muted" style="margin:-5px 0 12px">Fotografija koja će se prikazivati na profilu člana.</div>
+<h3 style="margin-top:18px">🏍️ PODACI O MOTORU</h3>
+<label>Marka motora</label><input class="field" id="adminNewMemberBikeBrand" maxlength="60" placeholder="Npr. Kawasaki">
+<label>Model motora</label><input class="field" id="adminNewMemberBikeModel" maxlength="80" placeholder="Npr. Z1000SX">
+<label>Zapremina (kubika)</label><input class="field" id="adminNewMemberBikeCc" type="number" min="1" max="3000" placeholder="Npr. 1000">
+<label>Snaga (KS)</label><input class="field" id="adminNewMemberBikeHp" type="number" min="1" max="1000" placeholder="Npr. 142">
+<label>Fotografija motora (opciono)</label><input class="field" id="adminNewMemberBikePhoto" type="file" accept="image/*" onchange="previewAdminMemberImage(this,'adminNewMemberBikePhotoPreview',false)"><div id="adminNewMemberBikePhotoPreview" class="muted" style="margin:-5px 0 12px">Fotografija motora člana.</div>
+<button class="btn" id="adminCreateMemberButton" type="button" style="width:100%" onclick="adminCreateMember()">KREIRAJ NALOG</button><div id="adminNewMemberResult" style="display:none;margin-top:12px"></div></div>`);
 }
 function toggleAdminMemberPasswordVisibility(button){
  const field=$('adminNewMemberPassword');if(!field||!button)return;
@@ -1947,19 +1955,65 @@ function toggleAdminMemberPasswordVisibility(button){
  button.setAttribute('aria-label',show?'Sakrij lozinku':'Prikaži lozinku');
  button.title=show?'Sakrij lozinku':'Prikaži lozinku';
 }
+function previewAdminMemberImage(input,previewId,round){
+ const file=input?.files?.[0],preview=$(previewId);if(!preview)return;
+ if(!file){preview.textContent=round?'Fotografija koja će se prikazivati na profilu člana.':'Fotografija motora člana.';return;}
+ if(!String(file.type||'').startsWith('image/')){preview.textContent='Izaberi ispravnu fotografiju.';input.value='';return;}
+ if(file.size>15*1024*1024){alert('Fotografija ne sme biti veća od 15 MB.');input.value='';return;}
+ const reader=new FileReader();
+ reader.onload=()=>{preview.innerHTML='<img src="'+reader.result+'" alt="Pregled fotografije" style="'+(round?'width:92px;height:92px;border-radius:50%;object-fit:cover':'width:100%;max-height:180px;object-fit:contain;border-radius:10px')+';border:2px solid #d9272e"><div class="muted" style="margin-top:5px">'+esc(file.name)+'</div>';};
+ reader.onerror=()=>{preview.textContent='Pregled fotografije nije uspeo.';};
+ reader.readAsDataURL(file);
+}
+async function compressAdminRegistrationImage(file){
+ const objectUrl=URL.createObjectURL(file);
+ try{
+  const img=new Image();img.src=objectUrl;
+  await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error('Ne mogu da otvorim fotografiju. Izaberi JPG, PNG ili WEBP.'));});
+  if(!img.naturalWidth||!img.naturalHeight)throw new Error('Fotografija je prazna ili oštećena.');
+  let scale=Math.min(1,1280/Math.max(img.naturalWidth,img.naturalHeight)),blob=null;
+  const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');
+  if(!ctx)throw new Error('Uređaj ne podržava obradu fotografija.');
+  for(let attempt=0;attempt<7;attempt++){
+   canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
+   ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);
+   blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',[0.78,0.72,0.66,0.60,0.55,0.50,0.45][attempt]));
+   if(blob&&blob.size<=700*1024)break;
+   scale*=0.82;
+  }
+  if(!blob||blob.size>700*1024)throw new Error('Fotografija je prevelika i nakon smanjivanja. Izaberi drugu sliku.');
+  return blob;
+ }finally{URL.revokeObjectURL(objectUrl);}
+}
+async function adminImageToBase64(blob){
+ return await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>{const value=String(reader.result||'');const comma=value.indexOf(',');if(comma<0)reject(new Error('Fotografija nije mogla da se pripremi za slanje.'));else resolve(value.slice(comma+1));};reader.onerror=()=>reject(new Error('Čitanje fotografije nije uspelo.'));reader.readAsDataURL(blob);});
+}
 async function adminCreateMember(){
  if(!isAdmin||!session){alert('Samo administrator može registrovati novog člana.');return;}
  const full_name=$('adminNewMemberName')?.value.trim()||'';
  const email=$('adminNewMemberEmail')?.value.trim()||'';
  const phone=$('adminNewMemberPhone')?.value.trim()||'';
  const password=$('adminNewMemberPassword')?.value||'';
+ const avatarFile=$('adminNewMemberAvatar')?.files?.[0]||null;
+ const bikePhotoFile=$('adminNewMemberBikePhoto')?.files?.[0]||null;
+ const bike_brand=$('adminNewMemberBikeBrand')?.value.trim()||'';
+ const bike_model=$('adminNewMemberBikeModel')?.value.trim()||'';
+ const bike_cc=$('adminNewMemberBikeCc')?.value?Number($('adminNewMemberBikeCc').value):null;
+ const bike_horsepower=$('adminNewMemberBikeHp')?.value?Number($('adminNewMemberBikeHp').value):null;
  if(!full_name||!email||!password){alert('Unesi ime i prezime, e-mail adresu i lozinku člana.');return;}
  if(password.length<8||password.length>72){alert('Lozinka mora imati najmanje 8, a najviše 72 karaktera.');return;}
+ if(bike_cc!==null&&(!Number.isInteger(bike_cc)||bike_cc<1||bike_cc>3000)){alert('Unesi ispravnu kubikažu motora.');return;}
+ if(bike_horsepower!==null&&(!Number.isInteger(bike_horsepower)||bike_horsepower<1||bike_horsepower>1000)){alert('Unesi ispravnu snagu motora u KS.');return;}
+ if((bike_brand||bike_model||bike_cc!==null||bike_horsepower!==null||bikePhotoFile)&&!bike_brand){alert('Unesi marku motora ako popunjavaš podatke o motoru.');return;}
  const button=$('adminCreateMemberButton'),result=$('adminNewMemberResult');
  if(button){button.disabled=true;button.textContent='KREIRANJE NALOGA…';}
  if(result){result.style.display='none';result.innerHTML='';}
  try{
-  const {data,error}=await db.functions.invoke('admin-create-member',{body:{full_name,email,phone,password}});
+  let avatar_image_base64=null,bike_image_base64=null;
+  if(avatarFile){button.textContent='OBRADA PROFILNE SLIKE…';avatar_image_base64=await adminImageToBase64(await compressAdminRegistrationImage(avatarFile));}
+  if(bikePhotoFile){button.textContent='OBRADA SLIKE MOTORA…';bike_image_base64=await adminImageToBase64(await compressAdminRegistrationImage(bikePhotoFile));}
+  button.textContent='KREIRANJE NALOGA…';
+  const {data,error}=await db.functions.invoke('admin-create-member',{body:{full_name,email,phone,password,avatar_image_base64,bike_image_base64,bike_brand,bike_model,bike_cc,bike_horsepower}});
   if(error){
    let message=error.message||'Poziv nije uspeo.';
    try{const body=error.context instanceof Response?await error.context.clone().json():null;if(body?.error)message=body.error;}catch(_){}
@@ -1971,7 +2025,9 @@ async function adminCreateMember(){
    result.style.display='block';
    result.innerHTML='<div class="notice" style="margin:0 0 10px">Nalog je uspešno kreiran i član je odobren. Pozivni e-mail nije poslat. Lozinka koju si uneo važi za prijavu i nije prikazana niti sačuvana u aplikaciji.</div><label>E-MAIL ZA PRIJAVU</label><input class="field" readonly value="'+esc(email)+'" style="font-size:12px"><label>LINK DO PROFILA</label><input class="field" id="adminCreatedMemberLink" readonly value="'+esc(profileLink)+'" onclick="this.select()" style="font-size:12px"><button class="btn secondary" type="button" style="width:100%" onclick="copyAdminMemberLink()">KOPIRAJ LINK PROFILA</button>';
   }
-  $('adminNewMemberName').value='';$('adminNewMemberEmail').value='';$('adminNewMemberPassword').value='';$('adminNewMemberPhone').value='';
+  ['adminNewMemberName','adminNewMemberEmail','adminNewMemberPassword','adminNewMemberPhone','adminNewMemberAvatar','adminNewMemberBikeBrand','adminNewMemberBikeModel','adminNewMemberBikeCc','adminNewMemberBikeHp','adminNewMemberBikePhoto'].forEach(id=>{if($(id))$(id).value='';});
+  if($('adminNewMemberAvatarPreview'))$('adminNewMemberAvatarPreview').textContent='Fotografija koja će se prikazivati na profilu člana.';
+  if($('adminNewMemberBikePhotoPreview'))$('adminNewMemberBikePhotoPreview').textContent='Fotografija motora člana.';
   await loadAdminMemberStats();await loadAdminMembers();
  }catch(error){
   console.error('Administratorsko kreiranje člana nije uspelo:',error);
